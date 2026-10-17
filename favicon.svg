@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Torre do bastião: dourado do título sobre o verde-escuro do painel -->
+  <rect width="64" height="64" rx="14" fill="#22271f"/>
+  <path d="M32 5v11" stroke="#ede5cf" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M33 5l11 3.5L33 12z" fill="#e0715a"/>
+  <path d="M16 18h7v5h6v-5h6v5h6v-5h7v10l-4 4v22H20V32l-4-4z" fill="#d6a547"/>
+  <path d="M27 54V44a5 5 0 0 1 10 0v10z" fill="#2a1f08"/>
+  <rect x="30.5" y="33" width="3" height="6" rx="1.5" fill="#2a1f08"/>
+</svg>
