@@ -75,9 +75,10 @@ test('bênçãos de ouro e de defesa', () => {
   G.S.gold = 9999;
   G.build('archer', 3, 4);
   const t = G.S.towers[0];
-  const cost = G.upCost(t);
+  const up = G.upCost(t);
   bless('artisans');
-  assert.equal(G.upCost(t), Math.round(cost * 0.8), 'Mestres Artesãos: melhorias 20% mais baratas');
+  assert.equal(G.specCost(t), Math.round(TD.TOWERS.archer.cost * TD.SPEC_COST_MUL * 0.6), 'Mestres Artesãos: especializações 40% mais baratas');
+  assert.equal(G.upCost(t), up, 'melhorias comuns não mudam');
 
   bless('livingWall');
   bless('interest');
@@ -85,10 +86,10 @@ test('bênçãos de ouro e de defesa', () => {
   winWave();
   assert.equal(G.S.lives, 41, 'Muralha Viva: recupera 1 vida por onda');
   const bonus = G.waveBonus(G.S.wave);
-  assert.equal(G.S.gold, 300 + bonus + 30, 'Juros do Tesouro: 10% do ouro guardado');
+  assert.equal(G.S.gold, 300 + bonus + 15, 'Juros do Tesouro: 5% do ouro guardado');
 });
 
-test('Cofre do Rei dobra o ouro dos chefes e Estrepes deixam a estrada mais lenta', () => {
+test('Cofre do Rei quadruplica o ouro dos chefes e Estrepes deixam a estrada mais lenta', () => {
   newRun();
   G.S.waveActive = true;
   G.spawn('boss', 400);
@@ -101,7 +102,7 @@ test('Cofre do Rei dobra o ouro dos chefes e Estrepes deixam a estrada mais lent
   boss = G.S.enemies[G.S.enemies.length - 1];
   before = G.S.gold;
   G.hurt(boss, 1e9, true, null);
-  assert.equal(G.S.gold - before, plain * 2);
+  assert.equal(G.S.gold - before, plain * 4);
 
   G.S.enemies = [];
   G.spawn('soldier', 100);

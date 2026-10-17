@@ -10,17 +10,17 @@
 
   // tag: a quem a bênção se aplica, mostrado no cartão
   TD.BLESSINGS = [
-    { id: 'fireArrows', tag: 'Arqueiro', name: 'Flechas Ígneas', desc: 'Arqueiros incendeiam o alvo, que queima por 2 s.' },
+    { id: 'fireArrows', tag: 'Arqueiro', name: 'Flechas Ígneas', desc: 'Arqueiros incendeiam o alvo, que queima por 3 s.' },
     { id: 'powder', tag: 'Canhão', name: 'Pólvora Fina', desc: 'As explosões dos Canhões ficam 30% maiores.' },
-    { id: 'deepFrost', tag: 'Geada', name: 'Inverno Profundo', desc: 'A lentidão da Geada é mais forte e dura o dobro.' },
+    { id: 'deepFrost', tag: 'Geada', name: 'Inverno Profundo', desc: 'A Geada causa o dobro de dano, e sua lentidão é mais forte e dura o dobro.' },
     { id: 'sharpBolts', tag: 'Balestra', name: 'Virotes Afiados', desc: 'Balestras causam 35% mais dano.' },
     { id: 'resonance', tag: 'Arcano', name: 'Cristal Ressonante', desc: 'O raio do Arcano salta para 2 inimigos a mais.' },
     { id: 'drill', tag: 'Quartel', name: 'Disciplina de Ferro', desc: 'Cada Quartel ganha mais um soldado, e todos 25% mais vida.' },
     { id: 'eagle', tag: 'Todas as torres', name: 'Olhos de Águia', desc: 'Todas as torres alcançam 12% mais longe.' },
     { id: 'fury', tag: 'Todas as torres', name: 'Tambores de Guerra', desc: 'Todas as torres atacam 10% mais rápido.' },
-    { id: 'kingsVault', tag: 'Ouro', name: 'Cofre do Rei', desc: 'Chefes derrotados rendem o dobro de ouro.' },
-    { id: 'interest', tag: 'Ouro', name: 'Juros do Tesouro', desc: 'Ao fim de cada onda, ganhe 10% do ouro guardado (até 60).' },
-    { id: 'artisans', tag: 'Ouro', name: 'Mestres Artesãos', desc: 'Melhorias e especializações custam 20% menos.' },
+    { id: 'kingsVault', tag: 'Ouro', name: 'Cofre do Rei', desc: 'Chefes derrotados rendem quatro vezes mais ouro.' },
+    { id: 'interest', tag: 'Ouro', name: 'Juros do Tesouro', desc: 'Ao fim de cada onda, ganhe 5% do ouro guardado (até 30).' },
+    { id: 'artisans', tag: 'Ouro', name: 'Mestres Artesãos', desc: 'Especializações custam 40% menos.' },
     { id: 'livingWall', tag: 'Muralha', name: 'Muralha Viva', desc: 'Recupere 1 vida ao fim de cada onda.' },
     { id: 'caltrops', tag: 'Estrada', name: 'Estrepes', desc: 'Inimigos que andam pela estrada ficam 12% mais lentos.' },
     { id: 'tactician', tag: 'Poderes', name: 'Estrategista', desc: 'Chuva, Congelar e Chamado recarregam 30% mais rápido.' },

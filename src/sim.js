@@ -19,7 +19,7 @@
   const challengeKey = (m, d) => `bastiao-desafios-${m}-${d}`;
   const readChallenges = (m, d) => Number(store.load(challengeKey(m, d), 0)) || 0;
   const SWIFT_MUL = 1.2, POOR_MUL = 0.7;
-  const INTEREST_RATE = 0.1, INTEREST_MAX = 60;
+  const INTEREST_RATE = 0.05, INTEREST_MAX = 30;
 
   const G = (TD.game = { S: null, md: null, onEnd: () => {}, onWaveEnd: () => {} });
   // Vida dos inimigos por onda. Os comuns crescem mais rápido que os chefes (curva da dificuldade): sem isso só
@@ -82,9 +82,9 @@
 
   // Efeitos das bênçãos sobre as torres, depois da especialização
   function blessStats(t, s) {
-    if (blessed('fireArrows') && t.type === 'archer' && !s.dot) { s.dot = s.dmg * 0.3; s.dotDur = 2; s.dotKind = 'burn'; }
+    if (blessed('fireArrows') && t.type === 'archer' && !s.dot) { s.dot = s.dmg * 0.6; s.dotDur = 3; s.dotKind = 'burn'; }
     if (blessed('powder') && t.type === 'cannon') s.splash *= 1.3;
-    if (blessed('deepFrost') && t.type === 'frost') { s.slowDur *= 2; s.slow = Math.min(0.8, s.slow + 0.1); }
+    if (blessed('deepFrost') && t.type === 'frost') { s.slowDur *= 2; s.slow = Math.min(0.8, s.slow + 0.1); s.dmg *= 2; }
     if (blessed('sharpBolts') && t.type === 'ballista') s.dmg *= 1.35;
     if (blessed('resonance') && s.chain) s.chain += 2;
     if (blessed('drill') && s.units) { s.units += 1; s.unitHp *= 1.25; }
@@ -129,9 +129,9 @@
   const specOf = t => (t.spec && SPECS[t.type].find(x => x.id === t.spec)) || null;
   const costOf = type => Math.round(TOWERS[type].cost * (1 - 0.05 * (G.S?.perks?.masons || 0)));
   const powerCd = p => p.cd * (1 - 0.1 * (G.S?.perks?.tactics || 0)) * (blessed('tactician') ? 0.7 : 1);
-  const artisanMul = () => (blessed('artisans') ? 0.8 : 1);
-  const upCost = t => Math.round(TOWERS[t.type].cost * 0.8 * t.level * artisanMul());
-  const specCost = t => Math.round(TOWERS[t.type].cost * TD.SPEC_COST_MUL * artisanMul());
+  // Mestres Artesãos barateia só as especializações: desconto em toda melhoria se acumulava e valia ondas a mais
+  const upCost = t => Math.round(TOWERS[t.type].cost * 0.8 * t.level);
+  const specCost = t => Math.round(TOWERS[t.type].cost * TD.SPEC_COST_MUL * (blessed('artisans') ? 0.6 : 1));
   // Torre que ainda não atirou nem viu uma onda começar devolve o preço cheio: desfaz cliques errados
   const refund = t => (t.fresh ? t.spent : Math.floor(t.spent * 0.7));
   const towerAt = (c, r) => G.S.towers.find(t => t.c === c && t.r === r) || null;
@@ -393,7 +393,7 @@
     if (src && src.isHero) TD.hero.onKill(src, e);
     TD.achievements?.onKill(e);
     TD.foes.onDeath(e);
-    const vault = e.d.boss && blessed('kingsVault') ? 2 : 1;
+    const vault = e.d.boss && blessed('kingsVault') ? 4 : 1;
     const g = Math.floor((e.d.gold + Math.floor(S.wave / 5)) * (S.mods?.poor ? POOR_MUL : 1)) * vault;
     S.gold += g;
     const py = e.d.flying ? e.y - 10 : e.y;
