@@ -112,3 +112,37 @@ test('o histórico guarda vidas e ouro ao fim de cada onda e sobrevive a salvar'
   assert.equal(TD.chart.niceMax(730), 1000);
   assert.equal(TD.chart.niceMax(18), 20);
 });
+
+test('salvar no meio de uma onda guarda o começo dela: o ouro dos abates não se repete', () => {
+  G.newGame('vale', 'normal');
+  const S = G.S;
+  S.gold = 500;
+  G.build('archer', 5, 5);
+  G.build('archer', 3, 3);
+  const atStart = { gold: S.gold, towers: S.towers.length };
+  G.startWave();
+  runUntil(G, () => S.kills >= 3, 120);
+  G.build('archer', 8, 6); // construída no meio da onda
+  assert.ok(S.gold !== atStart.gold, 'a onda já rendeu ou custou ouro');
+  const snap = JSON.parse(JSON.stringify(G.snapshot()));
+  assert.equal(G.restore(snap), true);
+  assert.equal(G.S.wave, 0, 'a onda interrompida volta a ser jogada');
+  assert.equal(G.S.gold, atStart.gold, 'o ouro volta ao do começo da onda');
+  assert.equal(G.S.kills, 0, 'os abates também');
+  assert.equal(G.S.towers.length, atStart.towers, 'a torre feita no meio da onda não fica de graça');
+});
+
+test('na chamada antecipada o salvamento volta ao começo da onda que ainda tinha inimigos', () => {
+  G.newGame('vale', 'normal');
+  const S = G.S;
+  S.gold = 300;
+  G.build('archer', 5, 5);
+  const goldBefore = S.gold;
+  G.startWave();
+  runUntil(G, () => !S.queue.length, 120); // todos já saíram da caverna, alguns ainda vivos
+  assert.ok(S.enemies.length > 0 && G.canCallEarly());
+  G.startWave(); // chama a onda 2 antes da hora
+  const snap = JSON.parse(JSON.stringify(G.snapshot()));
+  assert.equal(snap.wave, 0, 'a onda 1 ainda não tinha terminado');
+  assert.equal(snap.gold, goldBefore);
+});

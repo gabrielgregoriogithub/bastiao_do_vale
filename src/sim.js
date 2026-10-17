@@ -255,6 +255,9 @@
       addFx({ kind: 'text', x: W / 2, y: H / 2 + 30, txt: `Chamada antecipada · +${b} de ouro`, color: '#d6a547', life: 1.8, big: true });
       S.earlyCalls = (S.earlyCalls || 0) + 1;
     }
+    // Ponto de salvamento: o estado sem inimigos logo antes da onda. Na chamada antecipada a onda anterior
+    // ainda tem inimigos vivos, então vale o ponto do começo dela.
+    if (!S.waveActive) S.checkpoint = snapshot();
     S.wavePowers = {};
     S.wave += 1;
     for (const t of S.towers) t.fresh = false;
@@ -636,9 +639,12 @@
   }
 
   // ---------- Recarga ao vivo do artifact ----------
+  // No meio de uma onda devolve o ponto de salvamento do começo dela: guardar o ouro e os abates já ganhos
+  // e depois jogar a mesma onda de novo dava ouro sem fim a quem fechasse e reabrisse a página
   function snapshot() {
     const S = G.S;
     if (!S || !S.inGame || S.over) return {};
+    if (S.waveActive && S.checkpoint) return S.checkpoint;
     return {
       mapId: S.mapId, diffId: S.diffId, gold: S.gold, lives: S.lives, kills: S.kills, mods: Object.keys(S.mods || {}),
       daily: S.daily, seed: S.seed, history: S.history,
