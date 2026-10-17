@@ -105,7 +105,7 @@
     shownOwned = key;
     box.hidden = !S.blessings.length;
     owned.innerHTML = S.blessings.map(byId).filter(Boolean)
-      .map(b => `<li title="${b.desc}"><span class="bless-nm">${b.name}</span><span class="bless-tag">${b.tag}</span></li>`).join('');
+      .map(b => `<li title="${b.tag}: ${b.desc}">${b.name}</li>`).join('');
   }
 
   // Chamado a cada quadro pelo laço principal
