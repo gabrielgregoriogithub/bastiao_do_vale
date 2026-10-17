@@ -29,7 +29,7 @@
     * ENDLESS_GROWTH ** Math.max(0, n - MAX_WAVES);
   // As colunas ficam mais densas a cada onda (3% menos espaço entre inimigos, até a metade)
   const gapMul = n => Math.max(0.5, 1 - 0.03 * (n - 1));
-  let nextId = 1;
+  let nextId = 1, nextRun = 1;
 
   function freshState(mapId, diffId) {
     const diff = DIFFICULTIES[diffId];
@@ -58,7 +58,8 @@
     prepare(mapId, diffId);
     const S = G.S;
     S.inGame = true;
-    S.mods = Object.fromEntries(TD.CHALLENGES.filter(c => mods.includes(c.id)).map(c => [c.id, true]));
+    S.runId = `${Date.now().toString(36)}-${nextRun++}`; // identifica a partida em "Suas melhores partidas"
+    S.mods =Object.fromEntries(TD.CHALLENGES.filter(c => mods.includes(c.id)).map(c => [c.id, true]));
     S.hero = S.mods.nohero ? null : TD.hero.create(S.perks.veteran ? 3 : 1, heroKind);
     S.history = [{ wave: 0, gold: S.gold, lives: S.lives }];
   }
@@ -648,7 +649,7 @@
     if (S.waveActive && S.checkpoint) return S.checkpoint;
     return {
       mapId: S.mapId, diffId: S.diffId, gold: S.gold, lives: S.lives, kills: S.kills, mods: Object.keys(S.mods || {}),
-      daily: S.daily, seed: S.seed, history: S.history,
+      daily: S.daily, seed: S.seed, history: S.history, runId: S.runId,
       wave: S.waveActive ? S.wave - 1 : S.wave, endless: S.endless, auto: S.auto,
       hero: S.hero ? { kind: S.hero.kind, level: S.hero.level, xp: S.hero.xp, kills: S.hero.kills } : null,
       towers: S.towers.map(t => ({ type: t.type, c: t.c, r: t.r, level: t.level, spent: t.spent, target: t.target, spec: t.spec, kills: t.kills, dmgDone: t.dmgDone })),
@@ -673,6 +674,7 @@
     S.wave = intIn(data.wave, 0, 10000, 0);
     S.endless = !!data.endless;
     S.auto = !!data.auto;
+    if (typeof data.runId === 'string' && data.runId.length <= 40) S.runId = data.runId;
     if (typeof data.daily === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(data.daily) && Number.isFinite(data.seed)) {
       S.daily = data.daily;
       S.seed = data.seed >>> 0;

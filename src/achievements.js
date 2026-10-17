@@ -115,16 +115,18 @@
     return Array.isArray(v) ? v.filter(r => r && Number.isFinite(r.wave)).sort(better).slice(0, RUNS_MAX) : [];
   }
 
-  // Guarda a partida que acabou, se ela entrar entre as 10 melhores (mais ondas; no empate, mais abates)
+  // Guarda a partida que acabou, se ela entrar entre as 10 melhores (mais ondas; no empate, mais abates).
+  // Quem vence e segue no modo sem fim registra de novo ao cair: o novo registro substitui o da vitória.
   function recordRun(victory) {
     const S = G.S;
     if (!S.inGame) return;
     const run = {
-      at: Date.now(), map: G.md.map.name, diff: S.diff.name, hero: S.hero ? TD.hero.defOf(S.hero).name : 'Sem herói',
-      wave: victory ? S.wave : Math.max(0, S.wave - 1), kills: S.kills, victory: !!victory, daily: !!S.daily,
+      at: Date.now(), runId: S.runId, map: G.md.map.name, diff: S.diff.name, hero: S.hero ? TD.hero.defOf(S.hero).name : 'Sem herói',
+      wave: victory ? S.wave : Math.max(0, S.wave - 1), kills: S.kills, victory: !!victory || !!S.endless, daily: !!S.daily,
       mods: Object.keys(S.mods || {}).length,
     };
-    writeJson(RUNS_KEY, [...runs(), run].sort(better).slice(0, RUNS_MAX));
+    const others = runs().filter(r => r.runId !== S.runId);
+    writeJson(RUNS_KEY, [...others, run].sort(better).slice(0, RUNS_MAX));
   }
 
   TD.achievements = { onKill, onWaveEnd, onVictory, flushKills, sync, list, has, totalKills: () => totalKills + pendingKills, runs, recordRun };

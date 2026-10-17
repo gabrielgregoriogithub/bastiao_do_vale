@@ -108,3 +108,17 @@ test('suas melhores partidas: guarda as 10 melhores, por ondas e depois abates',
   }
   assert.equal(best[0].map, 'Passo do Rio');
 });
+
+test('vencer e cair depois no modo sem fim vira uma partida só em suas melhores partidas', () => {
+  G.newGame('vale', 'normal');
+  G.S.wave = 20;
+  G.S.kills = 4321;
+  TD.achievements.recordRun(true);
+  G.continueEndless();
+  G.S.wave = 26;
+  TD.achievements.recordRun(false);
+  const mine = TD.achievements.runs().filter(r => r.kills === 4321);
+  assert.equal(mine.length, 1);
+  assert.equal(mine[0].wave, 25);
+  assert.equal(mine[0].victory, true, 'continua marcada como vitória');
+});

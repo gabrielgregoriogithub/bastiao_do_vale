@@ -132,11 +132,11 @@
   canvas.addEventListener('pointerleave', () => { hover = null; draw(); });
   canvas.addEventListener('pointerdown', ev => { hover = cellFrom(ev); tryAdd(...hover); });
 
-  // Teclado: setas movem o cursor, Enter ou Espaço marcam a casa, Backspace desfaz
+  // Teclado: com o foco na grade, setas movem o cursor, Enter ou Espaço marcam a casa, Backspace desfaz.
+  // Nos campos de texto e nos botões as teclas fazem o de sempre (apagar, digitar, clicar).
   function onKey(ev) {
-    if (!open) return;
+    if (!open || ev.target !== canvas) return;
     const moves = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
-    if (ev.target === nameEl) return;
     if (moves[ev.key]) {
       ev.preventDefault();
       const [c, r] = hover || (points.length ? points[points.length - 1] : [0, 5]);
