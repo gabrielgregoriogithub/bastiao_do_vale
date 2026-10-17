@@ -370,6 +370,7 @@
     S.gold += g;
     const py = e.d.flying ? e.y - 10 : e.y;
     addFx({ kind: 'puff', x: e.x, y: py, r: e.d.r, color: e.d.color, life: 0.45 });
+    if (!e.d.flying) addFx({ kind: 'stain', x: e.x, y: e.y + 2, r: e.d.r * 0.9, color: e.d.dark, life: 4 });
     const shards = e.d.boss ? 14 : 5;
     for (let i = 0; i < shards; i++) {
       const a = Math.random() * Math.PI * 2, sp = 60 + Math.random() * (e.d.boss ? 160 : 90);
@@ -456,6 +457,7 @@
       addFx({ kind: 'line', x: t.x, y: t.y, x2: ex, y2: ey, life: 0.3 });
       return;
     }
+    addFx({ kind: 'spark', x: e.x, y: e.d.flying ? e.y - 10 : e.y, ang: t.ang, color: '#f3ead2', life: 0.2 });
     hurt(e, t.s.dmg * (e.d.armor > 0 ? t.s.armoredMul : 1), true, t);
     addFx({ kind: 'line', x: t.x, y: t.y, x2: e.x, y2: e.y, life: 0.25 });
   }
@@ -499,11 +501,16 @@
         hurt(e, s.dmg, false, s.src);
         if (s.dot && !e.dead) applyDot(e, s.dotKind, s.dot, s.dotDur, s.src);
       }
-      addFx({ kind: 'ring', x: s.tx, y: s.ty, r: s.splash, color: s.spec === 'fire' ? '#ff7a30' : '#f0a050', life: 0.3 });
+      addFx({ kind: 'blast', x: s.tx, y: s.ty, r: s.splash, fire: s.spec === 'fire', life: 0.45 });
+      addFx({ kind: 'scorch', x: s.tx, y: s.ty, r: s.splash * 0.5, life: 5 });
+      for (let i = 0; i < 3; i++) {
+        addFx({ kind: 'smoke', x: s.tx + (Math.random() - 0.5) * s.splash * 0.6, y: s.ty + (Math.random() - 0.5) * s.splash * 0.4, r: 6 + Math.random() * 5, life: 0.9 + Math.random() * 0.5 });
+      }
       sfx.play('boom');
       return;
     }
     if (tg.dead) return;
+    addFx({ kind: 'spark', x: tg.x, y: tg.d.flying ? tg.y - 10 : tg.y, ang: Math.atan2(s.vy, s.vx), color: s.kind === 'frost' ? '#d8f4fc' : '#f3ead2', life: 0.18 });
     hurt(tg, s.dmg, false, s.src);
     if (tg.dead) return;
     if (s.kind === 'frost') {

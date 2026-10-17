@@ -23,12 +23,35 @@
     };
   }
 
+  // Mancha suave de luz ou sombra: dá relevo ao gramado sem marcar casas
+  function blot(g, x, y, r, color) {
+    const grad = g.createRadialGradient(x, y, 0, x, y, r);
+    grad.addColorStop(0, color);
+    grad.addColorStop(1, color.replace(/[\d.]+\)$/, '0)'));
+    g.fillStyle = grad;
+    g.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+
+  // Tufo de três folhas, um pouco abertas
+  function tuft(g, x, y, h, color) {
+    g.strokeStyle = color;
+    g.beginPath();
+    g.moveTo(x - 2, y); g.lineTo(x - 3, y - h * 0.8);
+    g.moveTo(x, y); g.lineTo(x + 0.5, y - h);
+    g.moveTo(x + 2, y); g.lineTo(x + 3.5, y - h * 0.75);
+    g.stroke();
+  }
+
   function drawGrass(g, pal, rnd) {
     g.fillStyle = pal.grass;
     g.fillRect(0, 0, W, H);
+    for (let i = 0; i < 46; i++) {
+      blot(g, rnd() * W, rnd() * H, 40 + rnd() * 90, rnd() > 0.5 ? 'rgba(255,245,200,.07)' : 'rgba(0,0,0,.09)');
+    }
+    // variação leve por casa: ajuda a ler a grade onde se constrói
     for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
       const v = rnd();
-      g.fillStyle = v > 0.5 ? `rgba(255,250,210,${(v - 0.5) * 0.08})` : `rgba(0,0,0,${(0.5 - v) * 0.1})`;
+      g.fillStyle = v > 0.5 ? `rgba(255,250,210,${(v - 0.5) * 0.05})` : `rgba(0,0,0,${(0.5 - v) * 0.06})`;
       g.fillRect(c * T, r * T, T, T);
     }
     g.lineWidth = 1.2;
@@ -37,6 +60,7 @@
       g.strokeStyle = pal.tufts[rnd() > 0.5 ? 0 : 1];
       g.beginPath(); g.moveTo(x, y); g.lineTo(x + (rnd() - 0.5) * 2, y - 3 - rnd() * 2); g.stroke();
     }
+    for (let i = 0; i < 90; i++) tuft(g, rnd() * W, rnd() * H, 4 + rnd() * 3, pal.tufts[rnd() > 0.4 ? 0 : 1]);
     for (let i = 0; i < 40; i++) {
       g.fillStyle = pal.flowers[rnd() > 0.5 ? 0 : 1];
       circle(g, rnd() * W, rnd() * H, 1.3); g.fill();
@@ -74,16 +98,60 @@
         g.stroke();
       }
     };
+    stroke('rgba(20,28,12,.22)', T + 14);
     stroke('rgba(30,40,20,.45)', T + 6);
     stroke(pal.road[0], T);
     stroke(pal.road[1], T - 8);
+    // faixa gasta no meio, por onde todos passam
+    stroke('rgba(255,240,200,.09)', T * 0.42);
+    stroke('rgba(255,240,200,.06)', T * 0.2);
     for (const path of md.paths) {
       for (let i = 0; i < 260 / md.paths.length; i++) {
         const p = path.posAt(rnd() * path.len);
         g.fillStyle = pal.pebbles[rnd() > 0.5 ? 0 : 1];
         circle(g, p.x + (rnd() - 0.5) * T * 0.7, p.y + (rnd() - 0.5) * T * 0.7, 0.8 + rnd() * 1.4); g.fill();
       }
+      // tufos de grama invadindo a beirada: a borda deixa de ser uma linha reta
+      g.lineWidth = 1.2;
+      for (let i = 0; i < path.len / 9; i++) {
+        const d = rnd() * path.len, a = path.posAt(d), b = path.posAt(Math.min(path.len, d + 1));
+        const len = Math.hypot(b.x - a.x, b.y - a.y) || 1, nx = -(b.y - a.y) / len, ny = (b.x - a.x) / len;
+        const side = rnd() > 0.5 ? 1 : -1, off = T / 2 - 1 + rnd() * 3;
+        tuft(g, a.x + nx * off * side, a.y + ny * off * side + 2, 3 + rnd() * 3, pal.tufts[rnd() > 0.5 ? 0 : 1]);
+      }
     }
+  }
+
+  // Arbustos e pedras nas casas de cenário ao lado da caverna (a coluna da muralha fica coberta por ela)
+  function drawDecor(g, md, rnd) {
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS - 1; c++) {
+      if (md.blocked[r][c] !== 2) continue;
+      const x = (c + 0.5) * T, y = (r + 0.5) * T;
+      if (rnd() > 0.45) {
+        g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(x + 2, y + 9, 15, 6, 0, 0, Math.PI * 2); g.fill();
+        for (const [dx, dy, s, col] of [[-7, 2, 9, '#2f4a22'], [6, 3, 10, '#2f4a22'], [0, -4, 11, '#3d5c2b'], [-3, -1, 6, '#4f7337'], [5, -6, 4, '#628a44']]) {
+          g.fillStyle = col; circle(g, x + dx, y + dy, s); g.fill();
+        }
+      } else {
+        g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(x + 2, y + 8, 13, 5, 0, 0, Math.PI * 2); g.fill();
+        g.fillStyle = '#6f6a5e'; g.beginPath(); g.ellipse(x - 3, y + 2, 11, 8, -0.3, 0, Math.PI * 2); g.fill();
+        g.fillStyle = '#868174'; g.beginPath(); g.ellipse(x + 5, y + 4, 7, 5, 0.4, 0, Math.PI * 2); g.fill();
+        g.fillStyle = 'rgba(255,255,255,.14)'; g.beginPath(); g.ellipse(x - 5, y - 1, 5, 3, -0.3, 0, Math.PI * 2); g.fill();
+      }
+    }
+  }
+
+  // Luz quente vinda do alto à esquerda e bordas mais escuras, para o campo ganhar profundidade
+  function drawLight(g) {
+    const sun = g.createLinearGradient(0, 0, W, H);
+    sun.addColorStop(0, 'rgba(255,236,170,.10)');
+    sun.addColorStop(0.5, 'rgba(255,236,170,0)');
+    sun.addColorStop(1, 'rgba(0,10,20,.10)');
+    g.fillStyle = sun; g.fillRect(0, 0, W, H);
+    const vig = g.createRadialGradient(W / 2, H / 2, H * 0.45, W / 2, H / 2, W * 0.62);
+    vig.addColorStop(0, 'rgba(0,0,0,0)');
+    vig.addColorStop(1, 'rgba(0,0,0,.28)');
+    g.fillStyle = vig; g.fillRect(0, 0, W, H);
   }
 
   function drawMud(g, md, rnd) {
@@ -121,7 +189,11 @@
     const cy = (row + 0.5) * T;
     g.fillStyle = '#56534b'; g.beginPath(); g.ellipse(-4, cy, T * 1.15, T * 1.45, 0, 0, Math.PI * 2); g.fill();
     g.fillStyle = '#6c685e'; g.beginPath(); g.ellipse(-8, cy - 6, T * 0.9, T * 1.2, 0, 0, Math.PI * 2); g.fill();
-    g.fillStyle = '#121210'; g.beginPath(); g.ellipse(0, cy + 2, T * 0.55, T * 0.62, 0, 0, Math.PI * 2); g.fill();
+    // boca da caverna com fundo que some no escuro
+    const mouth = g.createRadialGradient(-6, cy + 2, 2, 0, cy + 2, T * 0.62);
+    mouth.addColorStop(0, '#000000'); mouth.addColorStop(0.7, '#121210'); mouth.addColorStop(1, '#2a2824');
+    g.fillStyle = mouth; g.beginPath(); g.ellipse(0, cy + 2, T * 0.55, T * 0.62, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = 'rgba(255,255,255,.08)'; g.beginPath(); g.ellipse(-10, cy - T * 0.7, T * 0.5, T * 0.22, -0.3, 0, Math.PI * 2); g.fill();
   }
 
   function drawCastle(g, row) {
@@ -158,7 +230,9 @@
     drawMud(g, md, rnd);
     drawBridges(g, md);
     for (const p of md.paths) drawCave(g, p.startRow);
+    drawDecor(g, md, rnd);
     drawCastle(g, md.exitRow);
+    drawLight(g);
     return bg;
   }
 
@@ -189,7 +263,8 @@
     drawTowerTier(g, type, level, specColor);
   }
 
-  function towerHead(g, type, ang, kick) {
+  // time: relógio da animação parada (cristal que flutua, orbe que pulsa); 0 desliga o movimento
+  function towerHead(g, type, ang, kick, time = 0) {
     const recoil = -kick * 4;
 
     if (type === 'archer') {
@@ -209,7 +284,8 @@
       g.fillStyle = '#3d4045'; circle(g, 0, 0, 8); g.fill();
       g.fillStyle = 'rgba(255,255,255,.18)'; circle(g, -2.5, -2.5, 2.6); g.fill();
     } else if (type === 'frost') {
-      g.fillStyle = 'rgba(143,211,232,.28)'; circle(g, 0, 0, 12); g.fill();
+      g.fillStyle = `rgba(143,211,232,${0.28 + 0.08 * Math.sin(time * 2.4)})`; circle(g, 0, 0, 12); g.fill();
+      if (time) g.translate(0, Math.sin(time * 2.4) * 1.5 - 0.5);
       g.fillStyle = '#bfe9f5'; g.strokeStyle = '#4f9fbb'; g.lineWidth = 1.5;
       g.beginPath(); g.moveTo(0, -11); g.lineTo(7, 0); g.lineTo(0, 11); g.lineTo(-7, 0); g.closePath(); g.fill(); g.stroke();
       g.fillStyle = '#ffffff';
@@ -226,7 +302,8 @@
       // obelisco com orbe; o orbe brilha mais logo após o disparo
       g.fillStyle = '#4a3f63'; g.strokeStyle = '#231c33'; g.lineWidth = 1.5;
       g.beginPath(); g.moveTo(-6, 8); g.lineTo(-3.5, -4); g.lineTo(3.5, -4); g.lineTo(6, 8); g.closePath(); g.fill(); g.stroke();
-      g.fillStyle = `rgba(155,123,224,${0.3 + kick * 0.5})`; circle(g, 0, -7, 9); g.fill();
+      const pulse = time ? 0.1 * Math.sin(time * 3.1) : 0;
+      g.fillStyle = `rgba(155,123,224,${0.3 + pulse + kick * 0.5})`; circle(g, 0, -7, 9 + pulse * 10); g.fill();
       g.fillStyle = '#c7b0ff'; circle(g, 0, -7, 4.5); g.fill();
       g.fillStyle = '#ffffff'; circle(g, -1.3, -8.3, 1.4); g.fill();
     } else if (type === 'ballista') {
@@ -288,13 +365,13 @@
     return c;
   }
 
-  function drawTowerCached(g, dpr, type, x, y, level, ang, specColor = null, kick = 0) {
+  function drawTowerCached(g, dpr, type, x, y, level, ang, specColor = null, kick = 0, time = 0) {
     const key = `${type}|${level}|${specColor}|${dpr}`;
     const bx = x - SPRITE.x, by = y - SPRITE.y;
     g.drawImage(sprite('base|' + key, dpr, s => towerBase(s, type, level, specColor)), bx, by, SPRITE.w, SPRITE.h);
     g.save();
     g.translate(x, y);
-    towerHead(g, type, ang, kick);
+    towerHead(g, type, ang, kick, time ? time + (x + y) * 0.013 : 0);
     g.restore();
     g.drawImage(sprite('marks|' + key, dpr, s => towerMarks(s, level, specColor)), bx, by, SPRITE.w, SPRITE.h);
   }

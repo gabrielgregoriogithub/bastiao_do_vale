@@ -50,26 +50,104 @@
     bgFor = G.md;
   }
 
+  // Brilho que soma luz ao que está embaixo (raios, gelo, fogo)
+  function glow(x, y, r, color) {
+    const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
+    grad.addColorStop(0, color);
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+
   function drawShots() {
     for (const s of G.S.shots) {
       if (s.kind === 'archer') {
-        ctx.strokeStyle = s.spec === 'poison' ? '#a6d86a' : '#f3ead2'; ctx.lineWidth = 2;
+        const tail = s.spec === 'poison' ? '#a6d86a' : '#f3ead2';
+        ctx.strokeStyle = 'rgba(243,234,210,.25)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(s.x - s.vx * 18, s.y - s.vy * 18); ctx.lineTo(s.x - s.vx * 9, s.y - s.vy * 9); ctx.stroke();
+        ctx.strokeStyle = tail; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.moveTo(s.x - s.vx * 9, s.y - s.vy * 9); ctx.lineTo(s.x, s.y); ctx.stroke();
+        ctx.fillStyle = tail;
+        ctx.beginPath(); ctx.moveTo(s.x + s.vx * 3, s.y + s.vy * 3); ctx.lineTo(s.x - s.vy * 2.5, s.y + s.vx * 2.5); ctx.lineTo(s.x + s.vy * 2.5, s.y - s.vx * 2.5); ctx.fill();
       } else if (s.kind === 'cannon') {
-        if (s.spec === 'fire') { ctx.fillStyle = 'rgba(255,120,40,.45)'; TD.circle(ctx, s.x, s.y, 8); ctx.fill(); }
+        // rastro de fumaça atrás da bala
+        for (let i = 1; i <= 3; i++) {
+          ctx.fillStyle = s.spec === 'fire' ? `rgba(255,140,60,${0.35 - i * 0.09})` : `rgba(200,195,180,${0.3 - i * 0.08})`;
+          TD.circle(ctx, s.x - s.vx * i * 6, s.y - s.vy * i * 6, 4 - i * 0.6); ctx.fill();
+        }
+        if (s.spec === 'fire') {
+          ctx.globalCompositeOperation = 'lighter';
+          glow(s.x, s.y, 12, 'rgba(255,120,40,.6)');
+          ctx.globalCompositeOperation = 'source-over';
+        }
         ctx.fillStyle = '#1d1e20'; TD.circle(ctx, s.x, s.y, s.spec === 'mortar' ? 6.5 : 4.5); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,.22)'; TD.circle(ctx, s.x - 1.5, s.y - 1.5, 1.6); ctx.fill();
       } else {
-        ctx.fillStyle = 'rgba(143,211,232,.35)'; TD.circle(ctx, s.x, s.y, 7); ctx.fill();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = 'rgba(143,211,232,.35)'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(s.x - s.vx * 12, s.y - s.vy * 12); ctx.lineTo(s.x, s.y); ctx.stroke();
+        ctx.lineCap = 'butt';
+        glow(s.x, s.y, 11, 'rgba(143,211,232,.55)');
+        ctx.globalCompositeOperation = 'source-over';
         ctx.fillStyle = s.spec === 'freeze' ? '#ffffff' : '#e4f7fc'; TD.circle(ctx, s.x, s.y, 3.5); ctx.fill();
       }
     }
   }
 
+  // Marcas no chão, por baixo de torres e inimigos: queimado das explosões e mancha de quem caiu
+  const GROUND_FX = new Set(['scorch', 'stain']);
+  function drawGroundFx() {
+    for (const f of G.S.fx) {
+      if (!GROUND_FX.has(f.kind)) continue;
+      const k = f.t / f.life, a = Math.min(1, (1 - k) * 2.5);
+      if (f.kind === 'scorch') {
+        ctx.globalAlpha = a * 0.22;
+        ctx.fillStyle = '#2a1f12';
+        ctx.beginPath(); ctx.ellipse(f.x, f.y, f.r * 0.7, f.r * 0.5, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = a * 0.12;
+        ctx.beginPath(); ctx.ellipse(f.x, f.y, f.r * 1.1, f.r * 0.8, 0, 0, Math.PI * 2); ctx.fill();
+      } else {
+        ctx.globalAlpha = a * 0.3;
+        ctx.fillStyle = f.color;
+        ctx.beginPath(); ctx.ellipse(f.x, f.y, f.r, f.r * 0.55, 0, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
   function drawFx() {
     for (const f of G.S.fx) {
+      if (GROUND_FX.has(f.kind)) continue;
       const k = f.t / f.life;
       ctx.globalAlpha = Math.max(0, 1 - k);
-      if (f.kind === 'text') {
+      if (f.kind === 'blast') {
+        // bola de fogo que cresce rápido e some, com uma onda de choque na borda
+        const grow = 1 - (1 - k) ** 3, r = f.r * (0.3 + 0.75 * grow);
+        ctx.globalCompositeOperation = 'lighter';
+        const grad = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, r);
+        grad.addColorStop(0, `rgba(255,250,225,${1 - k})`);
+        grad.addColorStop(0.15, `rgba(255,230,150,${0.95 * (1 - k)})`);
+        grad.addColorStop(0.35, f.fire ? `rgba(255,110,30,${0.75 * (1 - k)})` : `rgba(250,160,70,${0.7 * (1 - k)})`);
+        grad.addColorStop(1, 'rgba(120,40,10,0)');
+        ctx.fillStyle = grad; ctx.fillRect(f.x - r, f.y - r, r * 2, r * 2);
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.strokeStyle = f.fire ? '#ff7a30' : '#f0b070'; ctx.lineWidth = 2.5 * (1 - k) + 0.5;
+        TD.circle(ctx, f.x, f.y, f.r * (0.5 + 0.6 * grow)); ctx.stroke();
+      } else if (f.kind === 'smoke') {
+        ctx.globalAlpha = Math.max(0, 0.25 * (1 - k) * Math.min(1, k * 6));
+        ctx.fillStyle = '#b8b2a4';
+        TD.circle(ctx, f.x, f.y - k * 22, f.r * (1 + k * 1.3)); ctx.fill();
+      } else if (f.kind === 'spark') {
+        ctx.strokeStyle = f.color; ctx.lineWidth = 1.5; ctx.lineCap = 'round';
+        ctx.beginPath();
+        for (let i = 0; i < 5; i++) {
+          // leque de faíscas para o lado de onde o golpe veio
+          const a = f.ang + Math.PI + (i - 2) * 0.45, d0 = 3 + k * 6, d1 = d0 + 5 * (1 - k) + 2;
+          ctx.moveTo(f.x + Math.cos(a) * d0, f.y + Math.sin(a) * d0);
+          ctx.lineTo(f.x + Math.cos(a) * d1, f.y + Math.sin(a) * d1);
+        }
+        ctx.stroke(); ctx.lineCap = 'butt';
+      } else if (f.kind === 'text') {
         ctx.fillStyle = f.color;
         ctx.font = f.big ? '600 22px "Barlow Semi Condensed", sans-serif' : '700 13px "Barlow Semi Condensed", sans-serif';
         ctx.textAlign = 'center';
@@ -84,23 +162,38 @@
         ctx.strokeStyle = '#f3ead2'; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.moveTo(f.x, f.y); ctx.lineTo(f.x2, f.y2); ctx.stroke();
       } else if (f.kind === 'bolt') {
-        // raio em zigue-zague entre os pontos da cadeia
-        ctx.strokeStyle = f.color; ctx.lineWidth = 2.2; ctx.lineJoin = 'round';
-        ctx.beginPath(); ctx.moveTo(f.points[0].x, f.points[0].y);
+        // raio em zigue-zague entre os pontos da cadeia: halo largo, traço colorido e miolo branco
+        const zig = [f.points[0]];
         for (let i = 1; i < f.points.length; i++) {
           const a = f.points[i - 1], b = f.points[i];
           const nx = -(b.y - a.y), ny = b.x - a.x, nl = Math.hypot(nx, ny) || 1;
           for (const kk of [0.33, 0.66]) {
             const j = (Math.random() - 0.5) * 12;
-            ctx.lineTo(a.x + (b.x - a.x) * kk + nx / nl * j, a.y + (b.y - a.y) * kk + ny / nl * j);
+            zig.push({ x: a.x + (b.x - a.x) * kk + nx / nl * j, y: a.y + (b.y - a.y) * kk + ny / nl * j });
           }
-          ctx.lineTo(b.x, b.y);
+          zig.push(b);
         }
-        ctx.stroke();
+        const trace = () => { ctx.beginPath(); ctx.moveTo(zig[0].x, zig[0].y); for (const p of zig.slice(1)) ctx.lineTo(p.x, p.y); ctx.stroke(); };
+        ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = f.color; ctx.globalAlpha *= 0.3; ctx.lineWidth = 8; trace();
+        ctx.globalAlpha = Math.max(0, 1 - k);
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.strokeStyle = f.color; ctx.lineWidth = 2.6; trace();
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1; trace();
+        ctx.lineCap = 'butt';
+        for (const p of f.points.slice(1)) {
+          ctx.globalCompositeOperation = 'lighter';
+          glow(p.x, p.y, 10, 'rgba(190,210,255,.5)');
+          ctx.globalCompositeOperation = 'source-over';
+        }
       } else if (f.kind === 'shard') {
         ctx.fillStyle = f.color;
         ctx.fillRect(f.x - 1.5, f.y - 1.5, 3, 3);
       } else if (f.kind === 'flash') {
+        ctx.globalCompositeOperation = 'lighter';
+        glow(f.x, f.y, f.r * 2.4, 'rgba(255,220,140,.7)');
+        ctx.globalCompositeOperation = 'source-over';
         ctx.fillStyle = '#ffe9a8'; TD.circle(ctx, f.x, f.y, f.r * (1 - k * 0.5)); ctx.fill();
       } else if (f.kind === 'fire') {
         ctx.strokeStyle = 'rgba(255,130,40,.9)'; ctx.lineWidth = 6; ctx.lineCap = 'round';
@@ -215,8 +308,10 @@
     if (S.sel) TD.drawRange(ctx, S.sel.x, S.sel.y, S.sel.s.range, true);
     const hovered = !S.build && !S.aim && S.hover ? G.towerAt(S.hover.c, S.hover.r) : null;
     if (hovered && hovered !== S.sel) TD.drawRange(ctx, hovered.x, hovered.y, hovered.s.range, true);
+    drawGroundFx();
+    const idle = reducedMotion ? 0 : performance.now() / 1000;
     for (const t of S.towers) {
-      TD.drawTowerCached(ctx, dpr, t.type, t.x, t.y, t.level, t.ang, G.specOf(t)?.color || null, reducedMotion ? 0 : t.kick || 0);
+      TD.drawTowerCached(ctx, dpr, t.type, t.x, t.y, t.level, t.ang, G.specOf(t)?.color || null, reducedMotion ? 0 : t.kick || 0, idle);
       if (t.stunT > 0) drawStunned(t);
     }
     if (S.sel) {
