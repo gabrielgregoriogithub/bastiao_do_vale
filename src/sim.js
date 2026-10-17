@@ -553,6 +553,13 @@
 
   function impact(s) {
     const tg = s.target;
+    if (s.kind === 'mage') {
+      // orbe do Mago: explosão pequena que, ao contrário do canhão, também pega voadores
+      const hit = G.S.enemies.filter(e => !e.dead && Math.hypot(e.x - s.tx, e.y - s.ty) <= s.splash);
+      for (const e of hit) hurt(e, s.dmg, false, s.src);
+      addFx({ kind: 'ring', x: s.tx, y: s.ty, r: s.splash, color: '#b79cff', life: 0.3 });
+      return;
+    }
     if (s.kind === 'cannon') {
       // alvos escolhidos antes do dano: quem nasce da explosão (Blindados do Colosso) não leva o mesmo golpe
       const hit = G.S.enemies.filter(e => !e.dead && !e.d.flying && Math.hypot(e.x - s.tx, e.y - s.ty) <= s.splash);
@@ -668,11 +675,24 @@
       k.t -= dt;
       if (k.t > 0) continue;
       const hit = S.enemies.filter(e => !e.dead && Math.hypot(e.x - k.x, e.y - k.y) <= k.r);
-      for (const e of hit) hurt(e, k.dmg, false, null);
-      addFx({ kind: 'ring', x: k.x, y: k.y, r: k.r, color: '#f3ead2', life: 0.35 });
+      for (const e of hit) {
+        hurt(e, k.dmg, false, k.src || null);
+        if (k.burn && !e.dead) applyDot(e, 'burn', k.burn, k.burnDur, k.src);
+      }
+      if (k.kind === 'meteor') {
+        addFx({ kind: 'blast', x: k.x, y: k.y, r: k.r, fire: true, life: 0.5 });
+        addFx({ kind: 'scorch', x: k.x, y: k.y, r: k.r * 0.6, life: 6 });
+        S.shake = Math.max(S.shake, 0.25);
+      } else addFx({ kind: 'ring', x: k.x, y: k.y, r: k.r, color: '#f3ead2', life: 0.35 });
       sfx.play('boom');
     }
     S.strikes = S.strikes.filter(k => k.t > 0);
+  }
+
+  // Golpe que cai depois de k.t segundos (chuva de flechas, meteoro do Mago); o meteoro aparece caindo
+  function strike(k) {
+    G.S.strikes.push(k);
+    if (k.kind === 'meteor') addFx({ kind: 'meteor', x: k.x, y: k.y, r: k.r, life: k.t });
   }
 
   function update(dt) {
@@ -794,6 +814,6 @@
   Object.assign(G, {
     store, readBest, readStars, readChallenges, readDaily, newDaily, towerStats, prepare, newGame, hurt, addFx, spawn, costOf, powerCd,
     build, upgrade, specialize, sell, cycleTarget, toggleAuto, continueEndless, startWave, usePower, canUsePower, update,
-    towerAt, canBuild, upCost, specCost, refund, specOf, waveBonus, earlyBonus, canCallEarly, snapshot, restore, blessed, refreshStats,
+    towerAt, canBuild, upCost, specCost, refund, specOf, waveBonus, earlyBonus, canCallEarly, snapshot, restore, blessed, refreshStats, strike,
   });
 })();

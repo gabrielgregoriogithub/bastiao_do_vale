@@ -297,7 +297,7 @@
   .story-chapter { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .16em; color: var(--muted); margin-bottom: 4px; }
   .story p { color: var(--fg); font-size: 16px; line-height: 1.55; }
   .modal .epilogue { color: var(--fg); font-style: italic; border-left: 3px solid var(--brass); padding-left: 10px; text-align: left; }
-  @media (max-width: 640px) { .seg-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 640px) { .seg-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } #heroList { grid-template-columns: minmax(0, 1fr); } }
   .discover {
     position: absolute; top: 10px; right: 10px; width: min(330px, calc(100% - 20px));
     display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 10px; align-items: start;
@@ -622,7 +622,7 @@
     <h3>Dificuldade</h3>
     <div class="seg" id="diffList"></div>
     <h3>Herói</h3>
-    <div class="seg seg-2" id="heroList"></div>
+    <div class="seg" id="heroList"></div>
     <details class="fold" id="foldChallenges">
       <summary><h3>Desafios opcionais</h3><span class="fold-note" id="challengeNote"></span></summary>
       <div class="seg seg-4" id="challengeList"></div>

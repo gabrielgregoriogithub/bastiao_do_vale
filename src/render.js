@@ -653,6 +653,7 @@
     g.fillStyle = 'rgba(0,0,0,.3)';
     g.beginPath(); g.ellipse(h.x + 2, h.y + 8, 10, 4.5, 0, 0, Math.PI * 2); g.fill();
     if (h.kind === 'ranger') { drawRanger(g, h, x, y, reducedMotion); return; }
+    if (h.kind === 'mage') { drawMage(g, h, x, y, reducedMotion); return; }
     drawFeet(g, x, y, 10, h.ang, reducedMotion ? 0 : h.walk * 9, '#1f2b3a');
     // escudo do lado oposto ao golpe
     const sa = h.ang + Math.PI * 0.7;
@@ -679,6 +680,29 @@
   }
 
   // Arqueira: capa verde com capuz e arco apontado para o alvo; nunca bloqueia, então não mostra vida
+  // Mago: manto violeta, chapéu pontudo e cajado com gema que aponta para o alvo
+  function drawMage(g, h, x, y, reducedMotion) {
+    drawFeet(g, x, y, 9.5, h.ang, reducedMotion ? 0 : h.walk * 9, '#1d1638');
+    const a = h.ang, sx = x + Math.cos(a + 0.5) * 8, sy = y + Math.sin(a + 0.5) * 8;
+    const tx = sx + Math.cos(a) * 13, ty = sy + Math.sin(a) * 13;
+    g.strokeStyle = '#6b4a2a'; g.lineWidth = 2.2; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(sx - Math.cos(a) * 6, sy - Math.sin(a) * 6); g.lineTo(tx, ty); g.stroke();
+    g.lineCap = 'butt';
+    drawBody(g, x, y, 9.5, '#5b4aa8', '#1d1638');
+    // chapéu: aba e copa pontuda, com uma estrela dourada
+    g.fillStyle = '#2c2266';
+    g.beginPath(); g.ellipse(x, y - 3, 9, 3.5, 0, 0, Math.PI * 2); g.fill();
+    g.beginPath(); g.moveTo(x - 6, y - 4); g.lineTo(x + 2, y - 17); g.lineTo(x + 6, y - 4); g.closePath(); g.fill();
+    g.fillStyle = '#e8c56e'; circle(g, x + 0.5, y - 9, 1.4); g.fill();
+    // gema do cajado: brilha mais logo depois do disparo
+    g.fillStyle = `rgba(183,156,255,${0.35 + (h.swing > 0 ? 0.4 : 0)})`; circle(g, tx, ty, 5); g.fill();
+    g.fillStyle = '#d9ccff'; circle(g, tx, ty, 2.4); g.fill();
+    g.fillStyle = '#d6a547'; g.strokeStyle = '#2a1f08'; g.lineWidth = 1;
+    circle(g, x + 12, y - 14, 5.5); g.fill(); g.stroke();
+    g.fillStyle = '#2a1f08'; g.font = '700 9px "Barlow Semi Condensed", sans-serif'; g.textAlign = 'center';
+    g.fillText(String(h.level), x + 12, y - 10.5);
+  }
+
   function drawRanger(g, h, x, y, reducedMotion) {
     drawFeet(g, x, y, 9.5, h.ang, reducedMotion ? 0 : h.walk * 9, '#1f3320');
     drawBody(g, x, y, 9.5, '#4e7a45', '#1f3320');

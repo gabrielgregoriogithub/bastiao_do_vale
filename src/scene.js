@@ -69,6 +69,15 @@
         ctx.beginPath(); ctx.moveTo(s.x - s.vx * 9, s.y - s.vy * 9); ctx.lineTo(s.x, s.y); ctx.stroke();
         ctx.fillStyle = tail;
         ctx.beginPath(); ctx.moveTo(s.x + s.vx * 3, s.y + s.vy * 3); ctx.lineTo(s.x - s.vy * 2.5, s.y + s.vx * 2.5); ctx.lineTo(s.x + s.vy * 2.5, s.y - s.vx * 2.5); ctx.fill();
+      } else if (s.kind === 'mage') {
+        // orbe arcano do Mago: rastro e brilho violeta
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = 'rgba(183,156,255,.4)'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(s.x - s.vx * 14, s.y - s.vy * 14); ctx.lineTo(s.x, s.y); ctx.stroke();
+        ctx.lineCap = 'butt';
+        glow(s.x, s.y, 13, 'rgba(160,120,255,.6)');
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = '#efe8ff'; TD.circle(ctx, s.x, s.y, 3.6); ctx.fill();
       } else if (s.kind === 'cannon') {
         // rastro de fumaça atrás da bala
         for (let i = 1; i <= 3; i++) {
@@ -133,6 +142,20 @@
         ctx.globalCompositeOperation = 'source-over';
         ctx.strokeStyle = f.fire ? '#ff7a30' : '#f0b070'; ctx.lineWidth = 2.5 * (1 - k) + 0.5;
         TD.circle(ctx, f.x, f.y, f.r * (0.5 + 0.6 * grow)); ctx.stroke();
+      } else if (f.kind === 'meteor') {
+        // meteoro do Mago caindo em diagonal; no chão, o círculo de onde vai cair
+        ctx.globalAlpha = 0.35 + 0.5 * k;
+        ctx.strokeStyle = '#ff9a4a'; ctx.lineWidth = 2; ctx.setLineDash([6, 5]);
+        TD.circle(ctx, f.x, f.y, f.r); ctx.stroke(); ctx.setLineDash([]);
+        ctx.globalAlpha = 1;
+        const mx = f.x + (1 - k) * 70, my = f.y - (1 - k) * 160;
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = 'rgba(255,140,60,.45)'; ctx.lineWidth = 9; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(mx + 26, my - 60); ctx.lineTo(mx, my); ctx.stroke(); ctx.lineCap = 'butt';
+        glow(mx, my, 22, 'rgba(255,150,60,.75)');
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = '#4a2a18'; TD.circle(ctx, mx, my, 7); ctx.fill();
+        ctx.fillStyle = '#ffd08a'; TD.circle(ctx, mx - 2, my - 2, 3); ctx.fill();
       } else if (f.kind === 'smoke') {
         ctx.globalAlpha = Math.max(0, 0.25 * (1 - k) * Math.min(1, k * 6));
         ctx.fillStyle = '#b8b2a4';

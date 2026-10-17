@@ -1,14 +1,15 @@
 // Heróis que o jogador move pelo mapa.
 // Cavaleiro (melee): bloqueia um inimigo terrestre por vez e apanha dele.
 // Arqueira (ranged): atira de longe, inclusive em voadores, mas não bloqueia nem apanha.
-// Ambos ganham experiência com os próprios abates, renascem quando caem e têm uma habilidade com recarga.
+// Mago (ranged): orbes que explodem em área; a habilidade chama um meteoro. Também não bloqueia nem apanha.
+// Todos ganham experiência com os próprios abates, renascem quando caem e têm uma habilidade com recarga.
 (() => {
   const TD = window.TD;
   const { T, W, H, HEROES } = TD;
   const G = TD.game;
   const sfx = TD.audio;
   const ARRIVE_PX = 3;
-  const ARROW_SPEED = 460;
+  const ARROW_SPEED = 460, ORB_SPEED = 300;
 
   const defOf = h => HEROES[h.kind] || HEROES.knight;
 
@@ -102,10 +103,13 @@
     G.addFx({ kind: 'ring', x: h.x, y: h.y, r: T * 0.8, color: '#9fb6d6', life: 0.6 });
   }
 
+  // flecha da Arqueira ou orbe do Mago (que explode em área: sim.js trata o tiro 'mage')
   function shoot(h, e, dmg) {
+    const def = defOf(h), orb = def.shot === 'mage';
     G.S.shots.push({
-      kind: 'archer', spec: null, src: h, x: h.x, y: h.y - 6, tx: e.x, ty: e.y, vx: 0, vy: 0, target: e,
-      speed: ARROW_SPEED, dmg, splash: 0, slow: 0, slowDur: 0, dot: 0, dotDur: 0, dotKind: null, freezeChance: 0, done: false,
+      kind: orb ? 'mage' : 'archer', spec: null, src: h, x: h.x, y: h.y - 6, tx: e.x, ty: e.y, vx: 0, vy: 0, target: e,
+      speed: orb ? ORB_SPEED : ARROW_SPEED, dmg, splash: (def.splash || 0) * T,
+      slow: 0, slowDur: 0, dot: 0, dotDur: 0, dotKind: null, freezeChance: 0, done: false,
     });
   }
 
@@ -129,7 +133,7 @@
     shoot(h, e, h.dmg);
     h.cd = defOf(h).rate;
     h.swing = 0.15;
-    sfx.play('archer');
+    sfx.play(defOf(h).shot === 'mage' ? 'arcane' : 'archer');
   }
 
   // ---------- Habilidade ----------
@@ -157,6 +161,17 @@
         .sort((a, b) => b.prog - a.prog);
       if (!inRange.length) return false;
       for (let i = 0; i < ab.arrows; i++) shoot(h, inRange[i % inRange.length], h.dmg * ab.mul);
+      sfx.play('rain');
+    } else if (ab.id === 'meteor') {
+      // cai sobre o inimigo mais adiantado ao alcance (camuflado só se alguma torre o revelou)
+      const target = S.enemies
+        .filter(e => !e.dead && canHit(h, e) && Math.hypot(e.x - h.x, e.y - h.y) <= defOf(h).range * T)
+        .sort((a, b) => b.prog - a.prog)[0];
+      if (!target) return false;
+      G.strike({
+        kind: 'meteor', x: target.x, y: target.y, r: ab.radius * T, t: ab.delay, src: h,
+        dmg: h.dmg * ab.mul, burn: h.dmg * ab.burn, burnDur: ab.burnDur,
+      });
       sfx.play('rain');
     }
     h.abilityCd = ab.cd;

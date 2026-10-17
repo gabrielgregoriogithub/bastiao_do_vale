@@ -83,8 +83,15 @@
       summary: 'Atira de longe e acerta voadores, mas não segura ninguém.',
       ability: { id: 'volley', name: 'Saraivada', desc: 'Dispara 8 flechas fortes nos inimigos ao alcance da Arqueira.', cd: 20, arrows: 8, mul: 2.5 },
     },
+    // shot/splash: o orbe explode numa área pequena (em casas) e acerta voadores
+    mage: {
+      id: 'mage', name: 'Mago', melee: false, hp: 170, dmg: 16, rate: 1.25, speed: 1.9, range: 2.7, aggro: 2.7, regen: 6, respawn: 12,
+      maxLevel: 5, xpPerLevel: [0, 60, 150, 280, 450], shot: 'mage', splash: 0.8,
+      summary: 'Lança orbes que explodem em área, inclusive em voadores, mas não segura ninguém.',
+      ability: { id: 'meteor', name: 'Meteoro', desc: 'Um meteoro cai sobre o inimigo mais adiantado ao alcance: dano forte em área e queimadura.', cd: 24, radius: 1.3, mul: 4, delay: 0.7, burn: 0.3, burnDur: 3 },
+    },
   };
-  TD.HERO_ORDER = ['knight', 'ranger'];
+  TD.HERO_ORDER = ['knight', 'ranger', 'mage'];
   TD.HERO = TD.HEROES.knight;
 
   // Crônica do Vale: cada campo é um capítulo; a introdução aparece na primeira partida de cada um
