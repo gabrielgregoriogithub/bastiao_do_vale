@@ -74,8 +74,8 @@
   // ---------- Janela de escolha e lista no painel ----------
   const $ = id => document.getElementById(id);
   const modal = $('blessModal'), list = $('blessList'), kicker = $('blessKicker');
-  const box = $('blessBox'), owned = $('blessOwned');
-  let shownOffer = null, shownOwned = '';
+  const box = $('blessBox'), owned = $('blessOwned'), ownedDesc = $('blessDesc');
+  let shownOffer = null, shownOwned = '', explained = null;
 
   function card(b, i) {
     return `<button class="bless-card" data-bless="${b.id}">
@@ -105,8 +105,25 @@
     shownOwned = key;
     box.hidden = !S.blessings.length;
     owned.innerHTML = S.blessings.map(byId).filter(Boolean)
-      .map(b => `<li title="${b.tag}: ${b.desc}">${b.name}</li>`).join('');
+      .map(b => `<li><button class="bless-chip" data-explain="${b.id}" aria-pressed="false" title="${b.tag}: ${b.desc}">${b.name}</button></li>`).join('');
+    explain(null);
   }
+
+  // Tocar numa etiqueta mostra o que a bênção faz (no celular não há o texto que aparece ao passar o mouse)
+  function explain(id) {
+    explained = id;
+    const b = id && byId(id);
+    ownedDesc.hidden = !b;
+    ownedDesc.textContent = b ? `${b.name} (${b.tag}): ${b.desc}` : '';
+    for (const el of owned.querySelectorAll('[data-explain]')) el.setAttribute('aria-pressed', String(el.dataset.explain === id));
+  }
+  owned.addEventListener('click', ev => {
+    const id = ev.target.closest('[data-explain]')?.dataset.explain;
+    if (id) explain(explained === id ? null : id);
+  });
+
+  // Etiquetas das bênçãos da partida, para o relatório do fim
+  const chips = S => S.blessings.map(byId).filter(Boolean).map(b => `<li title="${b.tag}: ${b.desc}">${b.name}</li>`).join('');
 
   // Chamado a cada quadro pelo laço principal
   function sync() {
@@ -123,7 +140,7 @@
   });
 
   TD.blessings = {
-    EVERY, check, choose, sync, byId,
+    EVERY, check, choose, sync, byId, chips,
     isOpen: () => !!shownOffer,
     // teclas 1 a 3 na janela aberta
     chooseIndex: i => (shownOffer && shownOffer[i] ? choose(shownOffer[i]) : false),

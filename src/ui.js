@@ -45,11 +45,12 @@
     if (h) rows.hero = { name: `${TD.hero.defOf(h).name} · nível ${h.level}`, dmg: h.dmgDone, kills: h.kills, count: 1 };
     // quem não causou dano nem abateu ninguém fica de fora: uma tabela de zeros não conta nada
     const list = Object.values(rows).filter(r => r.dmg > 0 || r.kills > 0).sort((a, b) => b.dmg - a.dmg).slice(0, 6);
-    ui.endReport.hidden = !list.length;
-    ui.endReport.innerHTML = list.length ? `<h3>Quem mais segurou a estrada</h3><table>
+    const blessings = TD.blessings.chips(G.S);
+    ui.endReport.hidden = !list.length && !blessings;
+    ui.endReport.innerHTML = (list.length ? `<h3>Quem mais segurou a estrada</h3><table>
       <thead><tr><th scope="col">Defensor</th><th scope="col">Dano</th><th scope="col">Abates</th></tr></thead>
       <tbody>${list.map(r => `<tr><td>${r.name}${r.count > 1 ? ` <span class="muted">×${r.count}</span>` : ''}</td><td>${Math.round(r.dmg).toLocaleString('pt-BR')}</td><td>${r.kills}</td></tr>`).join('')}</tbody>
-    </table>` : '';
+    </table>` : '') + (blessings ? `<h3 class="report-sub">Bênçãos desta partida</h3><ul class="bless-owned">${blessings}</ul>` : '');
   }
 
   G.onEnd = ({ title, text, stars, canContinue }) => {

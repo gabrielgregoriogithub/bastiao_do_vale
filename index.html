@@ -186,7 +186,14 @@
   .bless-ds { font-size: 14px; color: var(--muted); }
   /* bênçãos já escolhidas: etiquetas compactas, para o painel não crescer a cada escolha */
   .bless-owned { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px; }
-  .bless-owned li { font-size: 13px; font-weight: 600; line-height: 1.2; background: var(--raise); border: 1px solid #6b5626; border-radius: 999px; padding: 3px 9px; cursor: help; }
+  .bless-owned li, .bless-chip { font-size: 13px; font-weight: 600; line-height: 1.2; color: var(--fg); background: var(--raise); border: 1px solid #6b5626; border-radius: 999px; padding: 3px 9px; }
+  .bless-owned li:has(.bless-chip) { padding: 0; border: 0; background: none; }
+  .bless-chip { font-family: inherit; cursor: pointer; }
+  .bless-chip:hover { border-color: var(--brass); }
+  .bless-chip[aria-pressed="true"] { border-color: var(--brass); color: var(--brass); }
+  .bless-desc { margin: 8px 0 0; font-size: 13px; color: var(--muted); border-left: 2px solid var(--brass); padding-left: 8px; }
+  .report .bless-owned { margin-bottom: 4px; }
+  .report .report-sub { margin-top: 14px; }
   .stars { font-size: 30px; letter-spacing: .12em; color: var(--brass); margin: 0 0 8px; }
   .info p, .next p { margin: 0 0 10px; color: var(--muted); }
   .info p strong { color: var(--fg); font-weight: 600; }
@@ -448,6 +455,7 @@
       <section id="blessBox" hidden>
         <h2>Bênçãos</h2>
         <ul class="bless-owned" id="blessOwned"></ul>
+        <p class="bless-desc" id="blessDesc" hidden></p>
       </section>
       <section class="info" id="infoBox"></section>
       <button id="btnHelp" class="btn small help-btn">Atalhos do teclado (?)</button>
