@@ -71,11 +71,38 @@
     for (let r = 1; r < ROWS; r++) { g.beginPath(); g.moveTo(0, r * T + 0.5); g.lineTo(W, r * T + 0.5); g.stroke(); }
   }
 
+  // Margem: sombra para dentro da água e borda clara onde ela encontra a terra.
+  // Fora do mapa conta como água, para o rio seguir além da borda.
+  const SIDES = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+  function drawBank(g, x, y, dc, dr) {
+    const sh = 9;
+    const [x0, y0, w, h] = dr === -1 ? [x, y, T, sh] : dr === 1 ? [x, y + T - sh, T, sh] : dc === -1 ? [x, y, sh, T] : [x + T - sh, y, sh, T];
+    const grad = dr ? g.createLinearGradient(0, dr === -1 ? y : y + T, 0, dr === -1 ? y + sh : y + T - sh)
+      : g.createLinearGradient(dc === -1 ? x : x + T, 0, dc === -1 ? x + sh : x + T - sh, 0);
+    grad.addColorStop(0, 'rgba(10,25,30,.45)');
+    grad.addColorStop(1, 'rgba(10,25,30,0)');
+    g.fillStyle = grad; g.fillRect(x0, y0, w, h);
+    g.strokeStyle = 'rgba(214,196,140,.55)'; g.lineWidth = 2;
+    g.beginPath();
+    if (dr) { const yy = dr === -1 ? y + 1 : y + T - 1; g.moveTo(x, yy); g.lineTo(x + T, yy); }
+    else { const xx = dc === -1 ? x + 1 : x + T - 1; g.moveTo(xx, y); g.lineTo(xx, y + T); }
+    g.stroke();
+  }
+
   function drawWater(g, md, rnd) {
+    const cells = new Set(md.map.water.map(([c, r]) => `${c},${r}`));
+    const isWater = (c, r) => c < 0 || c >= COLS || r < 0 || r >= ROWS || cells.has(`${c},${r}`);
+    const base = md.map.waterColor || '#34657f';
     for (const [c, r] of md.map.water) {
       if (md.blocked[r] && md.blocked[r][c] === 1) continue;
-      g.fillStyle = md.map.waterColor || '#34657f';
-      g.fillRect(c * T, r * T, T, T);
+      const x = c * T, y = r * T;
+      g.fillStyle = base; g.fillRect(x, y, T, T);
+      // fundo mais escuro no meio, mais claro perto da margem
+      const depth = g.createRadialGradient(x + T / 2, y + T / 2, 2, x + T / 2, y + T / 2, T * 0.8);
+      depth.addColorStop(0, 'rgba(0,15,25,.18)');
+      depth.addColorStop(1, 'rgba(0,15,25,0)');
+      g.fillStyle = depth; g.fillRect(x, y, T, T);
+      for (const [dc, dr] of SIDES) if (!isWater(c + dc, r + dr)) drawBank(g, x, y, dc, dr);
     }
     g.strokeStyle = 'rgba(160,205,225,.55)';
     g.lineWidth = 1.2;
@@ -440,6 +467,73 @@
     g.fillRect(x - w / 2, top, w * k, 3);
   }
 
+  // Cores do corpo com volume: luz no alto à esquerda, cor do inimigo no meio e borda puxada para o escuro
+  const hex = s => [1, 3, 5].map(i => parseInt(s.slice(i, i + 2), 16));
+  const mix = (a, b, k) => `rgb(${hex(a).map((v, i) => Math.round(v + (hex(b)[i] - v) * k)).join(',')})`;
+  function bodyFill(g, d, r) {
+    const grad = g.createRadialGradient(-r * 0.4, -r * 0.45, r * 0.1, 0, 0, r * 1.05);
+    grad.addColorStop(0, mix(d.color, '#ffffff', 0.35)); grad.addColorStop(0.55, d.color); grad.addColorStop(1, mix(d.color, d.dark, 0.55));
+    return grad;
+  }
+
+  function bodyShape(g, type, x, y, r) {
+    if (type === 'brute' || type === 'colossus') rr(g, x - r, y - r, r * 2, r * 2, type === 'colossus' ? 6 : 4);
+    else circle(g, x, y, r);
+  }
+
+  // O corpo com degradê é desenhado uma vez por tipo, em resolução dobrada, e reaproveitado:
+  // criar um degradê por inimigo a cada quadro custava mais que todo o resto do desenho
+  const BODY_RES = 2;
+  const bodies = new Map();
+  function bodySprite(e) {
+    let c = bodies.get(e.type);
+    if (!c) {
+      const d = e.d, s = d.r + 3;
+      c = document.createElement('canvas');
+      c.width = c.height = Math.ceil(s * 2 * BODY_RES);
+      const g = c.getContext('2d');
+      g.setTransform(BODY_RES, 0, 0, BODY_RES, s * BODY_RES, s * BODY_RES);
+      g.fillStyle = bodyFill(g, d, d.r); g.strokeStyle = d.dark; g.lineWidth = 2;
+      bodyShape(g, e.type, 0, 0, d.r); g.fill(); g.stroke();
+      bodies.set(e.type, c);
+    }
+    return c;
+  }
+
+  // Para onde o inimigo anda; no ícone do Compêndio (sem estrada), para a direita, rumo à muralha
+  function heading(e) {
+    if (!e.path) return 0;
+    const b = e.path.posAt(Math.min(e.path.len, e.dist + 3));
+    return b.x === e.x && b.y === e.y ? 0 : Math.atan2(b.y - e.y, b.x - e.x);
+  }
+
+  // Dois pés que se alternam no passo, aparecendo por baixo do corpo
+  function drawFeet(g, e, x, y, r, ang, still) {
+    const step = still ? 0 : Math.sin(e.wob * 1.6) * r * 0.45;
+    const fx = Math.cos(ang), fy = Math.sin(ang), px = -fy, py = fx;
+    g.fillStyle = e.d.dark;
+    g.beginPath();
+    for (const side of [-1, 1]) {
+      const s = step * side, cx = x + px * r * 0.55 * side + fx * s, cy = y + py * r * 0.55 * side + fy * s + r * 0.62;
+      g.moveTo(cx + r * 0.34, cy); g.arc(cx, cy, r * 0.34, 0, Math.PI * 2);
+    }
+    g.fill();
+  }
+
+  // Lança (soldado, esqueleto) ou adaga (batedor), apontada para onde anda
+  function drawWeapon(g, e, x, y, r, ang) {
+    const len = e.type === 'scout' ? 7 : 15, blade = e.type === 'scout' ? 4 : 5;
+    const fx = Math.cos(ang), fy = Math.sin(ang), px = -fy * r * 0.8, py = fx * r * 0.8;
+    const bx = x + px - fx * r * 0.6, by = y + py - fy * r * 0.6, tx = x + px + fx * (r * 0.4 + len), ty = y + py + fy * (r * 0.4 + len);
+    const ex = tx - fx * blade, ey = ty - fy * blade;
+    g.strokeStyle = '#3d2c1a'; g.lineWidth = 2.2;
+    g.beginPath(); g.moveTo(bx, by); g.lineTo(ex, ey); g.stroke();
+    // lâmina em triângulo
+    g.fillStyle = '#e4dfd2';
+    g.beginPath(); g.moveTo(tx, ty); g.lineTo(ex - fy * 2.6, ey + fx * 2.6); g.lineTo(ex + fy * 2.6, ey - fx * 2.6); g.fill();
+  }
+  const ARMED = new Set(['soldier', 'skeleton', 'scout']);
+
   function drawEnemy(g, e, reducedMotion) {
     if (e.d.flying) {
       drawFlyer(g, e, reducedMotion);
@@ -454,12 +548,22 @@
     if (hidden) { g.save(); g.globalAlpha *= 0.32; }
     g.fillStyle = 'rgba(0,0,0,.3)';
     g.beginPath(); g.ellipse(e.x + 2, e.y + r * 0.75, r, r * 0.45, 0, 0, Math.PI * 2); g.fill();
-    g.fillStyle = e.flash > 0 ? '#fff4dc' : d.color;
-    g.strokeStyle = d.dark; g.lineWidth = 2;
-    if (e.type === 'brute' || e.type === 'colossus') rr(g, x - r, y - r, r * 2, r * 2, e.type === 'colossus' ? 6 : 4);
-    else circle(g, x, y, r);
-    g.fill(); g.stroke();
-    g.fillStyle = 'rgba(255,255,255,.2)'; circle(g, x - r * 0.35, y - r * 0.35, r * 0.3); g.fill();
+    const ang = heading(e);
+    drawFeet(g, e, x, y, r, ang, reducedMotion || e.frozenT > 0);
+    if (e.flash > 0) {
+      g.fillStyle = '#fff4dc'; g.strokeStyle = d.dark; g.lineWidth = 2;
+      bodyShape(g, e.type, x, y, r); g.fill(); g.stroke();
+    } else {
+      const s = r + 3;
+      g.drawImage(bodySprite(e), x - s, y - s, s * 2, s * 2);
+    }
+    if (ARMED.has(e.type)) drawWeapon(g, e, x, y, r, ang);
+    if (e.type === 'brute') {
+      // viseira do elmo e rebites
+      g.fillStyle = '#1f252b'; rr(g, x - r * 0.62, y - r * 0.3, r * 1.24, r * 0.26, 1.5); g.fill();
+      g.fillStyle = '#c5ccd3';
+      for (const [dx, dy] of [[-0.7, -0.7], [0.7, -0.7], [-0.7, 0.7], [0.7, 0.7]]) { circle(g, x + dx * r, y + dy * r, 1.3); g.fill(); }
+    }
     if (e.type === 'healer') {
       g.fillStyle = '#f2f7ee';
       g.fillRect(x - 1.5, y - 5, 3, 10);
