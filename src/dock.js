@@ -59,7 +59,7 @@
       const cost = G.specCost(t);
       main = SPECS[t.type].map(s => `<button class="dbtn dact dspec" data-act="spec" data-spec="${s.id}" style="--spec:${s.color}" ${S.gold < cost ? 'disabled' : ''}>${s.name}<small>${cost} de ouro</small></button>`).join('');
     }
-    const aim = t.spec === 'blizzard' || d.melee ? '' : `<button class="dbtn dact" data-act="target">Mira<small>${(TARGETING.find(x => x.id === t.target) || TARGETING[0]).name}</small></button>`;
+    const aim = t.spec === 'blizzard' || d.melee || d.support ? '' : `<button class="dbtn dact" data-act="target">Mira<small>${(TARGETING.find(x => x.id === t.target) || TARGETING[0]).name}</small></button>`;
     const sell = `<button class="dbtn dact danger" data-act="sell">Vender<small>${G.refund(t)} de ouro</small></button>`;
     return `<span class="dsel-nm">${title}</span>${main}${aim}${sell}<button class="dbtn dact dclose" data-act="close" aria-label="Fechar">✕</button>`;
   }

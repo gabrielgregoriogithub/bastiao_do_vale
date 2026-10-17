@@ -55,12 +55,14 @@
     sfx.play('heal');
   }
 
-  // Espreitador: só pode ser mirado quando está no alcance de uma torre que detecta (Geada ou Arcano)
+  // Espreitador: só pode ser mirado quando está no alcance de uma torre que detecta
+  // (Geada, Arcano ou o Estandarte com Olho do Oráculo)
+  const detects = t => TOWERS[t.type].detects || t.spec === 'oracle';
   function updateReveal() {
     const S = G.S;
     for (const e of S.enemies) {
       if (!e.d.stealth) continue;
-      e.revealed = S.towers.some(t => TOWERS[t.type].detects && Math.hypot(e.x - t.x, e.y - t.y) <= t.s.range);
+      e.revealed = S.towers.some(t => detects(t) && Math.hypot(e.x - t.x, e.y - t.y) <= t.s.range);
     }
   }
 

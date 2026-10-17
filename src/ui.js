@@ -192,13 +192,14 @@
     if (s.weakDur) rows.push(['Runa de fraqueza', `+${Math.round((TD.WEAK_MUL - 1) * 100)}% de dano por ${fmt(s.weakDur)} s`]);
     if (d.pierce) rows.push(['Armadura', 'Ignorada']);
     if (d.ground) rows.push(['Voadores', 'Não acerta']);
+    if (s.buff) rows.push(['Estandarte', `+${Math.round(s.buff * 100)}% de dano`]);
     return rows.map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join('');
   }
 
   function towerActions(t) {
     const S = G.S;
     const mode = TARGETING.find(x => x.id === t.target) || TARGETING[0];
-    const target = t.spec === 'blizzard' || TOWERS[t.type].melee ? '' : `<button class="btn wide" id="btnTarget" data-act="target">Mira: ${mode.name}</button>`;
+    const target = t.spec === 'blizzard' || TOWERS[t.type].melee || TOWERS[t.type].support ? '' : `<button class="btn wide" id="btnTarget" data-act="target">Mira: ${mode.name}</button>`;
     const sellBtn = `<button class="btn danger" id="btnSell" data-act="sell" title="${t.fresh ? 'Ainda não atirou: devolve o preço cheio.' : 'Devolve 70% do que foi gasto.'}">Vender · ${G.refund(t)}${t.fresh ? ' (preço cheio)' : ''}</button>`;
     if (t.level < MAX_LVL) {
       const cost = G.upCost(t);
@@ -233,7 +234,7 @@
   function setNextPreview(t) {
     if (!t || t.level >= MAX_LVL) { nextStat = () => ''; return; }
     const n = G.towerStats({ ...t, level: t.level + 1 });
-    nextStat = pick => `<span class="next" aria-label="no próximo nível">→ ${fmt(pick(n))}</span>`;
+    nextStat = (pick, unit = '') => `<span class="next" aria-label="no próximo nível">→ ${fmt(pick(n))}${unit}</span>`;
   }
 
   function renderInfo() {
@@ -245,22 +246,25 @@
     } else if (t) {
       const d = TOWERS[t.type], s = t.s, sp = G.specOf(t);
       const title = sp ? `${d.name} · ${sp.name}` : `${d.name} · nível ${t.level} de ${MAX_LVL}`;
-      ui.info.innerHTML = `<h3>${title}</h3>
-        ${sp ? `<p class="spec-line" style="--spec:${sp.color}">${sp.desc}</p>` : ''}
-        <dl class="statgrid">
-          <dt>Dano</dt><dd>${fmt(s.dmg)}${nextStat(n => n.dmg)}</dd>
-          <dt>Alcance</dt><dd>${fmt(s.range / T)} casas${nextStat(n => n.range / T)}</dd>
+      const range = `<dt>Alcance</dt><dd>${fmt(s.range / T)} casas${nextStat(n => n.range / T)}</dd>`;
+      // o Estandarte não ataca: mostra o bônus que dá e quantas torres estão ao alcance dele
+      const rows = d.support
+        ? `<dt>Bônus às vizinhas</dt><dd>+${Math.round(s.aura * 100)}% de dano${nextStat(n => n.aura * 100, '%')}</dd>${range}
+          <dt>Torres ao alcance</dt><dd>${S.towers.filter(o => !TOWERS[o.type].support && Math.hypot(o.x - t.x, o.y - t.y) <= s.range).length}</dd>`
+        : `<dt>Dano</dt><dd>${fmt(s.dmg)}${nextStat(n => n.dmg)}</dd>${range}
           <dt>${t.spec === 'blizzard' ? 'Pulsos' : TOWERS[t.type].melee ? 'Golpes' : 'Disparos'}</dt><dd>${fmt(1 / s.rate)} por segundo${nextStat(n => 1 / n.rate)}</dd>${towerExtras(t)}
           <dt>Abates</dt><dd id="iKills">${t.kills}</dd>
-          <dt>Dano causado</dt><dd id="iDmg">${Math.round(t.dmgDone)}</dd>
-        </dl>
+          <dt>Dano causado</dt><dd id="iDmg">${Math.round(t.dmgDone)}</dd>`;
+      ui.info.innerHTML = `<h3>${title}</h3>
+        ${sp ? `<p class="spec-line" style="--spec:${sp.color}">${sp.desc}</p>` : ''}
+        <dl class="statgrid">${rows}</dl>
         ${towerActions(t)}`;
     } else if (S.aim) {
       ui.info.innerHTML = `<h3>Chuva de flechas</h3>
         <p>Clique no mapa onde as flechas devem cair. No celular, toque duas vezes no mesmo ponto. Esc cancela.</p>`;
     } else if (S.build) {
       const d = TOWERS[S.build];
-      const armor = S.build === 'ballista' ? '' : ' Blindados e chefes absorvem parte do dano.';
+      const armor = S.build === 'ballista' || d.support ? '' : ' Blindados e chefes absorvem parte do dano.';
       ui.info.innerHTML = `<h3>Construindo: ${d.name}</h3>
         <p><strong>${d.desc}</strong>${armor}</p>
         <p>Clique numa casa de gramado para construir. No celular, o primeiro toque mostra o alcance e o segundo confirma. Esc ou clique direito cancela.</p>`;
@@ -346,7 +350,7 @@
     const t = S.sel, h = S.hero;
     const afford = t ? (t.level < MAX_LVL ? S.gold >= G.upCost(t) : S.gold >= G.specCost(t)) : false;
     const info = S.heroSel && h ? `h${h.level}-${h.deadT > 0}`
-      : t ? `t${t.id}-${t.level}-${t.spec}-${t.target}-${afford}-${!!t.fresh}` : S.aim ? 'aim' : S.build ? 'b' + S.build : 'none';
+      : t ? `t${t.id}-${t.level}-${t.spec}-${t.target}-${afford}-${!!t.fresh}-${t.s.buff}-${S.towers.length}` : S.aim ? 'aim' : S.build ? 'b' + S.build : 'none';
     if (info !== lastInfo) { lastInfo = info; renderInfo(); }
     if (t) {
       const k = $('iKills'), d = $('iDmg');

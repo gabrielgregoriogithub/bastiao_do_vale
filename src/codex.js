@@ -107,7 +107,9 @@
       <canvas width="96" height="96" data-tower="${type}" aria-hidden="true"></canvas>
       <div class="codex-txt">
         <span class="codex-nm">${d.name} <span class="tag gold">${d.cost} de ouro</span></span>
-        <span class="codex-stats">Dano ${d.dmg} · Alcance ${fmt(d.range)} casas · ${fmt(1 / d.rate)} ${d.melee ? 'golpes' : 'disparos'} por segundo${d.units ? ` · ${d.units} soldados de ${d.unitHp} de vida` : ''}${extras ? ` · ${extras}` : ''}</span>
+        <span class="codex-stats">${d.support
+          ? `Não ataca · +${Math.round(d.aura * 100)}% de dano às torres a até ${fmt(d.range)} casas (vários não se somam)`
+          : `Dano ${d.dmg} · Alcance ${fmt(d.range)} casas · ${fmt(1 / d.rate)} ${d.melee ? 'golpes' : 'disparos'} por segundo${d.units ? ` · ${d.units} soldados de ${d.unitHp} de vida` : ''}${extras ? ` · ${extras}` : ''}`}</span>
         <span class="codex-ds">${d.desc} No nível 3: ${specs}.</span>
       </div>
     </li>`;

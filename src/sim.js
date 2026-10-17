@@ -105,6 +105,7 @@
       targets: 1, dot: 0, dotDur: 0, dotKind: null, freezeChance: 0, armoredMul: 1,
       chain: d.chain || 0, chainRange: (d.chainRange || 0) * T, chainFalloff: d.chainFalloff || 1, weakDur: 0,
       units: d.units || 0, unitHp: (d.unitHp || 0) * Math.pow(1.4, L), unitArmor: 0, regen: d.regen || 0, pierce: false,
+      aura: d.support ? d.aura + AURA_PER_LVL * L : 0, buff: 0,
     };
     switch (t.spec) {
       case 'volley': s.dmg *= 1.1; s.targets = 3; break;
@@ -123,7 +124,35 @@
     }
     blessStats(t, s);
     s.dmg *= 1 + 0.05 * (G.S?.perks?.aim || 0);
+    if (!d.support) applyAura(t, s);
     return s;
+  }
+
+  // Estandarte mais forte ao alcance da torre (vários não se somam: evita cercar uma torre de estandartes)
+  const AURA_PER_LVL = 0.05, WARHORN_MUL = 0.8, ORACLE_MUL = 1.15;
+  function bannerFor(t) {
+    let best = null;
+    for (const b of G.S?.towers || []) {
+      if (!TOWERS[b.type].support || !b.s || Math.hypot(b.x - t.x, b.y - t.y) > b.s.range) continue;
+      if (!best || b.s.aura > best.s.aura) best = b;
+    }
+    return best;
+  }
+  function applyAura(t, s) {
+    const b = bannerFor(t);
+    if (!b) return;
+    s.buff = b.s.aura;
+    s.dmg *= 1 + b.s.aura;
+    if (b.spec === 'warhorn') s.rate *= WARHORN_MUL;
+    if (b.spec === 'oracle') s.range *= ORACLE_MUL;
+  }
+
+  // O bônus de cada torre depende dos estandartes vizinhos: depois de construir, vender, melhorar
+  // ou ganhar uma bênção, refaz as contas de todas (primeiro os estandartes, que as outras consultam)
+  function refreshStats() {
+    const S = G.S;
+    for (const t of S.towers) if (TOWERS[t.type].support) t.s = towerStats(t);
+    for (const t of S.towers) if (!TOWERS[t.type].support) t.s = towerStats(t);
   }
 
   const specOf = t => (t.spec && SPECS[t.type].find(x => x.id === t.spec)) || null;
@@ -175,6 +204,7 @@
     if (!canBuild(c, r) || S.gold < cost) return;
     S.gold -= cost;
     S.towers = [...S.towers, { ...makeTower({ type, c, r, spent: cost }), fresh: true }];
+    refreshStats();
     addFx({ kind: 'ring', x: (c + 0.5) * T, y: (r + 0.5) * T, r: T * 0.7, color: '#d6a547', life: 0.4 });
     sfx.play('build');
   }
@@ -186,7 +216,7 @@
     S.gold -= cost;
     t.spent += cost;
     t.level += 1;
-    t.s = towerStats(t);
+    refreshStats();
     if (t.units) TD.units.refresh(t);
     addFx({ kind: 'ring', x: t.x, y: t.y, r: T * 0.9, color: '#d6a547', life: 0.5 });
     sfx.play('upgrade');
@@ -200,7 +230,7 @@
     S.gold -= cost;
     t.spent += cost;
     t.spec = specId;
-    t.s = towerStats(t);
+    refreshStats();
     if (t.units) TD.units.refresh(t);
     addFx({ kind: 'ring', x: t.x, y: t.y, r: T * 1.2, color: specOf(t).color, life: 0.7 });
     sfx.play('spec');
@@ -211,6 +241,7 @@
     if (!t) return;
     S.gold += refund(t);
     S.towers = S.towers.filter(x => x.id !== t.id);
+    refreshStats();
     addFx({ kind: 'text', x: t.x, y: t.y - 10, txt: '+' + refund(t), color: '#d6a547', life: 1 });
     S.sel = null;
     sfx.play('sell');
@@ -607,7 +638,7 @@
       t.cd -= dt;
       t.kick = Math.max(0, (t.kick || 0) - dt * 7);
       if (t.stunT > 0) { t.stunT = Math.max(0, t.stunT - dt); continue; }
-      if (TOWERS[t.type].melee) continue; // o quartel luta pelos soldados (units.js)
+      if (TOWERS[t.type].melee || TOWERS[t.type].support) continue; // o quartel luta pelos soldados (units.js); o estandarte não ataca
       if (t.spec === 'blizzard') {
         if (t.cd <= 0 && pulseBlizzard(t)) t.cd = t.s.rate * mul;
         continue;
@@ -755,6 +786,7 @@
       S.hero.xp = intIn(data.hero.xp, 0, 1e6, 0);
       S.hero.kills = intIn(data.hero.kills, 0, 1e9, 0);
     }
+    refreshStats(); // torres restauradas antes do estandarte vizinho ainda não tinham o bônus
     TD.blessings.check(); // escolha que ficou pendente ao salvar
     return true;
   }
@@ -762,6 +794,6 @@
   Object.assign(G, {
     store, readBest, readStars, readChallenges, readDaily, newDaily, towerStats, prepare, newGame, hurt, addFx, spawn, costOf, powerCd,
     build, upgrade, specialize, sell, cycleTarget, toggleAuto, continueEndless, startWave, usePower, canUsePower, update,
-    towerAt, canBuild, upCost, specCost, refund, specOf, waveBonus, earlyBonus, canCallEarly, snapshot, restore, blessed,
+    towerAt, canBuild, upCost, specCost, refund, specOf, waveBonus, earlyBonus, canCallEarly, snapshot, restore, blessed, refreshStats,
   });
 })();

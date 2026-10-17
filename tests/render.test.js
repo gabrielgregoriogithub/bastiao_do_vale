@@ -17,7 +17,7 @@ test('um quadro cheio de inimigos, torres, heróis e efeitos é desenhado sem er
     TD.scene.setup(ctx, 1);
     G.S.gold = 99999;
     // duas casas por tipo de torre, na ordem de TD.ORDER
-    const spots = [[2, 3], [4, 4], [6, 4], [8, 3], [10, 4], [12, 7], [14, 2], [5, 8], [3, 7], [13, 8], [16, 9], [1, 6]];
+    const spots = [[2, 3], [4, 4], [6, 4], [8, 3], [10, 4], [12, 7], [14, 2], [5, 8], [3, 7], [13, 8], [16, 9], [1, 6], [5, 0], [9, 0]];
     assert.equal(spots.length, TD.ORDER.length * 2);
     TD.ORDER.forEach((type, i) => {
       for (const k of [0, 1]) {

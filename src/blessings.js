@@ -62,10 +62,8 @@
     if (!S.offer || !S.offer.includes(id)) return false;
     S.blessings = [...S.blessings, id];
     S.offer = null;
-    for (const t of S.towers) {
-      t.s = G.towerStats(t);
-      if (t.units) TD.units.refresh(t);
-    }
+    G.refreshStats();
+    for (const t of S.towers) if (t.units) TD.units.refresh(t);
     sfx.play('spec');
     check(); // pode haver outra pendente (partida salva no meio de duas)
     return true;

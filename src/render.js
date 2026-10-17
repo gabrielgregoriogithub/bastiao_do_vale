@@ -263,7 +263,7 @@
     return bg;
   }
 
-  const PENNANT = { archer: '#c9a45c', cannon: '#9aa0a8', frost: '#8fd3e8', ballista: '#b0743a', arcane: '#9b7be0', barracks: '#b0473b' };
+  const PENNANT = { archer: '#c9a45c', cannon: '#9aa0a8', frost: '#8fd3e8', ballista: '#b0743a', arcane: '#9b7be0', barracks: '#b0473b', banner: '#d6a547' };
 
   // Nível 2 ganha rebites de bronze; nível 3 ergue um estandarte com a cor da torre
   function drawTowerTier(g, type, level, specColor) {
@@ -333,6 +333,16 @@
       g.fillStyle = `rgba(155,123,224,${0.3 + pulse + kick * 0.5})`; circle(g, 0, -7, 9 + pulse * 10); g.fill();
       g.fillStyle = '#c7b0ff'; circle(g, 0, -7, 4.5); g.fill();
       g.fillStyle = '#ffffff'; circle(g, -1.3, -8.3, 1.4); g.fill();
+    } else if (type === 'banner') {
+      // mastro com flâmula que tremula ao vento
+      g.strokeStyle = '#3a2b14'; g.lineWidth = 2.2;
+      g.beginPath(); g.moveTo(-3, 9); g.lineTo(-3, -13); g.stroke();
+      g.fillStyle = '#d6a547'; circle(g, -3, -13.5, 1.8); g.fill();
+      const wave = time ? Math.sin(time * 4) * 1.5 : 0;
+      g.fillStyle = '#b8432f'; g.strokeStyle = '#d6a547'; g.lineWidth = 1;
+      g.beginPath(); g.moveTo(-2, -12); g.quadraticCurveTo(4, -12 + wave, 10, -10); g.lineTo(10, -2);
+      g.quadraticCurveTo(4, -4 - wave, -2, -3); g.closePath(); g.fill(); g.stroke();
+      g.fillStyle = '#d6a547'; circle(g, 4, -7, 1.6); g.fill();
     } else if (type === 'ballista') {
       g.rotate(ang);
       g.translate(recoil, 0);

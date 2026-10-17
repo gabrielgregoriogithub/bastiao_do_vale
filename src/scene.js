@@ -213,6 +213,17 @@
     }
   }
 
+  // Anel dourado nas torres que um estandarte em (x, y) fortalece: ao marcá-lo ou ao posicioná-lo
+  function markBuffed(x, y, range) {
+    ctx.strokeStyle = 'rgba(232,189,92,.9)'; ctx.lineWidth = 2;
+    ctx.setLineDash([4, 3]);
+    for (const t of G.S.towers) {
+      if (TOWERS[t.type].support || Math.hypot(t.x - x, t.y - y) > range) continue;
+      TD.circle(ctx, t.x, t.y, 19); ctx.stroke();
+    }
+    ctx.setLineDash([]);
+  }
+
   function drawPlacement() {
     const S = G.S;
     if (S.aim && S.hoverPx) {
@@ -226,6 +237,7 @@
     const ok = G.canBuild(c, r) && S.gold >= G.costOf(S.build);
     const x = (c + 0.5) * T, y = (r + 0.5) * T;
     TD.drawRange(ctx, x, y, TOWERS[S.build].range * T, ok);
+    if (TOWERS[S.build].support && ok) markBuffed(x, y, TOWERS[S.build].range * T);
     ctx.globalAlpha = 0.65;
     TD.drawTower(ctx, S.build, x, y, 1, Math.PI);
     ctx.globalAlpha = 1;
@@ -317,6 +329,7 @@
     if (S.sel) {
       ctx.strokeStyle = '#d6a547'; ctx.lineWidth = 2;
       TD.rr(ctx, S.sel.x - 18, S.sel.y - 18, 36, 36, 7); ctx.stroke();
+      if (TOWERS[S.sel.type].support) markBuffed(S.sel.x, S.sel.y, S.sel.s.range);
     }
     for (const e of S.enemies) if (!e.d.flying) TD.drawEnemy(ctx, e, reducedMotion);
     TD.units.draw(ctx, reducedMotion);

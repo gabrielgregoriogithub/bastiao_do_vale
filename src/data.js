@@ -17,7 +17,12 @@
     units: 2, unitHp: 150, regen: 6, respawn: 9,
     desc: 'Envia soldados que seguram os inimigos na estrada.',
   };
-  TD.ORDER = ['archer', 'cannon', 'frost', 'ballista', 'arcane', 'barracks'];
+  // Estandarte: não ataca; as torres ao alcance causam mais dano (aura). Vários não se somam: vale o mais forte
+  TD.TOWERS.banner = {
+    name: 'Estandarte', cost: 90, dmg: 0, range: 1.6, rate: 1, support: true, aura: 0.15,
+    desc: 'Não ataca: as torres vizinhas causam 15% mais dano.',
+  };
+  TD.ORDER = ['archer', 'cannon', 'frost', 'ballista', 'arcane', 'barracks', 'banner'];
 
   TD.ENEMIES = {
     // atk = dano por segundo contra o herói quando bloqueado
@@ -136,6 +141,10 @@
     barracks: [
       { id: 'guard', name: 'Guarda real', desc: 'Três soldados, com mais vida e armadura.', color: '#c0c8d8' },
       { id: 'templar', name: 'Templários', desc: 'Golpes que ignoram armadura e cura rápida entre as lutas.', color: '#f0e0a0' },
+    ],
+    banner: [
+      { id: 'warhorn', name: 'Trompa de Guerra', desc: 'As vizinhas também atacam 20% mais rápido.', color: '#e0a050' },
+      { id: 'oracle', name: 'Olho do Oráculo', desc: 'As vizinhas alcançam 15% mais longe, e o Estandarte revela camuflados.', color: '#9fd0e8' },
     ],
   };
   TD.WEAK_MUL = 1.25;
