@@ -1,0 +1,131 @@
+// Conquistas: metas que valem entre partidas. Cada uma é verificada por um evento do jogo
+// (abate, fim de onda, vitória) ou por uma checagem leve do estado a cada quadro.
+// Ficam no navegador do jogador; sem armazenamento, valem só durante a visita.
+(() => {
+  const TD = window.TD;
+  const G = TD.game;
+  const KEY = 'bastiao-conquistas';
+  const KILLS_KEY = 'bastiao-abates-total';
+  const TOAST_SECONDS = 4;
+
+  const LIST = [
+    { id: 'first_win', name: 'Primeira vitória', desc: 'Vença as 20 ondas de qualquer campo.' },
+    { id: 'flawless', name: 'Muralha intacta', desc: 'Vença sem perder nenhuma vida.' },
+    { id: 'all_maps', name: 'Guardião do reino', desc: 'Vença os 5 campos, em qualquer dificuldade.' },
+    { id: 'hard_win', name: 'Veterano de guerra', desc: 'Vença um campo no Difícil.' },
+    { id: 'dragon', name: 'Caçador de dragões', desc: 'Derrote um Dragão.' },
+    { id: 'colossus', name: 'Gigante tombado', desc: 'Derrote um Colosso.' },
+    { id: 'specs', name: 'Mestre de obras', desc: 'Tenha 4 torres especializadas ao mesmo tempo.' },
+    { id: 'hero_max', name: 'Lenda viva', desc: 'Leve um herói ao nível 5.' },
+    { id: 'no_hero_win', name: 'Sozinho na muralha', desc: 'Vença com o desafio Sem herói.' },
+    { id: 'all_challenges', name: 'Provação total', desc: 'Vença com os 4 desafios ativos.' },
+    { id: 'kills_1000', name: 'Mil inimigos', desc: 'Derrote 1.000 inimigos somando todas as partidas.' },
+    { id: 'endless_30', name: 'Além da lenda', desc: 'Chegue à onda 30 no modo sem fim.' },
+    { id: 'rush', name: 'Pressa na batalha', desc: 'Chame 10 ondas antes da hora numa mesma partida.' },
+    { id: 'commander', name: 'Comandante', desc: 'Use os 3 poderes durante uma mesma onda.' },
+  ];
+
+  function readJson(key, fallback) {
+    try { const v = JSON.parse(localStorage.getItem(key) || 'null'); return v ?? fallback; } catch { return fallback; }
+  }
+  function writeJson(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch { /* armazenamento indisponível */ } }
+
+  let unlocked = readJson(KEY, {});
+  if (!unlocked || typeof unlocked !== 'object') unlocked = {};
+  let totalKills = Number(readJson(KILLS_KEY, 0)) || 0;
+  let pendingKills = 0;
+
+  const toast = document.getElementById('achToast');
+  const toastName = document.getElementById('achToastName');
+  let queue = [], toastT = 0;
+
+  const has = id => !!unlocked[id];
+
+  function unlock(id) {
+    if (has(id) || !LIST.some(a => a.id === id)) return;
+    unlocked = { ...unlocked, [id]: Date.now() };
+    writeJson(KEY, unlocked);
+    queue = [...queue, id];
+    TD.audio.play('spec');
+  }
+
+  function flushKills() {
+    if (!pendingKills) return;
+    totalKills += pendingKills;
+    pendingKills = 0;
+    writeJson(KILLS_KEY, totalKills);
+    if (totalKills >= 1000) unlock('kills_1000');
+  }
+
+  // ---------- Eventos vindos da simulação ----------
+  function onKill(e) {
+    pendingKills += 1;
+    if (e.type === 'dragon') unlock('dragon');
+    if (e.type === 'colossus') unlock('colossus');
+  }
+
+  function onWaveEnd() {
+    flushKills();
+    const S = G.S;
+    if (S.endless && S.wave >= 30) unlock('endless_30');
+  }
+
+  function onVictory() {
+    flushKills();
+    const S = G.S;
+    unlock('first_win');
+    if (S.lives >= S.maxLives) unlock('flawless');
+    if (S.diffId === 'dificil') unlock('hard_win');
+    if (S.mods.nohero) unlock('no_hero_win');
+    if (TD.CHALLENGES.every(c => S.mods[c.id])) unlock('all_challenges');
+    const wonAll = TD.officialMaps().every(m => TD.DIFF_ORDER.some(d => G.readStars(m.id, d) > 0));
+    if (wonAll) unlock('all_maps');
+  }
+
+  // ---------- Checagens por quadro ----------
+  function sync(dt) {
+    const S = G.S;
+    if (S.inGame && !S.over) {
+      if (S.towers.filter(t => t.spec).length >= 4) unlock('specs');
+      if (S.hero && S.hero.level >= TD.HERO.maxLevel) unlock('hero_max');
+      if ((S.earlyCalls || 0) >= 10) unlock('rush');
+      if (S.wavePowers && TD.POWERS.every(p => S.wavePowers[p.id])) unlock('commander');
+    }
+    if (toastT > 0) {
+      toastT -= dt;
+      if (toastT <= 0) toast.hidden = true;
+    } else if (queue.length) {
+      const a = LIST.find(x => x.id === queue[0]);
+      queue = queue.slice(1);
+      toastName.textContent = a.name;
+      toast.hidden = false;
+      toastT = TOAST_SECONDS;
+    }
+  }
+
+  const list = () => LIST.map(a => ({ ...a, done: has(a.id) }));
+
+  // ---------- Suas melhores partidas ----------
+  const RUNS_KEY = 'bastiao-melhores';
+  const RUNS_MAX = 10;
+  const better = (a, b) => b.wave - a.wave || b.kills - a.kills;
+
+  function runs() {
+    const v = readJson(RUNS_KEY, []);
+    return Array.isArray(v) ? v.filter(r => r && Number.isFinite(r.wave)).sort(better).slice(0, RUNS_MAX) : [];
+  }
+
+  // Guarda a partida que acabou, se ela entrar entre as 10 melhores (mais ondas; no empate, mais abates)
+  function recordRun(victory) {
+    const S = G.S;
+    if (!S.inGame) return;
+    const run = {
+      at: Date.now(), map: G.md.map.name, diff: S.diff.name, hero: S.hero ? TD.hero.defOf(S.hero).name : 'Sem herói',
+      wave: victory ? S.wave : Math.max(0, S.wave - 1), kills: S.kills, victory: !!victory, daily: !!S.daily,
+      mods: Object.keys(S.mods || {}).length,
+    };
+    writeJson(RUNS_KEY, [...runs(), run].sort(better).slice(0, RUNS_MAX));
+  }
+
+  TD.achievements = { onKill, onWaveEnd, onVictory, flushKills, sync, list, has, totalKills: () => totalKills + pendingKills, runs, recordRun };
+})();

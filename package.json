@@ -1,0 +1,9 @@
+{
+  "name": "bastiao-do-vale",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Tower defense medieval em canvas, sem dependências. Abra index.html no navegador para jogar.",
+  "scripts": {
+    "test": "node --test \"tests/*.test.js\""
+  }
+}

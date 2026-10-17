@@ -1,0 +1,586 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bastião do Vale</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Barlow+Semi+Condensed:wght@400;500;600;700&display=swap">
+<style>
+  /* Layout: campo de batalha à esquerda, painel de comando à direita; no celular o painel desce para baixo do mapa */
+  :root {
+    --bg: #171b16;
+    --panel: #22271f;
+    --raise: #2c3228;
+    --line: #3b4334;
+    --line-hover: #5d6852;
+    --fg: #ede5cf;
+    --muted: #a8a28c;
+    --brass: #d6a547;
+    --brass-ink: #2a1f08;
+    --danger: #e0715a;
+    --scrim: rgba(12, 14, 10, .8);
+    --display: 'Pirata One', 'Palatino Linotype', Georgia, serif;
+    --body: 'Barlow Semi Condensed', 'Arial Narrow', system-ui, sans-serif;
+    color-scheme: dark;
+  }
+  [hidden] { display: none !important; }
+  html, body { background: var(--bg); color: var(--fg); }
+  body {
+    margin: 0;
+    font-family: var(--body);
+    font-size: 15px;
+    line-height: 1.4;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 16px 28px;
+  }
+  .app { max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+  .top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
+  .title-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  h1 { font-family: var(--display); font-weight: 400; font-size: clamp(32px, 5vw, 46px); line-height: 1; margin: 0; color: var(--brass); text-wrap: balance; }
+  .sub { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+  .stats { display: flex; gap: 8px; flex-wrap: wrap; }
+  .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px; min-width: 68px; display: flex; flex-direction: column; }
+  .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); }
+  .val { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.15; }
+  .val.gold { color: var(--brass); }
+  .val.low { color: var(--danger); }
+  .layout { display: flex; gap: 14px; align-items: flex-start; justify-content: center; }
+  .layout > .field { flex: 0 1 auto; }
+  .layout > .panel { flex: 0 0 290px; }
+  @media (max-width: 900px) { .layout { flex-direction: column; align-items: stretch; } .layout > .panel { flex: 1 1 auto; } }
+  /* Celular em pé: o mapa fica preso no topo enquanto o painel rola por baixo, e a torre ou o herói
+     tocado mostra os detalhes logo abaixo do mapa, sem precisar rolar até o fim do painel */
+  @media (max-width: 900px) and (orientation: portrait) {
+    .layout > .field { position: sticky; top: 0; z-index: 4; background: var(--bg); padding-block: 8px; margin-block: -8px; }
+    .panel > .info.focus { order: -1; }
+  }
+  /* O campo encolhe para caber na altura da tela, com a barra de comando sempre visível abaixo do mapa */
+  .field {
+    display: flex; flex-direction: column; gap: 10px; min-width: 0;
+    width: min(100%, max(520px, calc((100vh - 240px) * 5 / 3)));
+    width: min(100%, max(520px, calc((100dvh - 240px) * 5 / 3)));
+  }
+  .command { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+  .cmd-main { display: flex; align-items: center; gap: 12px; flex: 1 1 300px; min-width: 0; }
+  .cmd-main .btn { flex: 0 0 auto; min-width: 190px; }
+  .next-info { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.3; min-width: 0; }
+  .cmd-toggles { display: flex; gap: 6px; flex-wrap: wrap; }
+  .cmd-toggles .btn { padding: 8px 11px; font-size: 14px; }
+  @media (max-width: 560px) {
+    .cmd-main { flex-wrap: wrap; gap: 6px; }
+    .cmd-main .btn { flex: 1 1 100%; }
+    .cmd-toggles { width: 100%; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .cmd-toggles .btn { padding-inline: 4px; font-size: 13px; }
+    .stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; width: 100%; }
+    .stat { min-width: 0; padding: 4px 6px; }
+    .val { font-size: 17px; }
+    .lbl { font-size: 10px; letter-spacing: .04em; }
+    .sub { font-size: 13px; }
+  }
+  /* Telas bem estreitas: colunas iguais cortavam "Automático"; cada botão fica com a largura do próprio texto */
+  @media (max-width: 360px) { .cmd-toggles { display: flex; gap: 4px; } .cmd-toggles .btn { flex: 1 1 auto; } }
+  .stage { position: relative; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #3d5328; }
+  #game { display: block; width: 100%; max-width: 100%; aspect-ratio: 800 / 480; touch-action: manipulation; cursor: crosshair; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+  h3 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .14em; color: var(--muted); font-weight: 600; }
+  .towers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  @media (max-width: 900px) { .towers { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+  @media (max-width: 560px) { .towers { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .tbtn {
+    position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px;
+    text-align: center; min-width: 0; background: var(--raise); border: 1px solid var(--line); border-radius: 6px;
+    padding: 8px; color: var(--fg); font: inherit; cursor: pointer;
+  }
+  .tbtn canvas { width: 36px; height: 36px; }
+  .tbtn .nm { font-weight: 600; font-size: 14px; line-height: 1.1; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tbtn .cost { font-size: 13px; color: var(--brass); font-variant-numeric: tabular-nums; }
+  .tbtn .key { position: absolute; top: 4px; right: 7px; font-size: 11px; color: var(--muted); }
+  .tbtn:hover { border-color: var(--line-hover); }
+  .tbtn.active { border-color: var(--brass); box-shadow: inset 0 0 0 1px var(--brass); }
+  .tbtn.poor { opacity: .5; }
+  /* no celular cabem cinco torres por linha: o custo vira só o número e o nome encolhe um pouco */
+  @media (max-width: 560px) {
+    .tbtn { padding: 6px 2px; }
+    .tbtn .nm { font-size: 12.5px; overflow: visible; text-overflow: clip; }
+    .tbtn .cost-u { display: none; }
+    .tbtn .key { top: 2px; right: 4px; }
+  }
+  .editor-actions .controls { justify-content: flex-end; }
+  .editor-share { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; justify-content: space-between; padding: 10px 0 12px; margin-bottom: 12px; border-bottom: 1px solid var(--line); }
+  .editor-share .editor-name { flex: 1 1 260px; }
+  .editor-share input { width: 100%; font-family: ui-monospace, Consolas, monospace; font-size: 13px; }
+  button:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+  .btn { font: inherit; font-weight: 600; background: var(--raise); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 9px 12px; cursor: pointer; }
+  .btn:hover:not(:disabled) { border-color: var(--line-hover); }
+  .btn.primary { background: var(--brass); color: var(--brass-ink); border-color: var(--brass); }
+  .btn.danger { color: var(--danger); }
+  .btn.small { padding: 6px 10px; font-size: 14px; }
+  .btn[aria-pressed="true"]:not(.primary) { border-color: var(--brass); color: var(--brass); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .controls { display: flex; gap: 8px; flex-wrap: wrap; }
+  .controls .primary { flex: 1 1 150px; }
+  .controls .wide { flex: 1 1 100%; }
+  .powers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  @media (max-width: 900px) { .powers { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  @media (max-width: 560px) { .powers { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .pbtn.hero-ability .bar { background: #9fb6d6; }
+  .pbtn {
+    --p: 1;
+    position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 2px; text-align: left;
+    background: var(--raise); border: 1px solid var(--line); border-radius: 6px; padding: 8px 8px 10px;
+    color: var(--fg); font: inherit; cursor: pointer; min-width: 0;
+  }
+  .pbtn .nm { font-weight: 600; font-size: 14px; line-height: 1.1; padding-right: 12px; }
+  .pbtn .cd { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .pbtn .key { position: absolute; top: 4px; right: 6px; font-size: 11px; color: var(--muted); }
+  .pbtn .bar { position: absolute; left: 0; bottom: 0; height: 3px; width: calc(var(--p) * 100%); background: var(--brass); }
+  .pbtn:hover:not(:disabled) { border-color: var(--line-hover); }
+  .pbtn:not(:disabled) .cd { color: var(--brass); }
+  .pbtn:disabled { cursor: not-allowed; color: var(--muted); }
+  .pbtn.aiming { border-color: var(--brass); box-shadow: inset 0 0 0 1px var(--brass); }
+  .specs { display: grid; gap: 8px; margin-bottom: 10px; }
+  .spec {
+    display: flex; flex-direction: column; gap: 2px; text-align: left; font: inherit; color: var(--fg); cursor: pointer;
+    background: var(--raise); border: 1px solid var(--line); border-left: 4px solid var(--spec); border-radius: 6px; padding: 8px 10px;
+  }
+  .spec:hover:not(:disabled) { border-color: var(--line-hover); border-left-color: var(--spec); }
+  .spec:disabled { opacity: .5; cursor: not-allowed; }
+  .spec-nm { font-weight: 700; }
+  .spec-ds { font-size: 13px; color: var(--muted); }
+  .info .spec-line { border-left: 3px solid var(--spec); padding-left: 8px; color: var(--fg); }
+  .stars { font-size: 30px; letter-spacing: .12em; color: var(--brass); margin: 0 0 8px; }
+  .info p, .next p { margin: 0 0 10px; color: var(--muted); }
+  .info p strong { color: var(--fg); font-weight: 600; }
+  .statgrid { display: grid; grid-template-columns: auto 1fr; gap: 3px 14px; margin: 0 0 12px; font-variant-numeric: tabular-nums; }
+  .statgrid dt { color: var(--muted); }
+  .statgrid dd { margin: 0; font-weight: 600; }
+  .keys { font-size: 12px; color: var(--muted); margin: 0; }
+
+  .modal {
+    position: fixed; inset: 0; z-index: 10; overflow-y: auto;
+    display: grid; place-items: center; background: var(--scrim);
+    padding-block: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-bottom, 0px));
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .modal .card { background: var(--panel); border: 1px solid var(--brass); border-radius: 10px; padding: 20px 22px; width: 100%; max-width: 400px; text-align: center; }
+  .modal .card.wide { max-width: 780px; text-align: left; }
+  .modal h2 { font-family: var(--display); font-weight: 400; font-size: 36px; line-height: 1.05; margin: 0 0 6px; color: var(--brass); text-wrap: balance; }
+  .modal p { margin: 0 0 16px; color: var(--muted); }
+  .modal .controls { justify-content: center; }
+  .maps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 18px; }
+  @media (max-width: 640px) { .maps { grid-template-columns: minmax(0, 1fr); } }
+  .mapcard { display: flex; flex-direction: column; gap: 4px; text-align: left; background: var(--raise); border: 1px solid var(--line); border-radius: 8px; padding: 8px; color: var(--fg); font: inherit; cursor: pointer; min-width: 0; }
+  .mapcard:hover { border-color: var(--line-hover); }
+  .mapcard canvas { width: 100%; max-width: 100%; aspect-ratio: 5 / 3; border-radius: 4px; display: block; margin-bottom: 4px; }
+  .mapcard[aria-pressed="true"] { border-color: var(--brass); box-shadow: inset 0 0 0 1px var(--brass); }
+  .mapcard .nm { font-weight: 700; font-size: 17px; }
+  .mapcard .ds { color: var(--muted); font-size: 13px; }
+  .mapcard .rec { font-size: 12px; color: var(--brass); font-variant-numeric: tabular-nums; }
+  .seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 20px; }
+  .seg .btn { text-align: left; }
+  .seg small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; }
+  .forge { border-top: 1px solid var(--line); padding-top: 16px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+  .forge-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; width: 100%; }
+  .forge-head h3 { margin: 0; }
+  .forge-stars { color: var(--brass); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .modal .forge-hint { margin: 0; font-size: 14px; }
+  .perks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; width: 100%; }
+  @media (max-width: 640px) { .perks { grid-template-columns: minmax(0, 1fr); } }
+  .perk { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--raise); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; min-width: 0; }
+  .perk-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .perk-nm { font-weight: 700; }
+  .perk-ds { font-size: 13px; color: var(--muted); }
+  .perk-max { font-size: 13px; color: var(--brass); white-space: nowrap; }
+  .perk .btn { white-space: nowrap; }
+  .pips { display: flex; gap: 4px; margin-top: 2px; }
+  .pip { width: 14px; height: 4px; border-radius: 2px; background: var(--line); }
+  .pip.on { background: var(--brass); }
+  .tip {
+    position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%);
+    width: max-content; max-width: calc(100% - 24px);
+    display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px;
+    background: rgba(23, 27, 22, .92); border: 1px solid var(--brass); border-radius: 8px;
+    padding: 8px 12px; font-size: 14px; line-height: 1.3; box-shadow: 0 6px 18px rgba(0, 0, 0, .35);
+  }
+  .tip-step { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--brass); }
+  .tip-text { flex: 1 1 260px; min-width: 0; }
+  .tip-skip { font: inherit; font-size: 13px; color: var(--muted); background: none; border: 0; padding: 2px 0; cursor: pointer; text-decoration: underline; }
+  .tip-skip:hover { color: var(--fg); }
+  @media (max-width: 560px) { .tip { bottom: 6px; padding: 6px 8px; font-size: 12px; } .tip-text { flex-basis: 100%; } }
+  .resume { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; background: var(--raise); border: 1px solid var(--brass); border-radius: 8px; padding: 10px 12px; margin-bottom: 14px; }
+  .resume-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .resume-nm { font-weight: 700; color: var(--brass); }
+  .resume-ds { font-size: 14px; color: var(--muted); }
+  .report { text-align: left; margin: 0 0 16px; overflow-x: auto; }
+  .report table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+  .report th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); font-weight: 600; padding: 0 6px 6px 0; }
+  .report td { padding: 5px 6px 5px 0; border-top: 1px solid var(--line); }
+  .report th:not(:first-child), .report td:not(:first-child) { text-align: right; }
+  .report .muted { color: var(--muted); }
+  .modal .card:has(.report:not([hidden])) { max-width: 520px; }
+  .report-chart { text-align: left; margin: 0 0 16px; }
+  .chart-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 480px) { .chart-row { grid-template-columns: minmax(0, 1fr); } }
+  .mini-chart { margin: 0; min-width: 0; }
+  .mini-chart figcaption { font-size: 13px; color: var(--muted); margin-bottom: 2px; }
+  .chart-plot { position: relative; }
+  .mini-chart svg { display: block; width: 100%; height: auto; overflow: visible; touch-action: none; }
+  .mini-chart svg:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; border-radius: 4px; }
+  .mini-chart .grid { stroke: var(--line); stroke-width: 1; }
+  .mini-chart .cross { stroke: var(--muted); stroke-width: 1; }
+  .mini-chart .tick { font: 11px var(--body); fill: var(--muted); font-variant-numeric: tabular-nums; }
+  .mini-chart .end-label { font: 600 12px var(--body); fill: var(--fg); font-variant-numeric: tabular-nums; }
+  .chart-tip { position: absolute; top: -6px; transform: translate(-50%, -100%); pointer-events: none; white-space: nowrap; background: var(--raise); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; display: flex; gap: 6px; align-items: baseline; font-size: 12px; color: var(--muted); }
+  .chart-tip strong { color: var(--fg); font-size: 14px; font-variant-numeric: tabular-nums; }
+  .chart-table { margin-top: 8px; font-size: 13px; }
+  .chart-table summary { cursor: pointer; color: var(--muted); }
+  .chart-table summary:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; border-radius: 4px; }
+  .chart-table-box { max-height: 180px; overflow: auto; margin-top: 6px; }
+  .chart-table table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  .chart-table th { text-align: right; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; padding: 0 6px 4px; position: sticky; top: 0; background: var(--panel); }
+  .chart-table td { text-align: right; padding: 3px 6px; border-top: 1px solid var(--line); }
+  .chart-table th:first-child, .chart-table td:first-child { text-align: left; }
+  .seg-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .seg-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mapcard .chapter { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--brass); }
+  .modal .card.story { text-align: left; max-width: 440px; }
+  .story-chapter { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .16em; color: var(--muted); margin-bottom: 4px; }
+  .story p { color: var(--fg); font-size: 16px; line-height: 1.55; }
+  .modal .epilogue { color: var(--fg); font-style: italic; border-left: 3px solid var(--brass); padding-left: 10px; text-align: left; }
+  @media (max-width: 640px) { .seg-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .discover {
+    position: absolute; top: 10px; right: 10px; width: min(330px, calc(100% - 20px));
+    display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 10px; align-items: start;
+    background: rgba(23, 27, 22, .94); border: 1px solid var(--brass); border-radius: 8px; padding: 10px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .35);
+  }
+  .discover canvas { width: 48px; height: 48px; }
+  .discover-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .discover-nm { font-weight: 700; color: var(--brass); }
+  .discover-ds { font-size: 13px; color: var(--fg); line-height: 1.35; }
+  .discover-x { font: inherit; font-size: 20px; line-height: 1; color: var(--muted); background: none; border: 0; cursor: pointer; padding: 0 2px; }
+  .discover-x:hover { color: var(--fg); }
+  @media (max-width: 560px) { .discover { top: 6px; right: 6px; padding: 6px; grid-template-columns: 36px minmax(0, 1fr) auto; } .discover canvas { width: 36px; height: 36px; } .discover-ds { font-size: 12px; } }
+  .codex-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .codex-head h2 { margin: 0; }
+  .codex-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+  @media (max-width: 760px) { .codex-cols { grid-template-columns: minmax(0, 1fr); } }
+  .codex-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .codex-row { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 10px; align-items: start; background: var(--raise); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }
+  .codex-row canvas { width: 48px; height: 48px; }
+  .codex-row.unknown { opacity: .7; }
+  .codex-txt { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .codex-nm { font-weight: 700; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .codex-stats { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .codex-ds { font-size: 13px; line-height: 1.4; }
+  .tag { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; }
+  .tag.gold { color: var(--brass); border-color: #6b5626; text-transform: none; letter-spacing: 0; }
+  .help-btn { align-self: flex-start; }
+  .modal .card.help { text-align: left; max-width: 640px; }
+  .help-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 24px; }
+  @media (max-width: 600px) { .help-cols { grid-template-columns: minmax(0, 1fr); } }
+  .help dl { display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; margin: 0; align-items: baseline; }
+  .help dt { white-space: nowrap; color: var(--muted); }
+  .help dd { margin: 0; }
+  kbd { font: 600 13px var(--body); color: var(--fg); background: var(--raise); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 1px 6px; }
+  .ach-toast {
+    position: absolute; left: 50%; top: 12px; transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 1px;
+    background: rgba(23, 27, 22, .94); border: 1px solid var(--brass); border-radius: 8px; padding: 8px 16px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .35); pointer-events: none;
+  }
+  .ach-toast-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .14em; color: var(--muted); }
+  .ach-toast-nm { font-family: var(--display); font-size: 22px; color: var(--brass); line-height: 1.1; }
+  .codex-ach { margin-top: 18px; }
+  .codex-runs { margin-top: 18px; }
+  .runs-box { overflow-x: auto; }
+  .runs-box table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+  .runs-box th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); font-weight: 600; padding: 0 8px 6px 0; white-space: nowrap; }
+  .runs-box td { padding: 5px 8px 5px 0; border-top: 1px solid var(--line); vertical-align: top; }
+  .runs-box .muted { color: var(--muted); font-size: 13px; }
+  .ach-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  @media (max-width: 760px) { .ach-list { grid-template-columns: minmax(0, 1fr); } }
+  .ach { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; align-items: start; background: var(--raise); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; opacity: .65; }
+  .ach.done { opacity: 1; border-color: #6b5626; }
+  .ach-mark { color: var(--brass); font-size: 18px; line-height: 1.1; }
+  .ach-txt { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .ach-nm { font-weight: 700; }
+  .ach-ds { font-size: 13px; color: var(--muted); }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .resume.daily { border-color: var(--line); }
+  .fold { border-top: 1px solid var(--line); padding-top: 12px; margin-bottom: 12px; }
+  .fold > summary { list-style: none; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; cursor: pointer; padding-block: 2px; }
+  .fold > summary::-webkit-details-marker { display: none; }
+  .fold > summary h3 { margin: 0; }
+  .fold > summary h3::before { content: '▸'; display: inline-block; width: 1em; color: var(--brass); transition: transform .15s; }
+  .fold[open] > summary h3::before { transform: rotate(90deg); }
+  .fold > summary:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; border-radius: 4px; }
+  .fold[open] > summary { margin-bottom: 10px; }
+  .fold-note { font-size: 13px; color: var(--brass); }
+  .fold > :not(summary) + :not(summary) { margin-top: 10px; }
+  .modal .forge { border-top: 1px solid var(--line); margin-bottom: 20px; display: block; }
+  .statgrid .next { color: var(--ok, #86b46f); font-weight: 600; margin-left: 4px; }
+  @media (prefers-reduced-motion: reduce) { .fold > summary h3::before { transition: none; } }
+  .editor-cta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: -6px 0 18px; }
+  .editor-cta-note { font-size: 13px; color: var(--muted); }
+  .modal .editor-help { margin: 0 0 10px; font-size: 14px; }
+  #editorCanvas { display: block; width: 100%; max-width: 100%; aspect-ratio: 800 / 480; border: 1px solid var(--line); border-radius: 6px; cursor: crosshair; touch-action: manipulation; }
+  #editorCanvas:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+  .modal .editor-status { margin: 10px 0; min-height: 1.4em; color: var(--fg); }
+  .modal .editor-status.err { color: var(--danger); }
+  .editor-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; justify-content: space-between; }
+  .editor-name { display: flex; flex-direction: column; gap: 4px; font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
+  .editor-name input { font: inherit; font-size: 15px; text-transform: none; letter-spacing: 0; color: var(--fg); background: var(--raise); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; min-width: 0; width: 220px; max-width: 100%; }
+  .editor-name input:focus-visible { outline: 2px solid var(--brass); outline-offset: 1px; }
+  .menu-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  .menu-actions .primary { min-width: 160px; }
+</style>
+
+<div class="app">
+  <header class="top">
+    <div>
+      <div class="title-row">
+        <h1>Bastião do Vale</h1>
+        <button id="btnMenu" class="btn small">Novo jogo</button>
+        <button id="btnCodex" class="btn small" title="Compêndio (C)">Compêndio</button>
+      </div>
+      <p class="sub" id="subline">Segure a estrada até a muralha por 20 ondas.</p>
+    </div>
+    <div class="stats">
+      <div class="stat"><span class="lbl">Ouro</span><span id="sGold" class="val gold">150</span></div>
+      <div class="stat"><span class="lbl">Vidas</span><span id="sLives" class="val">20</span></div>
+      <div class="stat"><span class="lbl">Onda</span><span id="sWave" class="val">0/20</span></div>
+      <div class="stat"><span class="lbl">Abates</span><span id="sKills" class="val">0</span></div>
+      <div class="stat"><span class="lbl">Recorde</span><span id="sBest" class="val">0</span></div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <div class="field">
+      <div class="stage">
+        <canvas id="game" aria-label="Mapa do jogo. Use os botões do painel ou o teclado; tecle ? para ver os atalhos."></canvas>
+        <div class="sr-only" id="announcer" aria-live="polite"></div>
+        <div class="tip" id="tip" role="status" hidden>
+          <span class="tip-step" id="tipStep"></span>
+          <span class="tip-text" id="tipText"></span>
+          <button class="tip-skip" id="tipSkip">Pular dicas</button>
+        </div>
+        <div class="ach-toast" id="achToast" role="status" hidden>
+          <span class="ach-toast-lbl">Conquista desbloqueada</span>
+          <span class="ach-toast-nm" id="achToastName"></span>
+        </div>
+        <div class="discover" id="discover" role="status" hidden>
+          <canvas id="discoverIcon" width="96" height="96" aria-hidden="true"></canvas>
+          <div class="discover-txt">
+            <span class="discover-nm" id="discoverName"></span>
+            <span class="discover-ds" id="discoverText"></span>
+          </div>
+          <button class="discover-x" id="discoverClose" aria-label="Fechar">×</button>
+        </div>
+      </div>
+      <div class="command">
+        <div class="cmd-main">
+          <button id="btnWave" class="btn primary">Iniciar onda</button>
+          <p class="next-info" id="nextInfo"></p>
+        </div>
+        <div class="cmd-toggles">
+          <button id="btnAuto" class="btn" aria-pressed="false" title="Ondas automáticas (A)">Automático</button>
+          <button id="btnSpeed" class="btn" title="Velocidade (F)">1×</button>
+          <button id="btnPause" class="btn" aria-pressed="false" title="Pausar (P)">Pausar</button>
+          <button id="btnSound" class="btn" aria-pressed="true" title="Efeitos sonoros (M)">Som</button>
+          <button id="btnMusic" class="btn" aria-pressed="true" title="Música (N)">Música</button>
+        </div>
+      </div>
+    </div>
+
+    <aside class="panel">
+      <section>
+        <h3>Torres</h3>
+        <div class="towers" id="towerList"></div>
+      </section>
+      <section>
+        <h3>Poderes</h3>
+        <div class="powers" id="powerList"></div>
+      </section>
+      <section class="info" id="infoBox"></section>
+      <button id="btnHelp" class="btn small help-btn">Atalhos do teclado (?)</button>
+    </aside>
+  </main>
+</div>
+
+<div class="modal" id="menuModal" hidden>
+  <div class="card wide" role="dialog" aria-modal="true" aria-labelledby="menuTitle">
+    <h2 id="menuTitle">Escolha o campo de batalha</h2>
+    <div class="resume" id="resumeCard" hidden>
+      <div class="resume-txt">
+        <span class="resume-nm">Partida salva</span>
+        <span class="resume-ds" id="resumeText"></span>
+      </div>
+      <button id="btnContinueSave" class="btn primary">Continuar</button>
+    </div>
+    <div class="resume daily" id="dailyCard">
+      <div class="resume-txt">
+        <span class="resume-nm">Desafio do dia</span>
+        <span class="resume-ds" id="dailyText"></span>
+      </div>
+      <button id="btnDaily" class="btn">Jogar o desafio</button>
+    </div>
+    <p>Cada campo tem seu próprio caminho até a muralha e seu próprio recorde.</p>
+    <div class="maps" id="mapList"></div>
+    <div class="editor-cta">
+      <button id="btnEditor" class="btn small">Criar ou editar o seu campo</button>
+      <span class="editor-cta-note">Desenhe a estrada e jogue nela.</span>
+    </div>
+    <h3>Dificuldade</h3>
+    <div class="seg" id="diffList"></div>
+    <h3>Herói</h3>
+    <div class="seg seg-2" id="heroList"></div>
+    <details class="fold" id="foldChallenges">
+      <summary><h3>Desafios opcionais</h3><span class="fold-note" id="challengeNote"></span></summary>
+      <div class="seg seg-4" id="challengeList"></div>
+    </details>
+    <details class="fold forge" id="foldForge">
+      <summary class="forge-head">
+        <h3>Forja do Bastião</h3>
+        <span class="forge-stars" id="forgeStars"></span>
+      </summary>
+      <p class="forge-hint" id="forgeHint">Vença as 20 ondas de um campo para ganhar até 3 estrelas. Elas compram melhorias que valem para todas as partidas seguintes.</p>
+      <div class="perks" id="forgeList"></div>
+      <button id="forgeReset" class="btn small" hidden>Devolver todas as estrelas</button>
+    </details>
+    <div class="menu-actions">
+      <button id="btnResume" class="btn" hidden>Voltar ao jogo</button>
+      <button id="btnStart" class="btn primary">Começar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="editorModal" hidden>
+  <div class="card wide editor" role="dialog" aria-modal="true" aria-labelledby="editorTitle">
+    <div class="codex-head">
+      <h2 id="editorTitle">Editor de campos</h2>
+      <button id="editorClose" class="btn small">Fechar</button>
+    </div>
+    <p class="editor-help">Clique nas casas onde a estrada vira, sempre na mesma linha ou coluna do ponto anterior. Comece na coluna da esquerda e termine na da direita. No teclado: setas, Enter para marcar e Backspace para desfazer.</p>
+    <canvas id="editorCanvas" width="800" height="480" tabindex="0" aria-label="Grade do editor de campos"></canvas>
+    <p class="editor-status" id="editorStatus" role="status"></p>
+    <div class="editor-share">
+      <label class="editor-name" for="editorCode">Código do campo
+        <input id="editorCode" type="text" spellcheck="false" autocomplete="off" placeholder="Cole aqui o código de outro campo">
+      </label>
+      <div class="controls">
+        <button id="editorCopy" class="btn">Copiar código</button>
+        <button id="editorLoad" class="btn">Carregar código</button>
+      </div>
+    </div>
+    <div class="editor-actions">
+      <label class="editor-name" for="editorName">Nome do campo
+        <input id="editorName" type="text" maxlength="30" placeholder="Meu campo" autocomplete="off">
+      </label>
+      <div class="controls">
+        <button id="editorUndo" class="btn">Desfazer</button>
+        <button id="editorClear" class="btn">Limpar</button>
+        <button id="editorSave" class="btn primary">Salvar campo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="storyModal" hidden>
+  <div class="card story" role="dialog" aria-modal="true" aria-labelledby="storyTitle">
+    <span class="story-chapter" id="storyChapter"></span>
+    <h2 id="storyTitle"></h2>
+    <p id="storyText"></p>
+    <button id="storyGo" class="btn primary">À batalha</button>
+  </div>
+</div>
+
+<div class="modal" id="helpModal" hidden>
+  <div class="card help" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+    <div class="codex-head">
+      <h2 id="helpTitle">Atalhos do teclado</h2>
+      <button id="helpClose" class="btn small">Fechar</button>
+    </div>
+    <div class="help-cols">
+      <dl>
+        <dt><kbd>1</kbd> a <kbd>6</kbd></dt><dd>Escolher torre</dd>
+        <dt><kbd>U</kbd></dt><dd>Melhorar a torre selecionada</dd>
+        <dt><kbd>V</kbd></dt><dd>Vender a torre selecionada</dd>
+        <dt><kbd>T</kbd></dt><dd>Mudar a mira da torre</dd>
+        <dt>Setas e <kbd>Enter</kbd></dt><dd>Mover o cursor no mapa e construir</dd>
+        <dt><kbd>Esc</kbd></dt><dd>Cancelar ou fechar</dd>
+      </dl>
+      <dl>
+        <dt><kbd>Espaço</kbd></dt><dd>Iniciar ou chamar a próxima onda</dd>
+        <dt><kbd>Q</kbd> <kbd>W</kbd> <kbd>E</kbd></dt><dd>Chuva de flechas, Congelar, Chamado às armas</dd>
+        <dt><kbd>H</kbd></dt><dd>Selecionar o herói</dd>
+        <dt><kbd>R</kbd></dt><dd>Habilidade do herói</dd>
+        <dt><kbd>A</kbd> <kbd>F</kbd> <kbd>P</kbd></dt><dd>Automático, velocidade, pausa</dd>
+        <dt><kbd>M</kbd> <kbd>N</kbd> <kbd>C</kbd></dt><dd>Som, música, Compêndio</dd>
+      </dl>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="codexModal" hidden>
+  <div class="card wide" role="dialog" aria-modal="true" aria-labelledby="codexTitle">
+    <div class="codex-head">
+      <h2 id="codexTitle">Compêndio</h2>
+      <button id="codexClose" class="btn small">Fechar</button>
+    </div>
+    <div class="codex-cols">
+      <section>
+        <h3>Inimigos · <span id="codexCount"></span></h3>
+        <ul class="codex-list" id="codexEnemies"></ul>
+      </section>
+      <section>
+        <h3>Torres</h3>
+        <ul class="codex-list" id="codexTowers"></ul>
+      </section>
+    </div>
+    <section class="codex-runs">
+      <h3>Suas melhores partidas</h3>
+      <div class="runs-box" id="codexRuns"></div>
+    </section>
+    <section class="codex-ach">
+      <h3>Conquistas · <span id="achCount"></span></h3>
+      <ul class="ach-list" id="codexAch"></ul>
+    </section>
+  </div>
+</div>
+
+<div class="modal" id="endModal" hidden>
+  <div class="card" role="dialog" aria-modal="true" aria-labelledby="endTitle">
+    <h2 id="endTitle"></h2>
+    <p class="stars" id="endStars" hidden></p>
+    <p id="endText"></p>
+    <p class="epilogue" id="endEpilogue" hidden></p>
+    <div class="report" id="endReport" hidden></div>
+    <div class="report-chart" id="endChart" hidden></div>
+    <div class="controls">
+      <button id="endRestart" class="btn primary">Jogar de novo</button>
+      <button id="endMenu" class="btn">Trocar campo</button>
+      <button id="endContinue" class="btn" hidden>Continuar sem fim</button>
+    </div>
+  </div>
+</div>
+
+<script src="src/data.js" charset="utf-8"></script>
+<script src="src/audio.js" charset="utf-8"></script>
+<script src="src/render.js" charset="utf-8"></script>
+<script src="src/meta.js" charset="utf-8"></script>
+<script src="src/sim.js" charset="utf-8"></script>
+<script src="src/foes.js" charset="utf-8"></script>
+<script src="src/hero.js" charset="utf-8"></script>
+<script src="src/units.js" charset="utf-8"></script>
+<script src="src/tutorial.js" charset="utf-8"></script>
+<script src="src/codex.js" charset="utf-8"></script>
+<script src="src/editor.js" charset="utf-8"></script>
+<script src="src/achievements.js" charset="utf-8"></script>
+<script src="src/ambience.js" charset="utf-8"></script>
+<script src="src/scene.js" charset="utf-8"></script>
+<script src="src/chart.js" charset="utf-8"></script>
+<script src="src/menu.js" charset="utf-8"></script>
+<script src="src/ui.js" charset="utf-8"></script>
