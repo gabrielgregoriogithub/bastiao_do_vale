@@ -399,13 +399,23 @@
     close: (e, t) => -Math.hypot(e.x - t.x, e.y - t.y),
   };
 
+  // Roda para cada torre a cada quadro: compara distâncias ao quadrado e, com um alvo só (quase sempre),
+  // guarda o melhor numa passada em vez de montar e ordenar uma lista
   function findTargets(t, n) {
     const score = TARGET_SCORE[t.target] || TARGET_SCORE.first;
-    const list = [];
-    for (const e of G.S.enemies) {
-      if (e.dead || !canHit(t, e) || (e.d.stealth && !e.revealed) || Math.hypot(e.x - t.x, e.y - t.y) > t.s.range) continue;
-      list.push({ e, sc: score(e, t) });
+    const r2 = t.s.range * t.s.range;
+    const inRange = e => !e.dead && canHit(t, e) && !(e.d.stealth && !e.revealed) && (e.x - t.x) ** 2 + (e.y - t.y) ** 2 <= r2;
+    if (n === 1) {
+      let best = null, bestSc = -Infinity;
+      for (const e of G.S.enemies) {
+        if (!inRange(e)) continue;
+        const sc = score(e, t);
+        if (sc > bestSc) { best = e; bestSc = sc; }
+      }
+      return best ? [best] : [];
     }
+    const list = [];
+    for (const e of G.S.enemies) if (inRange(e)) list.push({ e, sc: score(e, t) });
     list.sort((a, b) => b.sc - a.sc);
     return list.slice(0, n).map(x => x.e);
   }
