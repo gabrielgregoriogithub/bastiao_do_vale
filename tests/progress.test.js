@@ -46,6 +46,15 @@ test('uma gravação corrompida é limpa ao restaurar', () => {
   assert.equal(G.restore({ mapId: 'atlantida', diffId: 'normal', towers: [] }), false, 'campo inexistente');
 });
 
+test('uma gravação sem lista de torres não aparece no menu nem o quebra', () => {
+  G.newGame('vale', 'normal');
+  G.S.inGame = false;
+  store.set('bastiao-partida', JSON.stringify({ at: 1, snap: { mapId: 'vale', diffId: 'normal', wave: 3, lives: 10 } }));
+  assert.equal(TD.menu.readSave(), null);
+  assert.doesNotThrow(() => TD.menu.sync());
+  store.delete('bastiao-partida');
+});
+
 test('desafios: sem herói, sem poderes e cofres vazios', () => {
   G.newGame('vale', 'normal', ['nohero', 'nopower', 'poor']);
   assert.equal(G.S.hero, null);

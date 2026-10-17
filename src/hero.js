@@ -144,8 +144,8 @@
     if (!canUseAbility()) return false;
     const S = G.S, h = S.hero, ab = abilityOf(h);
     if (ab.id === 'charge') {
-      for (const e of S.enemies) {
-        if (e.dead || e.d.flying || Math.hypot(e.x - h.x, e.y - h.y) > ab.radius * T) continue;
+      const hit = S.enemies.filter(e => !e.dead && !e.d.flying && Math.hypot(e.x - h.x, e.y - h.y) <= ab.radius * T);
+      for (const e of hit) {
         G.hurt(e, h.dmg * ab.mul, false, h);
         e.stunT = Math.max(e.stunT || 0, e.d.boss ? ab.stun / 3 : ab.stun);
       }

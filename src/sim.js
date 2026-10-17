@@ -440,9 +440,8 @@
     const S = G.S;
     if (t.spec === 'pierce') {
       const ex = t.x + Math.cos(t.ang) * t.s.range, ey = t.y + Math.sin(t.ang) * t.s.range;
-      for (const o of S.enemies) {
-        if (!o.dead && segDist(o.x, o.y, t.x, t.y, ex, ey) <= o.d.r + 6) hurt(o, t.s.dmg, true, t);
-      }
+      const hit = S.enemies.filter(o => !o.dead && segDist(o.x, o.y, t.x, t.y, ex, ey) <= o.d.r + 6);
+      for (const o of hit) hurt(o, t.s.dmg, true, t);
       addFx({ kind: 'line', x: t.x, y: t.y, x2: ex, y2: ey, life: 0.3 });
       return;
     }
@@ -483,8 +482,9 @@
   function impact(s) {
     const tg = s.target;
     if (s.kind === 'cannon') {
-      for (const e of G.S.enemies) {
-        if (e.dead || e.d.flying || Math.hypot(e.x - s.tx, e.y - s.ty) > s.splash) continue;
+      // alvos escolhidos antes do dano: quem nasce da explosão (Blindados do Colosso) não leva o mesmo golpe
+      const hit = G.S.enemies.filter(e => !e.dead && !e.d.flying && Math.hypot(e.x - s.tx, e.y - s.ty) <= s.splash);
+      for (const e of hit) {
         hurt(e, s.dmg, false, s.src);
         if (s.dot && !e.dead) applyDot(e, s.dotKind, s.dot, s.dotDur, s.src);
       }
@@ -588,7 +588,8 @@
     for (const k of S.strikes) {
       k.t -= dt;
       if (k.t > 0) continue;
-      for (const e of S.enemies) if (!e.dead && Math.hypot(e.x - k.x, e.y - k.y) <= k.r) hurt(e, k.dmg, false, null);
+      const hit = S.enemies.filter(e => !e.dead && Math.hypot(e.x - k.x, e.y - k.y) <= k.r);
+      for (const e of hit) hurt(e, k.dmg, false, null);
       addFx({ kind: 'ring', x: k.x, y: k.y, r: k.r, color: '#f3ead2', life: 0.35 });
       sfx.play('boom');
     }

@@ -68,6 +68,18 @@ test('Necromante levanta até 2 Esqueletos de quem caiu perto, e esqueletos não
   assert.ok(!necro.dead);
 });
 
+test('Colosso morto por explosão: os Blindados que saem dele não levam o mesmo golpe', () => {
+  G.newGame('vale', 'normal', ['nohero']);
+  G.S.wave = 15;
+  G.S.waveActive = true;
+  const c = place('colossus', 400, { hp: 1, maxHp: 1 });
+  G.S.strikes.push({ x: c.x, y: c.y, r: 2 * T, dmg: 50, t: 0 });
+  G.update(1 / 60);
+  const brutes = G.S.enemies.filter(e => e.type === 'brute');
+  assert.equal(brutes.length, 4);
+  for (const b of brutes) assert.equal(b.hp, b.maxHp, 'Blindado nasce com a vida cheia');
+});
+
 test('sorteio das ondas: nas ondas altas todos os tipos aparecem e ainda há soldados', () => {
   const counts = {};
   let total = 0;

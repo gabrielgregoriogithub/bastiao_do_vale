@@ -66,7 +66,7 @@
   function readSave() {
     try {
       const v = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
-      return v && v.snap && v.snap.mapId && DIFFICULTIES[v.snap.diffId] ? v : null;
+      return v && v.snap && v.snap.mapId && DIFFICULTIES[v.snap.diffId] && Array.isArray(v.snap.towers) ? v : null;
     } catch { return null; }
   }
   function writeSave() {
