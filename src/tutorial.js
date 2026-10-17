@@ -6,7 +6,7 @@
 
   const STEPS = [
     { text: 'Escolha o Arqueiro (tecla 1) e toque no gramado perto da estrada para construir.', done: S => S.towers.length > 0 },
-    { text: 'Quando estiver pronto, toque em Iniciar onda, logo abaixo do mapa (ou aperte Espaço).', done: S => S.wave >= 1 },
+    { text: 'Quando estiver pronto, toque em Iniciar onda (ou aperte Espaço).', done: S => S.wave >= 1 },
     { text: 'Seu herói luta ao seu lado. Toque nele e depois no mapa para movê-lo. A tecla R usa a habilidade dele.', done: S => !S.hero || S.heroMoved || S.wave >= 3 },
     { text: 'Toque numa torre para melhorá-la. No nível 3 ela escolhe uma especialização.', done: S => S.towers.some(t => t.level > 1) || S.wave >= 4 },
     { text: 'Durante as ondas, use os poderes: Chuva de flechas (Q), Congelar (W) e Chamado às armas (E).', done: S => Object.values(S.cooldowns).some(c => c > 0) || S.wave >= 5 },

@@ -158,6 +158,7 @@
     if (id === 'rain') {
       S.aim = S.aim === 'rain' ? null : 'rain';
       S.build = null;
+      S.sel = null; // com uma torre marcada, o painel e a barra seguiam mostrando a torre em vez da mira
       S.heroSel = false;
       return;
     }
@@ -571,9 +572,16 @@
     TD.codex.sync(dt);
     TD.achievements.sync(dt);
     TD.blessings.sync();
+    TD.dock.sync();
     sfx.setIntensity(running && S.waveActive ? 1 : 0);
     requestAnimationFrame(frame);
   }
+
+  // Ações do painel, usadas também pela barra de comando do celular (dock.js)
+  TD.ui = {
+    toggleBuild, triggerPower, cancel,
+    waveLabel: () => waveButtonLabel(G.S.queue.length + G.S.enemies.length),
+  };
 
   function start(data) {
     sfx.setMuted(store.load('bastiao-mudo', '0') === '1');

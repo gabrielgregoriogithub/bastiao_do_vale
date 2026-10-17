@@ -387,6 +387,80 @@
   .editor-name input:focus-visible { outline: 2px solid var(--brass); outline-offset: 1px; }
   .menu-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
   .menu-actions .primary { min-width: 160px; }
+
+  /* ---------- Barra de comando do celular ----------
+     Torres, poderes, onda e as ações da torre selecionada ficam fixos ao alcance do polegar.
+     Em pé, embaixo da tela; deitado, na lateral direita. No computador, escondida. */
+  .dock { display: none; }
+  @media (max-width: 900px), (max-height: 520px) and (pointer: coarse) {
+    .dock {
+      display: flex; flex-direction: column; gap: 6px;
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 8;
+      padding: 6px max(8px, env(safe-area-inset-right, 0px)) max(8px, env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px));
+      background: rgba(23, 27, 22, .97); border-top: 1px solid #6b5626; box-shadow: 0 -6px 18px rgba(0, 0, 0, .45);
+    }
+    body { padding-bottom: calc(var(--dock-h, 170px) + 12px); }
+    /* o que a barra já mostra sai do painel e do cabeçalho */
+    .sec-towers, .sec-powers, #btnWave, .stats, .sub { display: none; }
+    h1 { font-size: 28px; }
+    .title-row .btn.small, .title-row .btn { padding: 6px 10px; font-size: 13px; }
+  }
+  .dock-stats { display: flex; justify-content: center; gap: 18px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+  .dock-stats b { font-size: 15px; color: var(--fg); letter-spacing: 0; font-variant-numeric: tabular-nums; margin-left: 3px; }
+  .dock-stats b.gold { color: var(--brass); }
+  .dock-stats b.low { color: var(--danger); }
+  .dock-row { display: grid; gap: 5px; }
+  .dock-build { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .dock-act { grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(0, 1.5fr); }
+  .dock-sel { display: flex; gap: 5px; align-items: stretch; }
+  .dbtn {
+    position: relative; overflow: hidden; min-width: 0; min-height: 48px; padding: 4px;
+    font: inherit; color: var(--fg); background: var(--raise); border: 1px solid var(--line); border-radius: 8px;
+    cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  }
+  .dbtn:active:not(:disabled) { transform: scale(.96); }
+  .dbtn:disabled { opacity: .5; cursor: not-allowed; }
+  .dtower { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 3px 2px; }
+  .dtower canvas { width: 30px; height: 30px; }
+  .dcost { font-size: 12px; font-weight: 700; color: var(--brass); font-variant-numeric: tabular-nums; }
+  .dtower.poor canvas { opacity: .45; }
+  .dtower.poor .dcost { color: var(--danger); }
+  .dtower.active { border-color: var(--brass); box-shadow: inset 0 0 0 1px var(--brass), 0 0 10px rgba(214, 165, 71, .3); }
+  .dpower { --p: 1; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; text-align: left; padding: 4px 6px 7px; }
+  .dpower:not(:disabled) { border-color: #6b5626; }
+  .dpower.aiming { border-color: var(--brass); box-shadow: inset 0 0 0 1px var(--brass); }
+  .dnm { font-weight: 600; font-size: 12.5px; line-height: 1.1; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dcd { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .dpower:not(:disabled) .dcd { color: var(--brass); }
+  .dbar { position: absolute; left: 0; bottom: 0; height: 3px; width: calc(var(--p) * 100%); background: var(--brass); }
+  .dability .dbar { background: #9fb6d6; }
+  .dwave { background: var(--brass); color: var(--brass-ink); border-color: var(--brass); font-weight: 700; font-size: 14px; line-height: 1.15; }
+  .dsel-nm { flex: 1.3 1 0; min-width: 0; display: flex; flex-direction: column; justify-content: center; font-weight: 700; font-size: 14px; line-height: 1.15; }
+  .dsel-nm small, .dact small { display: block; font-size: 11px; font-weight: 500; color: var(--muted); }
+  .dact { flex: 1 1 0; font-weight: 700; font-size: 13px; line-height: 1.15; }
+  .dact.primary { background: var(--brass); color: var(--brass-ink); border-color: var(--brass); }
+  .dact.primary small { color: var(--brass-ink); opacity: .8; }
+  .dact.danger { color: var(--danger); }
+  .dspec { border-left: 4px solid var(--spec); font-size: 11.5px; line-height: 1.1; }
+  .dclose { flex: 0 0 44px; font-size: 16px; }
+  /* Celular deitado: barra na lateral direita e o mapa do tamanho da altura da tela */
+  @media (orientation: landscape) and (max-height: 520px) {
+    .dock {
+      top: 0; left: auto; width: min(260px, 34vw); overflow-y: auto; justify-content: center;
+      padding-top: max(8px, env(safe-area-inset-top, 0px)); border-top: 0; border-left: 1px solid #6b5626; box-shadow: -6px 0 18px rgba(0, 0, 0, .45);
+    }
+    body { padding-bottom: 12px; padding-top: 8px; padding-right: calc(var(--dock-w, 260px) + 12px); }
+    .dock-build { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .dock-act { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .dwave { grid-column: 1 / -1; }
+    .dock-sel { flex-wrap: wrap; }
+    .dsel-nm { flex-basis: 100%; }
+    .dact { flex: 1 1 40%; }
+    .app { gap: 8px; }
+    h1 { font-size: 22px; }
+    .layout > .field { width: min(100%, calc((100dvh - 110px) * 5 / 3)); position: sticky; top: 0; z-index: 4; background: var(--bg); }
+    .next-info { display: none; }
+  }
 </style>
 
 <div class="app">
@@ -447,11 +521,11 @@
     </div>
 
     <aside class="panel">
-      <section>
+      <section class="sec-towers">
         <h2>Torres</h2>
         <div class="towers" id="towerList"></div>
       </section>
-      <section>
+      <section class="sec-powers">
         <h2>Poderes</h2>
         <div class="powers" id="powerList"></div>
       </section>
@@ -464,6 +538,18 @@
       <button id="btnHelp" class="btn small help-btn">Atalhos do teclado (?)</button>
     </aside>
   </main>
+
+  <!-- Barra de comando do celular (dock.js); escondida no computador -->
+  <nav class="dock" id="dock" aria-label="Controles da partida">
+    <div class="dock-stats">
+      <span>Ouro <b class="gold" id="dGold">0</b></span>
+      <span>Vidas <b id="dLives">0</b></span>
+      <span>Onda <b id="dWave">0</b></span>
+    </div>
+    <div class="dock-row dock-build" id="dockBuild"></div>
+    <div class="dock-row dock-sel" id="dockSel" hidden></div>
+    <div class="dock-row dock-act" id="dockAct"></div>
+  </nav>
 </div>
 
 <div class="modal" id="menuModal" hidden>
@@ -646,6 +732,7 @@
 <script src="src/editor.js" charset="utf-8"></script>
 <script src="src/achievements.js" charset="utf-8"></script>
 <script src="src/blessings.js" charset="utf-8"></script>
+<script src="src/dock.js" charset="utf-8"></script>
 <script src="src/ambience.js" charset="utf-8"></script>
 <script src="src/scene.js" charset="utf-8"></script>
 <script src="src/chart.js" charset="utf-8"></script>
