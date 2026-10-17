@@ -43,7 +43,8 @@
     }
     const h = G.S.hero;
     if (h) rows.hero = { name: `${TD.hero.defOf(h).name} · nível ${h.level}`, dmg: h.dmgDone, kills: h.kills, count: 1 };
-    const list = Object.values(rows).sort((a, b) => b.dmg - a.dmg).slice(0, 6);
+    // quem não causou dano nem abateu ninguém fica de fora: uma tabela de zeros não conta nada
+    const list = Object.values(rows).filter(r => r.dmg > 0 || r.kills > 0).sort((a, b) => b.dmg - a.dmg).slice(0, 6);
     ui.endReport.hidden = !list.length;
     ui.endReport.innerHTML = list.length ? `<h3>Quem mais segurou a estrada</h3><table>
       <thead><tr><th scope="col">Defensor</th><th scope="col">Dano</th><th scope="col">Abates</th></tr></thead>
