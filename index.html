@@ -156,6 +156,27 @@
   .spec-nm { font-weight: 700; }
   .spec-ds { font-size: 13px; color: var(--muted); }
   .info .spec-line { border-left: 3px solid var(--spec); padding-left: 8px; color: var(--fg); }
+  /* Bênçãos: três cartões lado a lado (empilhados no celular) e a lista das já escolhidas no painel */
+  .modal .card.bless { text-align: center; max-width: 720px; }
+  .bless-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 640px) { .bless-list { grid-template-columns: minmax(0, 1fr); } }
+  .bless-card {
+    position: relative; display: flex; flex-direction: column; gap: 6px; align-items: center; text-align: center;
+    font: inherit; color: var(--fg); cursor: pointer; padding: 18px 14px 16px;
+    background: linear-gradient(180deg, #343a2e, var(--raise)); border: 1px solid var(--line); border-top: 3px solid var(--brass); border-radius: 8px;
+    transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+  }
+  .bless-card:hover, .bless-card:focus-visible { border-color: var(--brass); transform: translateY(-3px); box-shadow: 0 8px 22px rgba(0,0,0,.35), 0 0 0 1px var(--brass); outline: none; }
+  .bless-card:active { transform: translateY(0); }
+  @media (prefers-reduced-motion: reduce) { .bless-card, .bless-card:hover, .bless-card:focus-visible { transition: none; transform: none; } }
+  .bless-key { position: absolute; top: 6px; right: 9px; font-size: 12px; color: var(--muted); }
+  .bless-tag { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--brass); }
+  .bless-card .bless-nm { font-family: var(--display); font-size: 24px; line-height: 1.05; color: var(--fg); }
+  .bless-ds { font-size: 14px; color: var(--muted); }
+  .bless-owned { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+  .bless-owned li { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; background: var(--raise); border: 1px solid var(--line); border-left: 3px solid var(--brass); border-radius: 6px; padding: 5px 9px; }
+  .bless-owned .bless-nm { font-weight: 600; font-size: 14px; }
+  .bless-owned .bless-tag { font-size: 10px; white-space: nowrap; }
   .stars { font-size: 30px; letter-spacing: .12em; color: var(--brass); margin: 0 0 8px; }
   .info p, .next p { margin: 0 0 10px; color: var(--muted); }
   .info p strong { color: var(--fg); font-weight: 600; }
@@ -414,6 +435,10 @@
         <h2>Poderes</h2>
         <div class="powers" id="powerList"></div>
       </section>
+      <section id="blessBox" hidden>
+        <h2>Bênçãos</h2>
+        <ul class="bless-owned" id="blessOwned"></ul>
+      </section>
       <section class="info" id="infoBox"></section>
       <button id="btnHelp" class="btn small help-btn">Atalhos do teclado (?)</button>
     </aside>
@@ -529,6 +554,7 @@
         <dt><kbd>R</kbd></dt><dd>Habilidade do herói</dd>
         <dt><kbd>A</kbd> <kbd>F</kbd> <kbd>P</kbd></dt><dd>Automático, velocidade, pausa</dd>
         <dt><kbd>M</kbd> <kbd>N</kbd> <kbd>C</kbd></dt><dd>Som, música, Compêndio</dd>
+        <dt><kbd>1</kbd> a <kbd>3</kbd></dt><dd>Escolher a bênção, quando ela aparece</dd>
       </dl>
     </div>
   </div>
@@ -561,6 +587,15 @@
   </div>
 </div>
 
+<div class="modal" id="blessModal" hidden>
+  <div class="card wide bless" role="dialog" aria-modal="true" aria-labelledby="blessTitle">
+    <span class="story-chapter" id="blessKicker"></span>
+    <h2 id="blessTitle">Escolha uma bênção</h2>
+    <p>Ela vale até o fim da partida. Toque numa delas ou tecle 1, 2 ou 3.</p>
+    <div class="bless-list" id="blessList"></div>
+  </div>
+</div>
+
 <div class="modal" id="endModal" hidden>
   <div class="card" role="dialog" aria-modal="true" aria-labelledby="endTitle">
     <h2 id="endTitle"></h2>
@@ -589,6 +624,7 @@
 <script src="src/codex.js" charset="utf-8"></script>
 <script src="src/editor.js" charset="utf-8"></script>
 <script src="src/achievements.js" charset="utf-8"></script>
+<script src="src/blessings.js" charset="utf-8"></script>
 <script src="src/ambience.js" charset="utf-8"></script>
 <script src="src/scene.js" charset="utf-8"></script>
 <script src="src/chart.js" charset="utf-8"></script>

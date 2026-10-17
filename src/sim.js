@@ -19,6 +19,7 @@
   const challengeKey = (m, d) => `bastiao-desafios-${m}-${d}`;
   const readChallenges = (m, d) => Number(store.load(challengeKey(m, d), 0)) || 0;
   const SWIFT_MUL = 1.2, POOR_MUL = 0.7;
+  const INTEREST_RATE = 0.1, INTEREST_MAX = 60;
 
   const G = (TD.game = { S: null, md: null, onEnd: () => {}, onWaveEnd: () => {} });
   // Vida dos inimigos por onda. Os comuns crescem mais rápido que os chefes (curva da dificuldade): sem isso só
@@ -38,6 +39,7 @@
     return {
       mapId, diffId, diff, perks, gold: diff.gold + 25 * perks.gold, lives, maxLives: lives,
       wave: 0, kills: 0, best: readBest(mapId, diffId), hero: null, heroSel: false, mods: {}, history: [], corpses: [], clock: 0,
+      blessings: [], offer: null,
       towers: [], enemies: [], shots: [], fx: [], strikes: [],
       queue: [], spawnT: 0, waveActive: false, next: TD.makeWave(1), seed: null, daily: null,
       speed: 1, paused: false, over: false, halted: false, endless: false, auto: false, autoT: null,
@@ -75,6 +77,21 @@
   }
   const modCount = () => Object.keys(G.S.mods || {}).length;
 
+  // Bênção escolhida nesta partida (blessings.js)
+  const blessed = id => !!G.S?.blessings?.includes(id);
+
+  // Efeitos das bênçãos sobre as torres, depois da especialização
+  function blessStats(t, s) {
+    if (blessed('fireArrows') && t.type === 'archer' && !s.dot) { s.dot = s.dmg * 0.3; s.dotDur = 2; s.dotKind = 'burn'; }
+    if (blessed('powder') && t.type === 'cannon') s.splash *= 1.3;
+    if (blessed('deepFrost') && t.type === 'frost') { s.slowDur *= 2; s.slow = Math.min(0.8, s.slow + 0.1); }
+    if (blessed('sharpBolts') && t.type === 'ballista') s.dmg *= 1.35;
+    if (blessed('resonance') && s.chain) s.chain += 2;
+    if (blessed('drill') && s.units) { s.units += 1; s.unitHp *= 1.25; }
+    if (blessed('eagle')) s.range *= 1.12;
+    if (blessed('fury')) s.rate *= 0.9;
+  }
+
   // ---------- Torres ----------
   function towerStats(t) {
     const d = TOWERS[t.type], L = t.level - 1;
@@ -104,15 +121,17 @@
       case 'templar': s.dmg *= 1.5; s.pierce = true; s.regen *= 3; break;
       default: break;
     }
+    blessStats(t, s);
     s.dmg *= 1 + 0.05 * (G.S?.perks?.aim || 0);
     return s;
   }
 
   const specOf = t => (t.spec && SPECS[t.type].find(x => x.id === t.spec)) || null;
   const costOf = type => Math.round(TOWERS[type].cost * (1 - 0.05 * (G.S?.perks?.masons || 0)));
-  const powerCd = p => p.cd * (1 - 0.1 * (G.S?.perks?.tactics || 0));
-  const upCost = t => Math.round(TOWERS[t.type].cost * 0.8 * t.level);
-  const specCost = t => Math.round(TOWERS[t.type].cost * TD.SPEC_COST_MUL);
+  const powerCd = p => p.cd * (1 - 0.1 * (G.S?.perks?.tactics || 0)) * (blessed('tactician') ? 0.7 : 1);
+  const artisanMul = () => (blessed('artisans') ? 0.8 : 1);
+  const upCost = t => Math.round(TOWERS[t.type].cost * 0.8 * t.level * artisanMul());
+  const specCost = t => Math.round(TOWERS[t.type].cost * TD.SPEC_COST_MUL * artisanMul());
   // Torre que ainda não atirou nem viu uma onda começar devolve o preço cheio: desfaz cliques errados
   const refund = t => (t.fresh ? t.spent : Math.floor(t.spent * 0.7));
   const towerAt = (c, r) => G.S.towers.find(t => t.c === c && t.r === r) || null;
@@ -280,8 +299,15 @@
   function endWave() {
     const S = G.S;
     S.waveActive = false;
+    // juros sobre o ouro guardado antes do bônus da onda
+    const interest = blessed('interest') ? Math.min(INTEREST_MAX, Math.floor(S.gold * INTEREST_RATE)) : 0;
     const bonus = waveBonus(S.wave);
-    S.gold += bonus;
+    S.gold += bonus + interest;
+    if (interest) addFx({ kind: 'text', x: W / 2, y: H / 2 + 26, txt: `Juros do Tesouro · +${interest}`, color: '#e8c56e', life: 1.8 });
+    if (blessed('livingWall') && S.lives < S.maxLives) {
+      S.lives += 1;
+      addFx({ kind: 'text', x: W - T * 1.4, y: (G.md.exitRow + 0.5) * T - 18, txt: '+1', color: '#86b46f', life: 1 });
+    }
     recordHistory();
     addFx({ kind: 'text', x: W / 2, y: H / 2, txt: `Onda concluída · +${bonus} de ouro`, color: '#d6a547', life: 1.8, big: true });
     recordBest(S.wave);
@@ -303,6 +329,7 @@
     }
     sfx.play('waveEnd');
     TD.achievements?.onWaveEnd();
+    TD.blessings?.check();
     if (S.auto) S.autoT = AUTO_DELAY;
     G.onWaveEnd();
   }
@@ -366,7 +393,8 @@
     if (src && src.isHero) TD.hero.onKill(src, e);
     TD.achievements?.onKill(e);
     TD.foes.onDeath(e);
-    const g = Math.floor((e.d.gold + Math.floor(S.wave / 5)) * (S.mods?.poor ? POOR_MUL : 1));
+    const vault = e.d.boss && blessed('kingsVault') ? 2 : 1;
+    const g = Math.floor((e.d.gold + Math.floor(S.wave / 5)) * (S.mods?.poor ? POOR_MUL : 1)) * vault;
     S.gold += g;
     const py = e.d.flying ? e.y - 10 : e.y;
     addFx({ kind: 'puff', x: e.x, y: py, r: e.d.r, color: e.d.color, life: 0.45 });
@@ -542,8 +570,9 @@
     if (S.lives <= 0 && !S.over) gameOver();
   }
 
+  const CALTROPS_MUL = 0.88;
   function moveEnemies(dt) {
-    const md = G.md;
+    const md = G.md, caltrops = blessed('caltrops');
     for (const e of G.S.enemies) {
       if (e.dead) continue;
       e.slowT = Math.max(0, e.slowT - dt);
@@ -555,6 +584,7 @@
       if (e.dead) continue;
       let f = e.frozenT > 0 || e.stunT > 0 || e.blocked ? 0 : e.slowT > 0 ? 1 - e.slowF : 1;
       if (!e.d.flying && md.mudAt(e.x, e.y)) f *= TD.MUD_SLOW;
+      if (!e.d.flying && caltrops) f *= CALTROPS_MUL;
       const len = lenOf(e);
       e.dist += e.d.speed * (G.S.mods?.swift ? SWIFT_MUL : 1) * T * f * dt;
       e.prog = e.dist / len;
@@ -666,7 +696,7 @@
     if (S.waveActive && S.checkpoint) return S.checkpoint;
     return {
       mapId: S.mapId, diffId: S.diffId, gold: S.gold, lives: S.lives, kills: S.kills, mods: Object.keys(S.mods || {}),
-      daily: S.daily, seed: S.seed, history: S.history, runId: S.runId,
+      daily: S.daily, seed: S.seed, history: S.history, runId: S.runId, blessings: S.blessings,
       wave: S.waveActive ? S.wave - 1 : S.wave, endless: S.endless, auto: S.auto,
       hero: S.hero ? { kind: S.hero.kind, level: S.hero.level, xp: S.hero.xp, kills: S.hero.kills } : null,
       towers: S.towers.map(t => ({ type: t.type, c: t.c, r: t.r, level: t.level, spent: t.spent, target: t.target, spec: t.spec, kills: t.kills, dmgDone: t.dmgDone })),
@@ -697,6 +727,11 @@
       S.seed = data.seed >>> 0;
     }
     S.next = TD.makeWave(S.wave + 1, S.seed);
+    // antes das torres: as bênçãos entram no cálculo delas
+    if (Array.isArray(data.blessings)) {
+      const valid = data.blessings.filter(id => TD.BLESSINGS.some(b => b.id === id));
+      S.blessings = [...new Set(valid)].slice(0, Math.floor(S.wave / TD.blessings.EVERY));
+    }
     if (Array.isArray(data.history)) {
       const hist = data.history.slice(-HISTORY_MAX).filter(p => p && typeof p === 'object')
         .map(p => ({ wave: intIn(p.wave, 0, 10000, 0), gold: intIn(p.gold, 0, 1e7, 0), lives: intIn(p.lives, 0, 1e6, 0) }))
@@ -720,12 +755,13 @@
       S.hero.xp = intIn(data.hero.xp, 0, 1e6, 0);
       S.hero.kills = intIn(data.hero.kills, 0, 1e9, 0);
     }
+    TD.blessings.check(); // escolha que ficou pendente ao salvar
     return true;
   }
 
   Object.assign(G, {
     store, readBest, readStars, readChallenges, readDaily, newDaily, towerStats, prepare, newGame, hurt, addFx, spawn, costOf, powerCd,
     build, upgrade, specialize, sell, cycleTarget, toggleAuto, continueEndless, startWave, usePower, canUsePower, update,
-    towerAt, canBuild, upCost, specCost, refund, specOf, waveBonus, earlyBonus, canCallEarly, snapshot, restore,
+    towerAt, canBuild, upCost, specCost, refund, specOf, waveBonus, earlyBonus, canCallEarly, snapshot, restore, blessed,
   });
 })();

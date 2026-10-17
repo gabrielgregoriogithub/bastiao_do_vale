@@ -310,7 +310,7 @@
     announceChanges();
     const remaining = S.queue.length + S.enemies.length;
     const autoSec = S.autoT === null ? -1 : Math.ceil(S.autoT);
-    const hud = [S.gold, S.lives, S.wave, S.kills, S.best, S.waveActive, remaining, autoSec, S.speed, S.paused, S.auto, sfx.isMuted(), S.build, S.aim, S.over, S.halted, S.inGame, G.canCallEarly()].join('|');
+    const hud = [S.gold, S.lives, S.wave, S.kills, S.best, S.waveActive, remaining, autoSec, S.speed, S.paused, S.auto, sfx.isMuted(), S.build, S.aim, S.over, S.halted, S.inGame, G.canCallEarly(), !!S.offer].join('|');
     if (hud !== lastHud) {
       lastHud = hud;
       ui.gold.textContent = S.gold;
@@ -324,7 +324,7 @@
       ui.subline.textContent = `${S.daily ? 'Desafio do dia · ' : ''}${md.map.name} · ${S.diff.name}${modText} · segure a estrada até a muralha por ${MAX_WAVES} ondas.`;
       const swarm = TD.isSwarm(S.wave + 1) ? ' Revoada: dois terços voam.' : '';
       ui.next.textContent = `A seguir, onda ${S.wave + 1}: ${waveSummary(S.next)}.${swarm}`;
-      ui.btnWave.disabled = !S.inGame || S.over || S.halted || (S.waveActive && !G.canCallEarly());
+      ui.btnWave.disabled = !S.inGame || S.over || S.halted || !!S.offer || (S.waveActive && !G.canCallEarly());
       ui.btnWave.textContent = waveButtonLabel(remaining);
       ui.btnAuto.setAttribute('aria-pressed', String(S.auto));
       ui.btnSpeed.textContent = `${S.speed}×`;
@@ -511,6 +511,11 @@
       if (ev.key === 'Escape') TD.menu.close();
       return;
     }
+    // escolha de bênção aberta: só as teclas 1 a 3 (e o Tab/Enter dos botões) valem
+    if (TD.blessings.isOpen()) {
+      if (ev.key >= '1' && ev.key <= '3') { ev.preventDefault(); TD.blessings.chooseIndex(Number(ev.key) - 1); }
+      return;
+    }
     if (!S.inGame || ev.altKey || ev.ctrlKey || ev.metaKey) return;
     const k = ev.key.toLowerCase();
     const power = POWERS.find(p => p.key === k);
@@ -557,13 +562,14 @@
     const S = G.S;
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
-    const running = S.inGame && !S.paused && !S.over && !S.halted && !S.menuOpen;
+    const running = S.inGame && !S.paused && !S.over && !S.halted && !S.menuOpen && !TD.blessings.isOpen();
     if (running) for (let i = 0; i < S.speed && !G.S.over; i++) G.update(dt);
     TD.scene.draw(dt);
     syncHud();
     TD.tutorial.sync();
     TD.codex.sync(dt);
     TD.achievements.sync(dt);
+    TD.blessings.sync();
     sfx.setIntensity(running && S.waveActive ? 1 : 0);
     requestAnimationFrame(frame);
   }

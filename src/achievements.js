@@ -23,6 +23,7 @@
     { id: 'endless_30', name: 'Além da lenda', desc: 'Chegue à onda 30 no modo sem fim.' },
     { id: 'rush', name: 'Pressa na batalha', desc: 'Chame 10 ondas antes da hora numa mesma partida.' },
     { id: 'commander', name: 'Comandante', desc: 'Use os 3 poderes durante uma mesma onda.' },
+    { id: 'blessed', name: 'Abençoado', desc: 'Reúna 6 bênçãos numa mesma partida.' },
   ];
 
   function readJson(key, fallback) {
@@ -90,6 +91,7 @@
       if (S.hero && S.hero.level >= TD.HERO.maxLevel) unlock('hero_max');
       if ((S.earlyCalls || 0) >= 10) unlock('rush');
       if (S.wavePowers && TD.POWERS.every(p => S.wavePowers[p.id])) unlock('commander');
+      if (S.blessings.length >= 6) unlock('blessed');
     }
     if (toastT > 0) {
       toastT -= dt;
