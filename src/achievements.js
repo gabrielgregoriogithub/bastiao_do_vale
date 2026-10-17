@@ -24,7 +24,12 @@
     { id: 'rush', name: 'Pressa na batalha', desc: 'Chame 10 ondas antes da hora numa mesma partida.' },
     { id: 'commander', name: 'Comandante', desc: 'Use os 3 poderes durante uma mesma onda.' },
     { id: 'blessed', name: 'Abençoado', desc: 'Reúna 6 bênçãos numa mesma partida.' },
+    { id: 'archmage', name: 'Arquimago', desc: 'Derrote 5 inimigos com um único Meteoro do Mago.' },
+    { id: 'banner_six', name: 'Sob a Bandeira', desc: 'Tenha 6 torres fortalecidas por Estandartes ao mesmo tempo.' },
+    { id: 'hero_trio', name: 'Trio Lendário', desc: 'Vença uma partida com cada herói: Cavaleiro, Arqueira e Mago.' },
   ];
+  // heróis com que o jogador já venceu, entre partidas (para o Trio Lendário)
+  const HEROES_KEY = 'bastiao-herois-vitoriosos';
 
   function readJson(key, fallback) {
     try { const v = JSON.parse(localStorage.getItem(key) || 'null'); return v ?? fallback; } catch { return fallback; }
@@ -81,6 +86,17 @@
     if (TD.CHALLENGES.every(c => S.mods[c.id])) unlock('all_challenges');
     const wonAll = TD.officialMaps().every(m => TD.DIFF_ORDER.some(d => G.readStars(m.id, d) > 0));
     if (wonAll) unlock('all_maps');
+    if (S.hero) {
+      const saved = readJson(HEROES_KEY, []);
+      const won = new Set([...(Array.isArray(saved) ? saved : []), S.hero.kind]);
+      writeJson(HEROES_KEY, [...won]);
+      if (TD.HERO_ORDER.every(k => won.has(k))) unlock('hero_trio');
+    }
+  }
+
+  // Chamado quando um Meteoro cai, com quantos inimigos ele derrotou
+  function onMeteor(killed) {
+    if (killed >= 5) unlock('archmage');
   }
 
   // ---------- Checagens por quadro ----------
@@ -92,6 +108,7 @@
       if ((S.earlyCalls || 0) >= 10) unlock('rush');
       if (S.wavePowers && TD.POWERS.every(p => S.wavePowers[p.id])) unlock('commander');
       if (S.blessings.length >= 6) unlock('blessed');
+      if (S.towers.filter(t => t.s.buff > 0).length >= 6) unlock('banner_six');
     }
     if (toastT > 0) {
       toastT -= dt;
@@ -131,5 +148,5 @@
     writeJson(RUNS_KEY, [...others, run].sort(better).slice(0, RUNS_MAX));
   }
 
-  TD.achievements = { onKill, onWaveEnd, onVictory, flushKills, sync, list, has, totalKills: () => totalKills + pendingKills, runs, recordRun };
+  TD.achievements = { onKill, onWaveEnd, onVictory, onMeteor, flushKills, sync, list, has, totalKills: () => totalKills + pendingKills, runs, recordRun };
 })();

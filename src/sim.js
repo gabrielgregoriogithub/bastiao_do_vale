@@ -680,6 +680,7 @@
         if (k.burn && !e.dead) applyDot(e, 'burn', k.burn, k.burnDur, k.src);
       }
       if (k.kind === 'meteor') {
+        TD.achievements?.onMeteor(hit.filter(e => e.dead).length);
         addFx({ kind: 'blast', x: k.x, y: k.y, r: k.r, fire: true, life: 0.5 });
         addFx({ kind: 'scorch', x: k.x, y: k.y, r: k.r * 0.6, life: 6 });
         S.shake = Math.max(S.shake, 0.25);

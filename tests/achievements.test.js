@@ -59,3 +59,48 @@ test('abates somam entre partidas até mil', () => {
   assert.equal(A.has('kills_1000'), true);
   assert.equal(Number(store.get('bastiao-abates-total')), A.totalKills());
 });
+
+test('Arquimago: 5 inimigos derrotados por um único Meteoro', () => {
+  G.newGame('vale', 'normal', [], 'mage');
+  G.S.waveActive = true;
+  const p = G.md.paths[0], start = G.md.pathLen * (G.md.map.heroAt ?? 0.55);
+  const spawn = n => { for (let i = 0; i < n; i++) { G.spawn('soldier', start + 40 + i * 6, p); const e = G.S.enemies[G.S.enemies.length - 1]; e.hp = 1; e.frozenT = 99; } };
+  spawn(4);
+  G.S.hero.cd = 999;
+  TD.hero.useAbility();
+  runUntil(G, () => G.S.strikes.length === 0, 2);
+  assert.equal(A.has('archmage'), false, '4 não bastam');
+  G.S.hero.abilityCd = 0;
+  G.S.waveActive = true; // o primeiro meteoro esvaziou a estrada e encerrou a onda
+  spawn(5);
+  TD.hero.useAbility();
+  runUntil(G, () => G.S.strikes.length === 0, 2);
+  assert.equal(A.has('archmage'), true);
+});
+
+test('Sob a Bandeira: 6 torres fortalecidas por estandartes ao mesmo tempo', () => {
+  G.newGame('vale', 'normal');
+  G.S.gold = 99999;
+  G.build('banner', 6, 5);
+  for (const [c, r] of [[5, 4], [6, 4], [7, 4], [5, 5], [7, 5]]) G.build('archer', c, r);
+  A.sync(0);
+  assert.equal(A.has('banner_six'), false, '5 não bastam');
+  G.build('archer', 6, 6);
+  A.sync(0);
+  assert.equal(A.has('banner_six'), true);
+});
+
+test('Trio Lendário: vencer uma partida com cada herói, em visitas diferentes', () => {
+  for (const kind of ['knight', 'ranger']) {
+    G.newGame('vale', 'facil', [], kind);
+    A.onVictory();
+  }
+  assert.equal(A.has('hero_trio'), false);
+  assert.deepEqual(JSON.parse(store.get('bastiao-herois-vitoriosos')).sort(), ['knight', 'ranger']);
+  G.newGame('vale', 'facil', ['nohero']);
+  A.onVictory();
+  assert.equal(A.has('hero_trio'), false, 'vitória sem herói não conta');
+  G.newGame('vale', 'facil', [], 'mage');
+  A.onVictory();
+  assert.equal(A.has('hero_trio'), true);
+});
