@@ -134,11 +134,17 @@
     musicTimer = null;
   }
 
+  // Vibração curta no celular (Android) nos momentos que o jogador precisa sentir; desliga junto com o som
+  const BUZZ = { build: 12, upgrade: 20, spec: [20, 40, 20], leak: [45, 30, 45], lose: [80, 50, 120], win: [30, 40, 30, 40, 60] };
+  const canBuzz = typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function';
+
   function play(name) {
-    if (muted || !ac || ac.state !== 'running' || !SFX[name]) return;
+    if (muted) return;
     const now = performance.now();
     if (lastPlayed[name] && now - lastPlayed[name] < MIN_GAP_MS) return;
     lastPlayed[name] = now;
+    if (canBuzz && BUZZ[name]) navigator.vibrate(BUZZ[name]);
+    if (!ac || ac.state !== 'running' || !SFX[name]) return;
     SFX[name]();
   }
 

@@ -388,6 +388,23 @@
   .menu-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
   .menu-actions .primary { min-width: 160px; }
 
+  /* Controles do jogo no toque: sem zoom de duplo toque, seleção de texto ou menu de toque longo
+     (no iPhone, segurar o dedo no mapa oferecia "Salvar imagem") */
+  #game, .dock, .command, .btn, .tbtn, .pbtn, .bless-card, .spec {
+    touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  }
+  /* Celular em pé: o mapa vai de borda a borda, cada pixel de largura conta */
+  @media (max-width: 900px) and (orientation: portrait) {
+    .field .stage {
+      margin-left: calc(-1 * max(16px, env(safe-area-inset-left, 0px)));
+      margin-right: calc(-1 * max(16px, env(safe-area-inset-right, 0px)));
+      border-radius: 0; border-left: 0; border-right: 0;
+    }
+  }
+  .dock-tip { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--fg); background: var(--raise); border: 1px solid #6b5626; border-radius: 8px; padding: 6px 6px 6px 10px; }
+  .dock-tip span { flex: 1; }
+  .dock-tip button { font: inherit; font-weight: 700; color: var(--brass-ink); background: var(--brass); border: 0; border-radius: 6px; padding: 6px 12px; min-height: 34px; cursor: pointer; }
+
   /* ---------- Barra de comando do celular ----------
      Torres, poderes, onda e as ações da torre selecionada ficam fixos ao alcance do polegar.
      Em pé, embaixo da tela; deitado, na lateral direita. No computador, escondida. */
@@ -543,6 +560,10 @@
 
   <!-- Barra de comando do celular (dock.js); escondida no computador -->
   <nav class="dock" id="dock" aria-label="Controles da partida">
+    <div class="dock-tip" id="rotateTip" role="status" hidden>
+      <span>Vire o celular: deitado, o mapa fica maior.</span>
+      <button id="rotateOk">Ok</button>
+    </div>
     <div class="dock-stats">
       <span>Ouro <b class="gold" id="dGold">0</b></span>
       <span>Vidas <b id="dLives">0</b></span>

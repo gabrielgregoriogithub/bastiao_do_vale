@@ -1,5 +1,6 @@
 // Recursos do aparelho para jogar no celular: jogo sem internet (sw.js), tela acesa enquanto a partida
-// corre e botão de tela cheia. Cada um só age onde o navegador oferece o recurso; nos outros, nada muda.
+// corre, botão de tela cheia e a dica de virar o celular. Cada um só age onde o navegador oferece
+// o recurso; nos outros, nada muda. (A vibração fica junto dos sons, em audio.js.)
 (() => {
   const TD = window.TD;
   const G = TD.game;
@@ -41,9 +42,34 @@
 
   document.addEventListener('visibilitychange', () => { if (wanted) acquire(); });
 
+  // ---------- Dica para virar o celular ----------
+  // Em pé o mapa fica estreito; deitado as casas ficam maiores. Aparece uma vez por aparelho:
+  // some com o Ok ou quando o jogador vira o celular (já aprendeu).
+  const TIP_KEY = 'bastiao-dica-girar';
+  const portrait = window.matchMedia('(max-width: 900px) and (orientation: portrait)');
+  const tip = document.getElementById('rotateTip');
+  let tipDone = G.store.load(TIP_KEY, '0') === '1', tipShown = false;
+  function dismissTip() {
+    tipDone = true;
+    G.store.save(TIP_KEY, 1);
+    tip.hidden = true;
+  }
+  document.getElementById('rotateOk').addEventListener('click', dismissTip);
+
+  function syncTip() {
+    if (tipDone) return;
+    const S = G.S;
+    if (tipShown && !portrait.matches) { dismissTip(); return; }
+    const show = portrait.matches && S.inGame && !S.over;
+    if (show === !tip.hidden) return;
+    tip.hidden = !show;
+    if (show) tipShown = true;
+  }
+
   let lastWanted = null;
   function sync() {
     const S = G.S;
+    syncTip();
     wanted = S.inGame && !S.over && !S.halted && !S.paused && !S.menuOpen;
     if (wanted === lastWanted) return;
     lastWanted = wanted;
