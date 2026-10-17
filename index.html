@@ -388,6 +388,23 @@
   .menu-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
   .menu-actions .primary { min-width: 160px; }
 
+  /* Computador: o painel rola por dentro e acompanha a tela, então mapa e painel cabem juntos
+     sem rolar a página; as 7 torres ficam em 4 colunas (4 + 3) em vez de 3 + 3 + 1 */
+  @media (min-width: 901px) {
+    .layout > .panel {
+      /* altura da tela menos o cabeçalho (título e placar), para caber sem rolar a página */
+      position: sticky; top: 12px; max-height: calc(100vh - 150px); max-height: calc(100dvh - 150px);
+      overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--line) transparent;
+    }
+    .towers { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+    .tbtn { padding: 6px 2px 5px; }
+    .tbtn .nm { font-size: 12.5px; }
+    .tbtn .cost-u { display: none; }
+    .tbtn .key { top: 3px; right: 5px; font-size: 10px; }
+  }
+  /* o botão de tela cheia do computador fica junto dos outros; no celular ele está na barra de comando */
+  @media (max-width: 900px), (max-height: 520px) and (pointer: coarse) { #btnFullDesk { display: none; } }
+
   /* Controles do jogo no toque: sem zoom de duplo toque, seleção de texto ou menu de toque longo
      (no iPhone, segurar o dedo no mapa oferecia "Salvar imagem") */
   #game, .dock, .command, .btn, .tbtn, .pbtn, .bless-card, .spec {
@@ -535,6 +552,7 @@
           <button id="btnPause" class="btn" aria-pressed="false" title="Pausar (P)">Pausar</button>
           <button id="btnSound" class="btn" aria-pressed="true" title="Efeitos sonoros (M)">Som</button>
           <button id="btnMusic" class="btn" aria-pressed="true" title="Música (N)">Música</button>
+          <button id="btnFullDesk" class="btn" aria-pressed="false" title="Tela cheia" hidden>Tela cheia</button>
         </div>
       </div>
     </div>

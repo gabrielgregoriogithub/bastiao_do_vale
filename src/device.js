@@ -77,15 +77,21 @@
   }
 
   // ---------- Tela cheia ----------
+  // Um botão na barra do celular e outro junto dos controles do computador (o CSS mostra um de cada vez).
   // No iPhone o Safari não oferece tela cheia para páginas: lá o botão some e vale abrir pela tela de início
-  const btn = document.getElementById('btnFull');
+  const fullBtns = ['btnFull', 'btnFullDesk'].map(id => document.getElementById(id));
   const root = document.documentElement;
-  btn.hidden = !(document.fullscreenEnabled && root.requestFullscreen);
-  btn.addEventListener('click', () => {
-    if (document.fullscreenElement) document.exitFullscreen();
-    else root.requestFullscreen().catch(err => console.warn('Tela cheia recusada:', err));
+  const canFull = !!(document.fullscreenEnabled && root.requestFullscreen);
+  for (const btn of fullBtns) {
+    btn.hidden = !canFull;
+    btn.addEventListener('click', () => {
+      if (document.fullscreenElement) document.exitFullscreen();
+      else root.requestFullscreen().catch(err => console.warn('Tela cheia recusada:', err));
+    });
+  }
+  document.addEventListener('fullscreenchange', () => {
+    for (const btn of fullBtns) btn.setAttribute('aria-pressed', String(!!document.fullscreenElement));
   });
-  document.addEventListener('fullscreenchange', () => btn.setAttribute('aria-pressed', String(!!document.fullscreenElement)));
 
   TD.device = { sync };
 })();
