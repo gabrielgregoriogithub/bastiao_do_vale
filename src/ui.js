@@ -573,6 +573,7 @@
     TD.achievements.sync(dt);
     TD.blessings.sync();
     TD.dock.sync();
+    TD.device.sync();
     sfx.setIntensity(running && S.waveActive ? 1 : 0);
     requestAnimationFrame(frame);
   }
