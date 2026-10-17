@@ -101,7 +101,7 @@
       u.hp = 0;
       u.deadT = TOWERS[t.type].respawn;
       u.target = null;
-      G.addFx({ kind: 'puff', x: u.x, y: u.y, r: 7, color: '#b0473b', life: 0.5 });
+      G.addFx({ kind: 'puff', x: u.x, y: u.y, r: 7, color: '#5a7aa0', life: 0.5 });
     }
   }
 
@@ -123,8 +123,9 @@
     const a = u.ang - 0.3 + (u.swing > 0 ? Math.sin((u.swing / 0.18) * Math.PI) * 0.8 : 0);
     g.strokeStyle = '#d8d2c4'; g.lineWidth = 1.8;
     g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * 14, y + Math.sin(a) * 14); g.stroke();
-    g.fillStyle = templar ? '#efe6cf' : '#b0473b'; g.strokeStyle = '#3a1712'; g.lineWidth = 1.5;
-    TD.circle(g, x, y, 6.5); g.fill(); g.stroke();
+    // aliados são azuis, como o herói: o vermelho é dos inimigos
+    TD.drawFeet(g, x, y, 6.5, u.ang, reducedMotion ? 0 : u.walk * 9, '#1f2b3a');
+    TD.drawBody(g, x, y, 6.5, templar ? '#efe6cf' : '#5a7aa0', '#1f2b3a', 'circle', 1.5);
     g.fillStyle = templar ? '#c43b2f' : '#c9ced8';
     if (templar) { g.fillRect(x - 1, y - 4, 2, 8); g.fillRect(x - 4, y - 1, 8, 2); }
     else { g.beginPath(); g.arc(x, y - 0.5, 4.5, Math.PI, 0); g.fill(); }

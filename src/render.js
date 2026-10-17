@@ -409,6 +409,7 @@
     g.fillStyle = 'rgba(0,0,0,.22)';
     g.beginPath(); g.ellipse(e.x + 4, e.y + 8, r * 0.9, r * 0.35, 0, 0, Math.PI * 2); g.fill();
     g.fillStyle = e.flash > 0 ? '#fff4dc' : d.dark;
+    g.strokeStyle = mix(d.color, '#ffffff', 0.25); g.lineWidth = 1.2; g.lineJoin = 'round';
     for (const side of [-1, 1]) {
       g.beginPath();
       g.moveTo(x + side * 3, y - 2);
@@ -416,10 +417,13 @@
       g.lineTo(x + side * (r + 5), y + 3);
       g.lineTo(x + side * 3, y + 3);
       g.closePath(); g.fill();
+      // borda de ataque da asa pega a luz
+      g.beginPath(); g.moveTo(x + side * 3, y - 2); g.lineTo(x + side * (r + 9), y - 4 - flap * 8); g.stroke();
     }
-    g.fillStyle = e.flash > 0 ? '#fff4dc' : d.color;
-    g.strokeStyle = d.dark; g.lineWidth = 2;
-    circle(g, x, y, r * 0.75); g.fill(); g.stroke();
+    if (e.flash > 0) {
+      g.fillStyle = '#fff4dc'; g.strokeStyle = d.dark; g.lineWidth = 2;
+      circle(g, x, y, r * 0.75); g.fill(); g.stroke();
+    } else drawBody(g, x, y, r * 0.75, d.color, d.dark);
     g.fillStyle = '#f0c75a';
     circle(g, x - 2.5, y - 1, 1.4); g.fill();
     circle(g, x + 2.5, y - 1, 1.4); g.fill();
@@ -469,35 +473,41 @@
 
   // Cores do corpo com volume: luz no alto à esquerda, cor do inimigo no meio e borda puxada para o escuro
   const hex = s => [1, 3, 5].map(i => parseInt(s.slice(i, i + 2), 16));
-  const mix = (a, b, k) => `rgb(${hex(a).map((v, i) => Math.round(v + (hex(b)[i] - v) * k)).join(',')})`;
-  function bodyFill(g, d, r) {
+  const mixed = new Map();
+  const mix = (a, b, k) => {
+    const key = `${a}|${b}|${k}`;
+    if (!mixed.has(key)) mixed.set(key, `rgb(${hex(a).map((v, i) => Math.round(v + (hex(b)[i] - v) * k)).join(',')})`);
+    return mixed.get(key);
+  };
+  function bodyFill(g, color, dark, r) {
     const grad = g.createRadialGradient(-r * 0.4, -r * 0.45, r * 0.1, 0, 0, r * 1.05);
-    grad.addColorStop(0, mix(d.color, '#ffffff', 0.35)); grad.addColorStop(0.55, d.color); grad.addColorStop(1, mix(d.color, d.dark, 0.55));
+    grad.addColorStop(0, mix(color, '#ffffff', 0.35)); grad.addColorStop(0.55, color); grad.addColorStop(1, mix(color, dark, 0.55));
     return grad;
   }
 
-  function bodyShape(g, type, x, y, r) {
-    if (type === 'brute' || type === 'colossus') rr(g, x - r, y - r, r * 2, r * 2, type === 'colossus' ? 6 : 4);
+  // shape: 'circle', ou o tipo do inimigo de corpo quadrado ('brute', 'colossus')
+  function bodyShape(g, shape, x, y, r) {
+    if (shape === 'brute' || shape === 'colossus') rr(g, x - r, y - r, r * 2, r * 2, shape === 'colossus' ? 6 : 4);
     else circle(g, x, y, r);
   }
 
-  // O corpo com degradê é desenhado uma vez por tipo, em resolução dobrada, e reaproveitado:
-  // criar um degradê por inimigo a cada quadro custava mais que todo o resto do desenho
+  // Corpo com volume (degradê e contorno), desenhado uma vez por cor e tamanho, em resolução dobrada,
+  // e reaproveitado: criar um degradê por figura a cada quadro custava mais que todo o resto do desenho
   const BODY_RES = 2;
   const bodies = new Map();
-  function bodySprite(e) {
-    let c = bodies.get(e.type);
+  function drawBody(g, x, y, r, color, dark, shape = 'circle', lw = 2) {
+    const key = `${color}|${dark}|${r}|${shape}|${lw}`, s = r + 3;
+    let c = bodies.get(key);
     if (!c) {
-      const d = e.d, s = d.r + 3;
       c = document.createElement('canvas');
       c.width = c.height = Math.ceil(s * 2 * BODY_RES);
-      const g = c.getContext('2d');
-      g.setTransform(BODY_RES, 0, 0, BODY_RES, s * BODY_RES, s * BODY_RES);
-      g.fillStyle = bodyFill(g, d, d.r); g.strokeStyle = d.dark; g.lineWidth = 2;
-      bodyShape(g, e.type, 0, 0, d.r); g.fill(); g.stroke();
-      bodies.set(e.type, c);
+      const b = c.getContext('2d');
+      b.setTransform(BODY_RES, 0, 0, BODY_RES, s * BODY_RES, s * BODY_RES);
+      b.fillStyle = bodyFill(b, color, dark, r); b.strokeStyle = dark; b.lineWidth = lw;
+      bodyShape(b, shape, 0, 0, r); b.fill(); b.stroke();
+      bodies.set(key, c);
     }
-    return c;
+    g.drawImage(c, x - s, y - s, s * 2, s * 2);
   }
 
   // Para onde o inimigo anda; no ícone do Compêndio (sem estrada), para a direita, rumo à muralha
@@ -507,11 +517,11 @@
     return b.x === e.x && b.y === e.y ? 0 : Math.atan2(b.y - e.y, b.x - e.x);
   }
 
-  // Dois pés que se alternam no passo, aparecendo por baixo do corpo
-  function drawFeet(g, e, x, y, r, ang, still) {
-    const step = still ? 0 : Math.sin(e.wob * 1.6) * r * 0.45;
+  // Dois pés que se alternam no passo, aparecendo por baixo do corpo; phase avança enquanto anda
+  function drawFeet(g, x, y, r, ang, phase, color) {
+    const step = Math.sin(phase) * r * 0.45;
     const fx = Math.cos(ang), fy = Math.sin(ang), px = -fy, py = fx;
-    g.fillStyle = e.d.dark;
+    g.fillStyle = color;
     g.beginPath();
     for (const side of [-1, 1]) {
       const s = step * side, cx = x + px * r * 0.55 * side + fx * s, cy = y + py * r * 0.55 * side + fy * s + r * 0.62;
@@ -549,14 +559,12 @@
     g.fillStyle = 'rgba(0,0,0,.3)';
     g.beginPath(); g.ellipse(e.x + 2, e.y + r * 0.75, r, r * 0.45, 0, 0, Math.PI * 2); g.fill();
     const ang = heading(e);
-    drawFeet(g, e, x, y, r, ang, reducedMotion || e.frozenT > 0);
+    drawFeet(g, x, y, r, ang, reducedMotion || e.frozenT > 0 ? 0 : e.wob * 1.6, d.dark);
+    const shape = e.type === 'brute' || e.type === 'colossus' ? e.type : 'circle';
     if (e.flash > 0) {
       g.fillStyle = '#fff4dc'; g.strokeStyle = d.dark; g.lineWidth = 2;
-      bodyShape(g, e.type, x, y, r); g.fill(); g.stroke();
-    } else {
-      const s = r + 3;
-      g.drawImage(bodySprite(e), x - s, y - s, s * 2, s * 2);
-    }
+      bodyShape(g, shape, x, y, r); g.fill(); g.stroke();
+    } else drawBody(g, x, y, r, d.color, d.dark, shape);
     if (ARMED.has(e.type)) drawWeapon(g, e, x, y, r, ang);
     if (e.type === 'brute') {
       // viseira do elmo e rebites
@@ -628,15 +636,19 @@
         g.beginPath(); g.moveTo(h.tx, h.ty - 16); g.lineTo(h.tx + 10, h.ty - 12); g.lineTo(h.tx, h.ty - 8); g.fill();
       }
     }
+    // brilho dourado no chão: o herói se destaca no meio da multidão
+    const aura = g.createRadialGradient(h.x, h.y + 6, 2, h.x, h.y + 6, 18);
+    aura.addColorStop(0, 'rgba(240,200,110,.35)'); aura.addColorStop(1, 'rgba(240,200,110,0)');
+    g.fillStyle = aura; g.beginPath(); g.ellipse(h.x, h.y + 6, 18, 9, 0, 0, Math.PI * 2); g.fill();
     g.fillStyle = 'rgba(0,0,0,.3)';
     g.beginPath(); g.ellipse(h.x + 2, h.y + 8, 10, 4.5, 0, 0, Math.PI * 2); g.fill();
-    if (h.kind === 'ranger') { drawRanger(g, h, x, y); return; }
+    if (h.kind === 'ranger') { drawRanger(g, h, x, y, reducedMotion); return; }
+    drawFeet(g, x, y, 10, h.ang, reducedMotion ? 0 : h.walk * 9, '#1f2b3a');
     // escudo do lado oposto ao golpe
     const sa = h.ang + Math.PI * 0.7;
     g.fillStyle = '#8a3a2a'; g.strokeStyle = '#d6a547'; g.lineWidth = 1.5;
     circle(g, x + Math.cos(sa) * 9, y + Math.sin(sa) * 9, 5); g.fill(); g.stroke();
-    g.fillStyle = '#4f6d8f'; g.strokeStyle = '#1f2b3a'; g.lineWidth = 2;
-    circle(g, x, y, 10); g.fill(); g.stroke();
+    drawBody(g, x, y, 10, '#4f6d8f', '#1f2b3a');
     g.fillStyle = '#c9ced8';
     g.beginPath(); g.arc(x, y - 1, 6.5, Math.PI, 0); g.fill();
     g.fillStyle = '#d6a547'; g.fillRect(x - 1, y - 9, 2, 5);
@@ -657,9 +669,9 @@
   }
 
   // Arqueira: capa verde com capuz e arco apontado para o alvo; nunca bloqueia, então não mostra vida
-  function drawRanger(g, h, x, y) {
-    g.fillStyle = '#4e7a45'; g.strokeStyle = '#1f3320'; g.lineWidth = 2;
-    circle(g, x, y, 9.5); g.fill(); g.stroke();
+  function drawRanger(g, h, x, y, reducedMotion) {
+    drawFeet(g, x, y, 9.5, h.ang, reducedMotion ? 0 : h.walk * 9, '#1f3320');
+    drawBody(g, x, y, 9.5, '#4e7a45', '#1f3320');
     g.fillStyle = '#365c32';
     g.beginPath(); g.arc(x, y - 1, 7, Math.PI * 1.05, Math.PI * 1.95); g.closePath(); g.fill();
     g.fillStyle = '#e8c9a0'; circle(g, x, y + 1, 3); g.fill();
@@ -686,5 +698,5 @@
     g.setLineDash([]);
   }
 
-  Object.assign(TD, { rr, circle, buildBg, drawTower, drawTowerCached, drawEnemy, drawHero, drawRange });
+  Object.assign(TD, { rr, circle, buildBg, drawTower, drawTowerCached, drawEnemy, drawHero, drawRange, drawBody, drawFeet });
 })();
