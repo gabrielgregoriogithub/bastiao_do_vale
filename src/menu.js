@@ -17,6 +17,7 @@
     storyText: $('storyText'), storyGo: $('storyGo'), challengeList: $('challengeList'), challengeNote: $('challengeNote'),
     dailyText: $('dailyText'), btnDaily: $('btnDaily'), foldChallenges: $('foldChallenges'), foldForge: $('foldForge'),
     resumeCard: $('resumeCard'), resumeText: $('resumeText'), btnContinueSave: $('btnContinueSave'),
+    endContinue: $('endContinue'),
   };
 
   const menuSel = { map: store.load('bastiao-mapa', 'vale'), diff: store.load('bastiao-dificuldade', 'normal'), mods: readMods(), hero: store.load('bastiao-heroi', 'knight') };
@@ -178,6 +179,13 @@
     afterStart();
   }
 
+  // "Jogar de novo" repete a mesma partida; no desafio do dia, o desafio de hoje com as mesmas ondas
+  function restart() {
+    const S = G.S;
+    if (S.daily) { startDaily(); return; }
+    startGame(S.mapId, S.diffId, Object.keys(S.mods), S.hero ? S.hero.kind : menuSel.hero);
+  }
+
   function renderForge() {
     const meta = TD.meta, total = meta.totalStars(), avail = meta.available();
     ui.forgeStars.textContent = `${avail} de ${total} ★ disponíveis`;
@@ -210,6 +218,11 @@
     if (!S.inGame || S.over) return;
     S.menuOpen = false;
     ui.menu.hidden = true;
+    // Depois da vitória a partida espera a escolha de continuar: sem a janela do fim, ficaria parada
+    if (S.halted) {
+      ui.end.hidden = false;
+      ui.endContinue.focus({ preventScroll: true });
+    }
   }
 
 
@@ -242,7 +255,7 @@
 
   const menu = {
     sel: menuSel, onStart: () => {},
-    startGame, startDaily, build: buildMenu, sync: syncMenu, open: openMenu, close: closeMenu,
+    startGame, startDaily, restart, build: buildMenu, sync: syncMenu, open: openMenu, close: closeMenu,
     isStoryOpen: () => !ui.story.hidden, closeStory, readSave, writeSave, clearSave,
   };
   TD.menu = menu;

@@ -450,7 +450,7 @@
   ui.btnSound.addEventListener('click', toggleSound);
   ui.btnMenu.addEventListener('click', () => TD.menu.open());
   ui.btnMusic.addEventListener('click', toggleMusic);
-  ui.endRestart.addEventListener('click', () => TD.menu.startGame(G.S.mapId, G.S.diffId, Object.keys(G.S.mods), G.S.hero ? G.S.hero.kind : TD.menu.sel.hero));
+  ui.endRestart.addEventListener('click', () => TD.menu.restart());
   ui.btnCodex.addEventListener('click', () => TD.codex.show());
 
   // ---------- Janela de atalhos ----------

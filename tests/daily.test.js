@@ -59,3 +59,15 @@ test('a prévia do caminho é desenhada entre as ondas, com a rota dos voadores'
   TD.scene.setup(document.getElementById('game').getContext('2d'), 1);
   assert.doesNotThrow(() => { for (let i = 0; i < 5; i++) TD.scene.draw(1 / 60); });
 });
+
+test('jogar de novo depois do desafio do dia começa o desafio do dia outra vez', () => {
+  G.newDaily(new Date());
+  const key = G.S.daily;
+  TD.menu.restart();
+  assert.equal(G.S.daily, key);
+  assert.equal(G.S.seed, TD.dailyFor(new Date()).seed);
+  G.newGame('rio', 'dificil', ['swift'], 'ranger');
+  TD.menu.restart();
+  assert.equal(G.S.daily, null, 'partida comum continua comum');
+  assert.deepEqual([G.S.mapId, G.S.diffId, Object.keys(G.S.mods), G.S.hero.kind], ['rio', 'dificil', ['swift'], 'ranger']);
+});
