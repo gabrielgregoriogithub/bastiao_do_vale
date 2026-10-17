@@ -187,7 +187,7 @@
       const btn = cost === null
         ? '<span class="perk-max">Completo</span>'
         : `<button class="btn small" id="perk-${p.id}" data-perk="${p.id}" ${avail < cost ? 'disabled' : ''}>Forjar · ${cost} ★</button>`;
-      return `<div class="perk"><div class="perk-txt"><span class="perk-nm">${p.name}</span><span class="perk-ds">${p.desc}</span><span class="pips" aria-label="nível ${lvl} de ${p.costs.length}">${pips}</span></div>${btn}</div>`;
+      return `<div class="perk"><div class="perk-txt"><span class="perk-nm">${p.name}</span><span class="perk-ds">${p.desc}</span><span class="pips" role="img" aria-label="nível ${lvl} de ${p.costs.length}">${pips}</span></div>${btn}</div>`;
     }).join('');
     ui.forgeReset.hidden = meta.spent() === 0;
     ui.forgeHint.hidden = total > 0;
