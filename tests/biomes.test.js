@@ -3,13 +3,13 @@ const assert = require('node:assert/strict');
 const { loadGame, runUntil } = require('./harness');
 
 const { TD, G } = loadGame({ seed: 3 });
-const THEMED = ['vale', 'rio', 'serpente', 'encruzilhada', 'pantano', 'costa', 'cemiterio', 'vulcao'];
+const THEMED = ['vale', 'rio', 'serpente', 'encruzilhada', 'pantano', 'costa', 'cemiterio', 'vulcao', 'ruinas', 'minas'];
 const CLASSIC = TD.ROLE_ORDER;
 
-test('oito campos oficiais, cada um com seu ambiente e seu capítulo', () => {
+test('dez campos oficiais, cada um com seu ambiente e seu capítulo', () => {
   const maps = TD.officialMaps();
-  assert.deepEqual(maps.map(m => m.id), ['vale', 'rio', 'serpente', 'encruzilhada', 'pantano', 'costa', 'cemiterio', 'vulcao']);
-  assert.deepEqual(maps.map(m => m.biome), ['amazonia', 'rio', 'deserto', 'neve', 'floresta', 'costa', 'cripta', 'vulcao']);
+  assert.deepEqual(maps.map(m => m.id), THEMED);
+  assert.deepEqual(maps.map(m => m.biome), ['amazonia', 'rio', 'deserto', 'neve', 'floresta', 'costa', 'cripta', 'vulcao', 'templo', 'cristal']);
   for (const m of maps) assert.ok(TD.CHRONICLE[m.id], `capítulo de ${m.id}`);
 });
 

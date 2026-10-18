@@ -5,14 +5,18 @@
   const TD = window.TD;
   const { ENEMIES, ENEMY_INFO } = TD;
 
-  TD.ROLE_ORDER = ['soldier', 'scout', 'brute', 'healer', 'flyer', 'stalker', 'necro', 'skeleton', 'boss', 'witch', 'colossus', 'dragon', 'berserker', 'burrower'];
+  TD.ROLE_ORDER = ['soldier', 'scout', 'brute', 'healer', 'flyer', 'stalker', 'necro', 'skeleton', 'boss', 'witch', 'colossus', 'dragon', 'berserker', 'burrower',
+    'blinker', 'warder', 'saboteur', 'titan'];
 
   // look: enfeites desenhados sobre o corpo (render.js); 'square' e 'bigsquare' dão corpo quadrado
   const CLASSIC_LOOK = {
     soldier: ['spear'], scout: ['dagger'], brute: ['square', 'visor'], healer: ['cross'], flyer: [], stalker: ['eye'],
     necro: ['hood'], skeleton: ['spear', 'bones'], boss: ['crown'], witch: ['hat'], colossus: ['bigsquare', 'cracks'], dragon: [],
     berserker: ['axe'], burrower: ['claws', 'lamp'],
+    blinker: ['dagger', 'eye'], warder: ['shield', 'visor'], saboteur: ['bomb', 'bandana'], titan: ['bigsquare', 'runes'],
   };
+  // o Ladrão de Ouro é o mesmo em todo campo (evento, não papel do bestiário)
+  Object.assign(ENEMIES.thief, { role: 'thief', look: ['sack', 'bandana'] });
   for (const role of TD.ROLE_ORDER) Object.assign(ENEMIES[role], { role, look: CLASSIC_LOOK[role] });
 
   // [id, nome, plural, cor, sombra, enfeites, frase de ambiente], na ordem de ROLE_ORDER
@@ -33,6 +37,10 @@
       ['boitata', 'Boitatá', 'Boitatás', '#e0702a', '#5a1a06', ['horns', 'flame'], 'A cobra de fogo que voa sobre a mata e incendeia as torres.'],
       ['queixada', 'Queixada', 'Queixadas', '#4a3a32', '#1a120e', ['tusks', 'fur'], 'Ferido, o porco-do-mato bate os dentes e dispara.'],
       ['sucuri', 'Sucuri', 'Sucuris', '#5a7a3a', '#1e2e12', ['spots'], 'Mergulha na lama da trilha e surge mais adiante.'],
+      ['macaco', 'Macaco-aranha', 'Macacos-aranha', '#5a3a2a', '#1e120a', ['ears'], 'Pula de galho em galho e cai mais adiante na trilha.'],
+      ['capataz', 'Capataz do Garimpo', 'Capatazes do Garimpo', '#9a6a3a', '#3a2410', ['shield', 'lamp'], 'Comanda os garimpeiros atrás de um escudo de lata.'],
+      ['dinamiteiro', 'Dinamiteiro', 'Dinamiteiros', '#8a5a32', '#32200e', ['bomb', 'lamp'], 'Explodia as pedras do garimpo; agora explode as torres.'],
+      ['boiuna', 'Boiúna', 'Boiúnas', '#2a4a3a', '#0a1a12', ['spots', 'runes'], 'A Cobra-Grande dos rios, que dorme sob a floresta inteira.'],
     ],
     rio: [
       ['frogman', 'Homem-Sapo', 'Homens-Sapo', '#5f8f4a', '#22381a', ['spear', 'bulge'], 'Sobe da margem com a lança em punho.'],
@@ -49,6 +57,10 @@
       ['hydra', 'Hidra Alada', 'Hidras Aladas', '#3d7a6a', '#123028', ['horns'], 'Sobrevoa o vale com três bocas famintas.'],
       ['hippo', 'Hipopótamo Bravo', 'Hipopótamos Bravos', '#8a7a8a', '#3a2e3a', ['tusks'], 'Parece manso até levar o primeiro golpe.'],
       ['mudeel', 'Enguia do Lodo', 'Enguias do Lodo', '#5a6a4a', '#202a18', ['stripes'], 'Afunda na lama da estrada e surge mais adiante.'],
+      ['frog', 'Rã Saltadora', 'Rãs Saltadoras', '#6aa84a', '#22401a', ['spots'], 'Um salto e já está do outro lado da poça.'],
+      ['dikeguard', 'Guarda do Dique', 'Guardas do Dique', '#5a7a8a', '#1e2c34', ['shield', 'visor'], 'Escudo largo como uma comporta.'],
+      ['boatburner', 'Barqueiro Incendiário', 'Barqueiros Incendiários', '#7a5a4a', '#2c1e16', ['bomb', 'bandana'], 'Ateia fogo em tudo o que flutua, e nas torres também.'],
+      ['leviathan', 'Leviatã do Rio', 'Leviatãs do Rio', '#2a5a6a', '#0a2028', ['stripes', 'runes'], 'Acordou no fundo do rio quando o selo se partiu.'],
     ],
     deserto: [
       ['nomad', 'Nômade', 'Nômades', '#c08a4e', '#5a3a18', ['spear', 'turban'], 'Guerreiro das dunas, de turbante e lança.'],
@@ -65,6 +77,10 @@
       ['roc', 'Pássaro Roca', 'Pássaros Roca', '#a8603a', '#45200e', ['beak'], 'Ave gigante que tapa o sol.'],
       ['scorpion', 'Escorpião Gigante', 'Escorpiões Gigantes', '#a8703a', '#40240c', ['claws', 'stripes'], 'Ferrão erguido e pinças abertas.'],
       ['sandworm', 'Verme da Areia', 'Vermes da Areia', '#c8a070', '#5a3e1e', ['stripes'], 'Mergulha nas dunas e reaparece sem aviso.'],
+      ['mirage', 'Miragem', 'Miragens', '#e0c890', '#6a5430', ['eye'], 'Some no calor e reaparece como um reflexo mais adiante.'],
+      ['pharaohguard', 'Guarda do Faraó', 'Guardas do Faraó', '#c8a050', '#4a3410', ['shield', 'turban'], 'Escudo de bronze polido que cega os arqueiros.'],
+      ['powdermaster', 'Mestre da Pólvora', 'Mestres da Pólvora', '#a06a3a', '#3a2010', ['bomb', 'turban'], 'Traz pólvora das caravanas do oriente.'],
+      ['obelisk', 'Obelisco Vivo', 'Obeliscos Vivos', '#c8b88a', '#4a4028', ['bigsquare', 'runes'], 'Um obelisco de mil anos coberto de hieróglifos acesos.'],
     ],
     neve: [
       ['frostman', 'Guerreiro do Gelo', 'Guerreiros do Gelo', '#6a8aa8', '#22303e', ['spear', 'fur'], 'Vem das geleiras vestindo peles.'],
@@ -81,6 +97,10 @@
       ['frostwyrm', 'Serpe Glacial', 'Serpes Glaciais', '#7aa8c8', '#1e3a4e', ['horns'], 'Asas de gelo e hálito que paralisa.'],
       ['polarbear', 'Urso Polar', 'Ursos Polares', '#eef2f4', '#6a7880', ['ears', 'fur'], 'Ferido, vira uma avalanche de garras.'],
       ['icemole', 'Toupeira Gelada', 'Toupeiras Geladas', '#8a9aa8', '#2e3a44', ['claws'], 'Cava túneis sob o gelo.'],
+      ['snowhare', 'Lebre das Neves', 'Lebres das Neves', '#e8eef2', '#5a6670', ['ears'], 'Some num salto e aparece mais adiante na neve.'],
+      ['northshield', 'Escudeiro do Norte', 'Escudeiros do Norte', '#6a7a8a', '#222a34', ['shield', 'fur'], 'Tranca a estrada com o escudo de carvalho.'],
+      ['avalanche', 'Lançador de Avalanche', 'Lançadores de Avalanche', '#7a8a9a', '#262e38', ['bomb', 'fur'], 'Barris de pólvora que soterram as torres.'],
+      ['mammoth', 'Mamute Ancestral', 'Mamutes Ancestrais', '#8a6a52', '#30221a', ['tusks', 'fur', 'runes'], 'Dormia sob a geleira desde antes do reino.'],
     ],
     floresta: [
       ['warant', 'Formiga Guerreira', 'Formigas Guerreiras', '#8a3a2a', '#33120c', ['spear', 'antennae'], 'Marcha em colunas sem fim.'],
@@ -97,6 +117,10 @@
       ['wyvern', 'Serpe do Pântano', 'Serpes do Pântano', '#4a6a3a', '#182812', ['horns'], 'Cospe fogo de dentro da névoa.'],
       ['brownbear', 'Urso Furioso', 'Ursos Furiosos', '#6a4a30', '#281a0e', ['ears'], 'Dono da floresta, não aceita ser ferido.'],
       ['mole', 'Toupeira Gigante', 'Toupeiras Gigantes', '#5a4a44', '#201814', ['claws'], 'Some na terra fofa e brota adiante.'],
+      ['cricket', 'Grilo Gigante', 'Grilos Gigantes', '#6a8a3a', '#223012', ['antennae'], 'Salta por cima da lama mais longe do que se espera.'],
+      ['barkguard', 'Guardião de Casca', 'Guardiões de Casca', '#6a5a3a', '#261e10', ['shield', 'leaf'], 'Escudo de casca de árvore que segura flechas.'],
+      ['goblinbomber', 'Goblin Bombardeiro', 'Goblins Bombardeiros', '#6a8a4a', '#223018', ['bomb', 'hood'], 'Ri alto antes de cada explosão.'],
+      ['bogheart', 'Coração do Pântano', 'Corações do Pântano', '#3e5a3a', '#121e12', ['bigsquare', 'leaf', 'runes'], 'O lodo inteiro do pântano tomou forma.'],
     ],
     costa: [
       ['pirate', 'Pirata', 'Piratas', '#a8503a', '#401a10', ['spear', 'bandana'], 'Desembarcou de lança em punho e sorriso sem dentes.'],
@@ -113,6 +137,10 @@
       ['seaserpent', 'Serpente Marinha', 'Serpentes Marinhas', '#2a7a7a', '#0c2c2c', ['horns'], 'Voa baixo sobre as ondas, cuspindo água fervente.'],
       ['buccaneer', 'Bucaneiro Furioso', 'Bucaneiros Furiosos', '#b05a2a', '#40200c', ['axe', 'bandana'], 'Ferido, larga a prudência e corre de machado em punho.'],
       ['hermit', 'Caranguejo-Ermitão', 'Caranguejos-Ermitões', '#c86a4a', '#4a2010', ['claws', 'shell'], 'Se esconde na concha e some na areia.'],
+      ['acrobat', 'Acrobata Pirata', 'Acrobatas Piratas', '#c0603a', '#401c0c', ['dagger', 'bandana'], 'Pula entre os mastros e cai mais adiante no cais.'],
+      ['boatswain', 'Contramestre', 'Contramestres', '#5a5a6a', '#1e1e28', ['shield', 'tricorn'], 'Grita ordens e cobre a tripulação com o escudo.'],
+      ['gunner', 'Canhoneiro', 'Canhoneiros', '#6a4a3a', '#24160e', ['bomb', 'bandana'], 'Arremessa balas de canhão acesas com a mão.'],
+      ['seaking', 'Leviatã', 'Leviatãs', '#2a4a6a', '#0a1828', ['stripes', 'runes'], 'O monstro marinho das cartas antigas saiu do mapa.'],
     ],
     cripta: [
       ['ghoul', 'Carniçal', 'Carniçais', '#7a8a6a', '#2a3222', ['claws'], 'Morto faminto que nunca para de andar.'],
@@ -129,6 +157,10 @@
       ['bonedragon', 'Dragão Esqueleto', 'Dragões Esqueletos', '#d8d0b8', '#5a5240', ['horns'], 'Ossos de dragão erguidos por magia negra.'],
       ['werewolf', 'Lobisomem', 'Lobisomens', '#5a4a3a', '#201810', ['ears', 'fur'], 'Ferido, a lua fala mais alto e ele dispara.'],
       ['tombworm', 'Verme da Tumba', 'Vermes da Tumba', '#8a7a6a', '#30281e', ['stripes'], 'Cava entre os caixões e sai onde ninguém espera.'],
+      ['wanderer', 'Espectro Errante', 'Espectros Errantes', '#9ab0c8', '#36404e', ['eye'], 'Atravessa as lápides e reaparece adiante.'],
+      ['bonesentinel', 'Sentinela de Ossos', 'Sentinelas de Ossos', '#d0c8b0', '#504838', ['shield', 'bones'], 'Escudo feito de tampa de caixão.'],
+      ['gravedigger', 'Coveiro Louco', 'Coveiros Loucos', '#5a5040', '#201c14', ['bomb', 'hood'], 'Guarda pólvora junto das pás.'],
+      ['cryptkeeper', 'Guardião da Cripta', 'Guardiões da Cripta', '#5a5a6a', '#1a1a22', ['bigsquare', 'cracks', 'runes'], 'A estátua que vigia a cripta real resolveu andar.'],
     ],
     vulcao: [
       ['cultist', 'Cultista da Chama', 'Cultistas da Chama', '#a8402c', '#40140c', ['spear', 'flame'], 'Fanático que adora o fogo da montanha.'],
@@ -145,6 +177,52 @@
       ['elderdragon', 'Dragão Ancião', 'Dragões Anciões', '#c8401e', '#4a1006', ['horns', 'flame'], 'O primeiro dos dragões, nascido dentro do vulcão.'],
       ['flameogre', 'Ogro em Chamas', 'Ogros em Chamas', '#b0482a', '#401408', ['axe', 'flame'], 'Quanto mais apanha, mais queima.'],
       ['magmaworm', 'Verme de Magma', 'Vermes de Magma', '#d0602a', '#4a1a08', ['stripes', 'flame'], 'Nada na rocha derretida sob a estrada.'],
+      ['spark', 'Faísca Saltitante', 'Faíscas Saltitantes', '#f0a040', '#5a2a08', ['flame'], 'Estala e reaparece mais adiante, deixando fumaça.'],
+      ['basaltguard', 'Escudeiro de Basalto', 'Escudeiros de Basalto', '#4a4044', '#18141a', ['shield', 'visor', 'flame'], 'Escudo de pedra vulcânica ainda quente.'],
+      ['magmabomber', 'Bombardeiro de Magma', 'Bombardeiros de Magma', '#a0402a', '#3a1008', ['bomb', 'flame'], 'Joga rochas em brasa nas torres.'],
+      ['magmatitan', 'Titã de Magma', 'Titãs de Magma', '#5a3a30', '#1e0e0a', ['bigsquare', 'cracks', 'flame', 'runes'], 'O vulcão inteiro de pé, com um selo partido no peito.'],
+    ],
+    // Ruínas do Sol: guerreiros do templo, bichos da serra e as estátuas que o selo mantinha dormindo
+    templo: [
+      ['sunwarrior', 'Guerreiro do Sol', 'Guerreiros do Sol', '#b8702e', '#4a2810', ['spear', 'plume'], 'Desceu do templo com lança e cocar de penas.'],
+      ['quati', 'Quati Ladino', 'Quatis Ladinos', '#a8744a', '#3e2614', ['stripes', 'ears'], 'Corre entre as pedras com o rabo em pé.'],
+      ['jadeguard', 'Guarda de Jade', 'Guardas de Jade', '#4a8a6a', '#163022', ['square', 'visor'], 'Armadura de placas de jade.'],
+      ['sunpriestess', 'Sacerdotisa do Sol', 'Sacerdotisas do Sol', '#d8a040', '#5a3a10', ['plume'], 'Cura os guerreiros com a luz do meio-dia.'],
+      ['condor', 'Condor do Templo', 'Condores do Templo', '#3a3a3e', '#121214', ['beak'], 'Plana sobre as ruínas sem tocar a estrada.'],
+      ['jadeshadow', 'Sombra de Jade', 'Sombras de Jade', '#3a5a4a', '#121e18', ['eye', 'hood'], 'Some nas sombras das colunas.'],
+      ['moonpriest', 'Sacerdote da Lua', 'Sacerdotes da Lua', '#4a4a7a', '#181830', ['hood'], 'Desperta os guerreiros caídos com cantos noturnos.'],
+      ['goldbones', 'Ossada Dourada', 'Ossadas Douradas', '#e0c880', '#5e5030', ['spear', 'bones'], 'Ossos enterrados com joias, de pé outra vez.'],
+      ['sunking', 'Rei-Sol', 'Reis-Sol', '#e0a030', '#5a3a08', ['crown', 'plume'], 'Senhor do templo, coberto de ouro e penas.'],
+      ['jadeoracle', 'Oráculo de Jade', 'Oráculos de Jade', '#3a9a7a', '#103428', ['plume'], 'Vê o golpe antes dele chegar e protege os aliados.'],
+      ['livingstatue', 'Estátua Viva', 'Estátuas Vivas', '#9a9078', '#3a3628', ['bigsquare', 'cracks'], 'Pedra esculpida há mil anos, agora em marcha.'],
+      ['featherserpent', 'Serpente Emplumada', 'Serpentes Emplumadas', '#3a9a5a', '#10361e', ['horns'], 'O deus-serpente de penas verdes cruza o céu.'],
+      ['jaguarwarrior', 'Guerreiro Jaguar', 'Guerreiros Jaguar', '#c8902a', '#4a300a', ['axe', 'fur'], 'Veste a pele da onça e luta como ela.'],
+      ['stonesnake', 'Serpente de Pedra', 'Serpentes de Pedra', '#8a8270', '#322e24', ['stripes'], 'Desliza por dentro das paredes do templo.'],
+      ['portalspirit', 'Espírito do Portal', 'Espíritos do Portal', '#a080e0', '#2e2050', ['eye'], 'Nasceu dentro de um portal e salta como ele.'],
+      ['stoneguardian', 'Guardião de Pedra', 'Guardiões de Pedra', '#8a8a7a', '#30302a', ['shield', 'visor'], 'Escudo de pedra lavrada com o sol.'],
+      ['tombraider', 'Saqueador de Tumbas', 'Saqueadores de Tumbas', '#7a6040', '#2a2010', ['bomb', 'bandana'], 'Abre as câmaras do templo à base de pólvora.'],
+      ['suncolossus', 'Colosso do Sol', 'Colossos do Sol', '#b89a50', '#4a3a14', ['bigsquare', 'runes', 'cracks'], 'A estátua do deus-sol, guardiã dos portais.'],
+    ],
+    // Minas de Cristal: mineiros possuídos, bichos das cavernas e o Coração da Montanha
+    cristal: [
+      ['possessed', 'Mineiro Possuído', 'Mineiros Possuídos', '#6a7a9a', '#20283a', ['spear', 'lamp'], 'Os olhos brilham da mesma cor dos cristais.'],
+      ['caverat', 'Rato das Minas', 'Ratos das Minas', '#6a6070', '#221e26', ['ears'], 'Corre pelos trilhos em bandos.'],
+      ['ironthug', 'Capanga de Ferro', 'Capangas de Ferro', '#6a6e78', '#22242a', ['square', 'visor'], 'Armadura feita de vagonetes amassados.'],
+      ['crystalchemist', 'Alquimista de Cristal', 'Alquimistas de Cristal', '#5a8aa8', '#1a2e3e', ['drop'], 'Pó de cristal que fecha as feridas.'],
+      ['crystalbat', 'Morcego de Cristal', 'Morcegos de Cristal', '#7a9ac8', '#22304a', ['ears'], 'Asas finas como vidro, brilham no escuro.'],
+      ['blindlizard', 'Lagarto Cego', 'Lagartos Cegos', '#8a9a8a', '#2a322a', ['eye', 'stripes'], 'Pele clara que some contra a rocha.'],
+      ['deepsorcerer', 'Feiticeiro das Profundezas', 'Feiticeiros das Profundezas', '#4a3a6a', '#181226', ['hood'], 'Ergue os mineiros soterrados.'],
+      ['deadminer', 'Mineiro Morto', 'Mineiros Mortos', '#c8c0a8', '#4e4838', ['spear', 'bones'], 'Soterrado num desabamento antigo.'],
+      ['crystalbaron', 'Barão do Cristal', 'Barões do Cristal', '#5a9ad0', '#183450', ['crown', 'lamp'], 'Dono das minas, vendeu a montanha à horda.'],
+      ['geodewitch', 'Bruxa Geodo', 'Bruxas Geodo', '#8a5ab0', '#2e1a40', ['hat'], 'Envolve os aliados numa casca de cristal.'],
+      ['geodegolem', 'Golem de Geodo', 'Golens de Geodo', '#6a5a8a', '#241c34', ['bigsquare', 'cracks'], 'Por fora, rocha; por dentro, ametista.'],
+      ['crystalwyrm', 'Serpe de Cristal', 'Serpes de Cristal', '#6ab0d0', '#183a4a', ['horns'], 'Voa pelos poços da mina deixando um rastro de luz.'],
+      ['cavetroll', 'Troll das Cavernas', 'Trolls das Cavernas', '#6a7a6a', '#222a22', ['axe', 'fur'], 'Ferido, quebra tudo o que vê pela frente.'],
+      ['rockworm', 'Verme da Rocha', 'Vermes da Rocha', '#7a6a5a', '#2a221a', ['stripes'], 'Atravessa a rocha como se fosse água.'],
+      ['shard', 'Fragmento Vivo', 'Fragmentos Vivos', '#a0e0f0', '#2a5060', ['eye'], 'Um caco de cristal que pisca e reaparece adiante.'],
+      ['crystalsentinel', 'Sentinela de Cristal', 'Sentinelas de Cristal', '#7ab0d0', '#1e3a4e', ['shield', 'visor'], 'Escudo de quartzo que desvia as flechas.'],
+      ['dwarfblaster', 'Dinamiteiro Anão', 'Dinamiteiros Anões', '#8a6a4a', '#2e2216', ['bomb', 'lamp'], 'Conhece cada túnel e cada pavio da mina.'],
+      ['mountainheart', 'Coração da Montanha', 'Corações da Montanha', '#7a4aa8', '#26103a', ['bigsquare', 'runes', 'cracks'], 'O cristal vivo que dá força à horda inteira.'],
     ],
   };
 
@@ -165,14 +243,27 @@
     dragon: () => 'Chefe voador. Cospe fogo na torre mais próxima, que para de atirar por 3 s.',
     berserker: () => 'Ao perder metade da vida entra em fúria e corre quase o dobro. Derrube de uma vez, ou deixe lento antes.',
     burrower: () => 'A cada 4 s mergulha na terra e nada o acerta. Poças do Caldeirão e veneno continuam agindo.',
+    blinker: () => 'A cada 3,5 s some e reaparece mais adiante. Congelado, atordoado ou seguro, não salta.',
+    warder: () => 'Os aliados perto dele ganham 2 de armadura enquanto ele estiver de pé. Derrube-o primeiro.',
+    saboteur: () => 'A cada 5 s joga uma bomba na torre mais próxima, que para de atirar por 2 s.',
+    titan: r => `Chefe em fases: ao perder um terço da vida vira pedra, chama ${n(r, 'blinker', true)} e faz as torres próximas tremerem.`,
   };
+
+  // Resistências e fraquezas, no fim da descrição do Compêndio
+  const pct = v => `${Math.round(Math.abs(1 - v) * 100)}%`;
+  TD.resistText = d => {
+    const res = [], weak = [];
+    for (const [k, v] of Object.entries(d.resist || {})) (v < 1 ? res : weak).push(`${TD.DMG_NAMES[k]} (${v < 1 ? '−' : '+'}${pct(v)})`);
+    return [res.length ? `Resiste a ${res.join(' e ')}.` : '', weak.length ? `Fraco contra ${weak.join(' e ')}.` : ''].filter(Boolean).join(' ');
+  };
+  for (const role of TD.ROLE_ORDER) if (ENEMIES[role].resist) ENEMY_INFO[role] = `${ENEMY_INFO[role]} ${TD.resistText(ENEMIES[role])}`;
 
   const rosterIds = {};
   for (const [biome, rows] of Object.entries(ROSTERS)) {
     rosterIds[biome] = rows.map(([id, name, plural, color, dark, look, flavor], i) => {
       const role = TD.ROLE_ORDER[i];
       ENEMIES[id] = { ...ENEMIES[role], role, name, plural, color, dark, look };
-      ENEMY_INFO[id] = `${flavor} ${HOW[role](rows)}`;
+      ENEMY_INFO[id] = [flavor, HOW[role](rows), TD.resistText(ENEMIES[id])].filter(Boolean).join(' ');
       return id;
     });
   }

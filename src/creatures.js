@@ -12,6 +12,7 @@
   const ROLE_FORM = {
     soldier: 'hum', scout: 'hum', brute: 'hum', healer: 'robe', flyer: 'bat', stalker: 'hum', necro: 'robe',
     skeleton: 'hum', boss: 'hum', witch: 'robe', colossus: 'golem', dragon: 'dragon', berserker: 'hum', burrower: 'hum',
+    blinker: 'hum', warder: 'hum', saboteur: 'hum', titan: 'golem', thief: 'hum',
   };
   const FORMS = {
     cutia: 'beast', tatu: 'beast', gaviao: 'bird', onca: 'beast', visagem: 'ghost', iara: 'ghost', mapinguari: 'golem',
@@ -23,6 +24,12 @@
     gull: 'bird', ghostcaptain: 'ghost', siren: 'ghost', kraken: 'golem', seaserpent: 'dragon', hermit: 'bug',
     cryptrat: 'beast', vampbat: 'bat', ghost: 'ghost', banshee: 'ghost', abomination: 'golem', bonedragon: 'dragon', tombworm: 'worm',
     firebat: 'bat', ashwraith: 'ghost', magmagolem: 'golem', elderdragon: 'dragon', magmaworm: 'worm', icegolem: 'golem',
+    macaco: 'beast', boiuna: 'worm', frog: 'beast', leviathan: 'worm', mirage: 'ghost', snowhare: 'beast', mammoth: 'beast',
+    cricket: 'bug', seaking: 'worm', wanderer: 'ghost', spark: 'ghost',
+    quati: 'beast', condor: 'bird', featherserpent: 'dragon', livingstatue: 'golem', stonesnake: 'worm', portalspirit: 'ghost',
+    sunpriestess: 'robe', jadeoracle: 'robe', moonpriest: 'robe',
+    caverat: 'beast', crystalchemist: 'robe', crystalbat: 'bat', blindlizard: 'beast', deepsorcerer: 'robe', geodewitch: 'robe',
+    geodegolem: 'golem', crystalwyrm: 'dragon', rockworm: 'worm', shard: 'ghost',
   };
   // Pele de quem não é gente comum (os demais humanoides têm pele humana; feras usam a própria cor)
   const SKIN = {
@@ -30,6 +37,7 @@
     yeti: '#eef2f4', demon: '#b23a2e', imp: '#e8783a', flameogre: '#c86a44', werewolf: '#7a6a58', vampire: '#ece2e0',
     skeleton: '#e8e0c8', frostbone: '#dcecf4', oldbones: '#e8e0c8', ghostsailor: '#c8e0ea', cinder: '#5a4a44', reedlurker: '#6a8a5a',
     whitehunter: '#e8eef2', piratelord: '#d9a77c', curupira: '#c8844a', garimpeiro: '#c8905a',
+    goldbones: '#e8d8a0', deadminer: '#ddd6c0', possessed: '#a8b8d0', cavetroll: '#7e9282', jaguarwarrior: '#c8905a',
   };
   const HUMAN_SKIN = '#e0b08a';
   const ARMORED = new Set(['visor', 'square']);
@@ -38,7 +46,7 @@
   // Armas de chefes que não usam espada
   const WEAPONS = { yeti: 'claws', trollking: 'mace', vampire: 'claws', demon: 'axe', curupira: 'mace' };
   // Enfeites que cobrem a cabeça: sem eles, o humanoide ganha cabelo
-  const COVERS = new Set(['hood', 'crown', 'hat', 'turban', 'bandana', 'tricorn', 'lamp', 'fur', 'flame', 'leaf', 'bones', 'wraps', 'bulge', 'cowl']);
+  const COVERS = new Set(['hood', 'crown', 'hat', 'turban', 'bandana', 'tricorn', 'lamp', 'fur', 'flame', 'leaf', 'bones', 'wraps', 'bulge', 'cowl', 'plume']);
   const formOf = (type, d) => FORMS[type] || ROLE_FORM[d.role] || 'hum';
 
   // Paleta derivada das duas cores do inimigo; branca no instante em que ele leva um golpe
@@ -109,6 +117,18 @@
       g.strokeStyle = '#efe6cf'; g.lineWidth = 0.7;
       g.beginPath(); g.moveTo(ex, hy - 1 - ey); g.lineTo(ex - pull, hy - 1); g.lineTo(ex, hy - 1 + ey); g.stroke();
       if (pull) { g.strokeStyle = '#8a5a2b'; g.lineWidth = 1.1; g.beginPath(); g.moveTo(ex - pull, hy - 1); g.lineTo(hx + 10, hy - 1); g.stroke(); }
+    } else if (kind === 'bomb') {
+      // bomba redonda erguida para o arremesso, com o pavio aceso
+      const bx = hx + 2, by = hy - 4 - swing * 2;
+      ball(g, bx, by, 3.2, '#22201e', P.ink);
+      g.fillStyle = 'rgba(255,255,255,.3)'; circle(g, bx - 1, by - 1.2, 1); g.fill();
+      g.strokeStyle = '#c8a070'; g.lineWidth = LW; g.beginPath(); g.moveTo(bx + 1.5, by - 2.6); g.quadraticCurveTo(bx + 3.5, by - 4.5, bx + 2.5, by - 6); g.stroke();
+      g.fillStyle = '#ffd24a'; circle(g, bx + 2.5, by - 6.3, 1.1); g.fill();
+    } else if (kind === 'sack') {
+      // saco de ouro nas costas da mão, com moedas aparecendo
+      g.beginPath(); g.moveTo(hx - 1, hy - 2); g.quadraticCurveTo(hx + 7, hy - 3, hx + 6, hy + 5); g.quadraticCurveTo(hx + 1, hy + 7, hx - 2, hy + 4); g.closePath();
+      fillStroke(g, '#a8844a', P.ink);
+      g.fillStyle = '#ffd24a'; circle(g, hx + 2, hy - 2.5, 1.3); g.fill(); circle(g, hx + 4, hy - 2, 1.1); g.fill();
     } else if (kind === 'claws') {
       g.strokeStyle = '#f2ecd8'; g.lineWidth = 1;
       g.beginPath();
@@ -124,6 +144,8 @@
     if (look.includes('dagger')) return 'dagger';
     if (look.includes('axe')) return 'axe';
     if (look.includes('claws')) return 'claws';
+    if (look.includes('bomb')) return 'bomb';
+    if (look.includes('sack')) return 'sack';
     if (d.role === 'boss') return 'sword';
     if (d.role === 'brute') return 'mace';
     return null;
@@ -262,6 +284,15 @@
         g.beginPath(); g.ellipse(x + r * dx, y - r * 1.05, r * 0.55, r * 0.25, a, 0, TAU);
         fillStroke(g, '#7fb84e', '#2e5418');
       }
+    },
+    plume(g, P, x, y, r) {
+      // cocar: faixa na testa e um leque de penas coloridas
+      for (const [a, col] of [[-1.2, '#3aa05a'], [-0.75, '#e0402a'], [-0.3, '#f0c040'], [0.15, '#e0402a'], [0.6, '#3aa05a']]) {
+        const tx = x + Math.cos(a - Math.PI / 2) * r * 2.1, ty = y - r * 0.6 + Math.sin(a - Math.PI / 2) * r * 2.1;
+        g.beginPath(); g.ellipse((x + tx) / 2, (y - r * 0.6 + ty) / 2, r * 0.32, r * 0.95, a, 0, TAU);
+        fillStroke(g, col, P.ink);
+      }
+      g.fillStyle = '#d6a547'; rr(g, x - r * 1.02, y - r * 0.75, r * 2.04, r * 0.42, r * 0.15); g.fill();
     },
     tusks(g, P, x, y, r) {
       g.fillStyle = '#f2ecd8'; g.strokeStyle = P.ink; g.lineWidth = LW * 0.7;
@@ -591,6 +622,19 @@
     return e.face || 1;
   }
 
+  // Runas acesas no peito de quem guardava o selo (Titã e versões); centro conforme a forma do corpo
+  const RUNE_AT = { golem: [0, -7], worm: [-3, -1], beast: [0, -4], ghost: [0, -3], robe: [0, -2], hum: [0, -2] };
+  function runes(g, form, look, time) {
+    const [cx, cy] = RUNE_AT[form] || RUNE_AT.hum, pulse = 0.65 + 0.35 * Math.sin(time * 3);
+    const col = look.includes('flame') ? '255,170,70' : '150,220,255';
+    g.fillStyle = `rgba(${col},${(0.3 * pulse).toFixed(3)})`; circle(g, cx, cy, 6); g.fill();
+    g.strokeStyle = `rgba(${col},${(0.95 * pulse).toFixed(3)})`; g.lineWidth = LW * 1.2;
+    g.beginPath();
+    g.moveTo(cx - 2.6, cy - 3); g.lineTo(cx, cy + 3); g.lineTo(cx + 2.6, cy - 3);
+    g.moveTo(cx - 4, cy + 0.5); g.lineTo(cx + 4, cy + 0.5);
+    g.stroke();
+  }
+
   // Tamanho do desenho: o golem e as feras grandes ocupam menos unidades por raio
   const SCALE = { golem: 11.5, beast: 11, dragon: 11, worm: 10.5 };
 
@@ -627,6 +671,7 @@
     g.save(); g.translate(e.x, e.y + bob); g.scale(dir * k, k); LW = 1.3 / k;
     g.lineJoin = 'round';
     (DRAW[form] || humanoid)(g, P, d, look, ph, type);
+    if (look.includes('runes')) runes(g, form, look, reducedMotion ? 0 : performance.now() / 1000);
     g.restore();
     const midY = e.y - 3.5 * k * 10 / 10;
     drawStatus(g, e, e.x, midY, d.r);
@@ -646,6 +691,20 @@
   }
 
   function drawStatus(g, e, x, y, r) {
+    if (e.shellT > 0) {
+      // Titã virado pedra: casca cinza rachada por cima do corpo; nada o fere
+      g.fillStyle = 'rgba(120,116,108,.72)'; g.strokeStyle = 'rgba(40,38,34,.9)'; g.lineWidth = 2;
+      g.beginPath(); g.ellipse(x, y - r * 0.2, r * 1.15, r * 1.3, 0, 0, TAU); g.fill(); g.stroke();
+      g.strokeStyle = 'rgba(30,28,24,.8)'; g.lineWidth = 1.2;
+      g.beginPath(); g.moveTo(x - r * 0.5, y - r); g.lineTo(x - r * 0.1, y - r * 0.3); g.lineTo(x - r * 0.4, y + r * 0.3);
+      g.moveTo(x + r * 0.4, y - r * 0.8); g.lineTo(x + r * 0.6, y); g.stroke();
+    }
+    if (e.warded) {
+      // sob o escudo de um Guardião: brasão de bronze ao lado
+      g.fillStyle = '#c89a4a'; g.strokeStyle = '#3a2a10'; g.lineWidth = 1;
+      const sx = x - r - 4, sy = y - r * 0.6;
+      g.beginPath(); g.moveTo(sx - 3, sy - 3); g.lineTo(sx + 3, sy - 3); g.lineTo(sx + 3, sy); g.quadraticCurveTo(sx, sy + 4, sx - 3, sy); g.closePath(); g.fill(); g.stroke();
+    }
     if (e.shield > 0) {
       g.fillStyle = 'rgba(180,139,224,.18)'; g.strokeStyle = 'rgba(200,165,240,.9)'; g.lineWidth = 1.5;
       circle(g, x, y, r + 7); g.fill(); g.stroke();

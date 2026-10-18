@@ -8,7 +8,7 @@
   const $ = id => document.getElementById(id);
   const dock = $('dock'), buildRow = $('dockBuild'), selRow = $('dockSel'), actRow = $('dockAct');
   const stat = { gold: $('dGold'), lives: $('dLives'), wave: $('dWave') };
-  const SHORT = { rain: 'Chuva', freeze: 'Congelar', rally: 'Chamado' };
+  const SHORT = { rain: 'Chuva', freeze: 'Congelar', rally: 'Chamado', barricade: 'Barricada' };
 
   // ---------- Montagem ----------
   function buildTowers() {
@@ -72,7 +72,10 @@
       return `<span class="dsel-nm">${def.name}<small>nível ${S.hero.level} · toque no mapa para mover</small></span><button class="dbtn dact dclose" data-act="close" aria-label="Fechar">✕</button>`;
     }
     if (S.sel) return towerSel(S.sel);
-    if (S.aim) return `<span class="dsel-nm">Chuva de flechas<small>toque duas vezes onde ela deve cair</small></span><button class="dbtn dact" data-act="close">Cancelar</button>`;
+    if (S.aim) {
+      const hint = S.aim === 'barricade' ? 'Barricada<small>toque duas vezes na estrada</small>' : 'Chuva de flechas<small>toque duas vezes onde ela deve cair</small>';
+      return `<span class="dsel-nm">${hint}</span><button class="dbtn dact" data-act="close">Cancelar</button>`;
+    }
     if (S.inspect && !S.build) {
       const d = S.inspect.d;
       return `<span class="dsel-nm">${d.name}<small>vida ${Math.ceil(S.inspect.hp)} de ${S.inspect.maxHp} · armadura ${d.armor}${d.flying ? ' · voa' : ''}</small></span><button class="dbtn dact dclose" data-act="close" aria-label="Fechar">✕</button>`;
@@ -121,15 +124,16 @@
     for (const b of actRow.children) {
       if (b.dataset.power) {
         const p = POWERS.find(q => q.id === b.dataset.power), cd = S.cooldowns[p.id];
+        const locked = G.powerLocked(p);
         b.disabled = !G.canUsePower(p.id);
         b.classList.toggle('aiming', S.aim === p.id);
-        b.style.setProperty('--p', S.mods.nopower ? '0' : String(1 - cd / G.powerCd(p)));
-        b.querySelector('.dcd').textContent = S.mods.nopower ? 'Bloqueado' : cd > 0 ? `${Math.ceil(cd)} s` : S.waveActive ? 'Pronto' : 'Na onda';
+        b.style.setProperty('--p', S.mods.nopower || locked ? '0' : String(1 - cd / G.powerCd(p)));
+        b.querySelector('.dcd').textContent = locked ? 'Trancado' : S.mods.nopower ? 'Bloqueado' : cd > 0 ? `${Math.ceil(cd)} s` : S.waveActive ? 'Pronto' : 'Na onda';
       } else if (b.classList.contains('dability')) {
         const h = S.hero, ab = h ? TD.hero.defOf(h).ability : null;
         b.querySelector('.dnm').textContent = ab ? ab.name : 'Sem herói';
         b.disabled = !TD.hero.canUseAbility();
-        b.style.setProperty('--p', ab ? String(1 - h.abilityCd / ab.cd) : '0');
+        b.style.setProperty('--p', ab ? String(1 - h.abilityCd / TD.hero.abilityCdOf(h)) : '0');
         b.querySelector('.dcd').textContent = !h ? '—' : h.deadT > 0 ? 'Caído' : h.abilityCd > 0 ? `${Math.ceil(h.abilityCd)} s` : S.waveActive ? 'Pronto' : 'Na onda';
       } else {
         const label = TD.ui.waveLabel();

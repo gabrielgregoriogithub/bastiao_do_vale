@@ -76,6 +76,9 @@
     freeze: () => { tone({ freq: 1800, to: 2600, dur: 0.5, type: 'sine', vol: 0.09 }); noise({ dur: 0.5, vol: 0.12, cutoff: 4000 }); },
     rally: () => [262, 330, 392, 523].forEach((f, i) => tone({ freq: f, dur: 0.18, type: 'sawtooth', vol: 0.1, delay: i * 0.09 })),
     win: () => [392, 494, 587, 784].forEach((f, i) => tone({ freq: f, dur: 0.22, type: 'triangle', vol: 0.14, delay: i * 0.14 })),
+    blink: () => tone({ freq: 1400, to: 500, dur: 0.12, type: 'sine', vol: 0.06 }),
+    portal: () => { tone({ freq: 300, to: 900, dur: 0.25, type: 'sine', vol: 0.07 }); tone({ freq: 450, to: 1350, dur: 0.25, type: 'triangle', vol: 0.04, delay: 0.04 }); },
+    seal: () => { tone({ freq: 180, to: 90, dur: 0.3, type: 'square', vol: 0.08 }); [660, 880].forEach((f, i) => tone({ freq: f, dur: 0.12, type: 'triangle', vol: 0.08, delay: 0.1 + i * 0.08 })); },
     lose: () => [330, 262, 196, 131].forEach((f, i) => tone({ freq: f, dur: 0.3, type: 'sawtooth', vol: 0.12, delay: i * 0.18 })),
   };
 
@@ -96,6 +99,8 @@
     costa:    { modes: [0, 2, 4, 5, 7, 9, 10], beat: 0.4,  lead: 'square',   vol: 0.12, drone: 73.42, octave: 1 },
     cripta:   { modes: [0, 1, 3, 5, 6, 8, 10], beat: 0.75, lead: 'sine',     vol: 0.32, drone: 55,    octave: 0.5 },
     vulcao:   { modes: [0, 1, 3, 5, 7, 8, 10], beat: 0.4,  lead: 'sawtooth', vol: 0.1,  drone: 55,    octave: 0.5 },
+    templo:   { modes: [0, 2, 3, 7, 9],        beat: 0.5,  lead: 'triangle', vol: 0.3,  drone: 73.42, octave: 1 },
+    cristal:  { modes: [0, 2, 3, 6, 7, 9, 11], beat: 0.65, lead: 'sine',     vol: 0.32, drone: 55,    octave: 1 },
   };
   let theme = THEMES.campo, SCALE = scaleOf(theme.modes).map(f => f * theme.octave), BEAT = theme.beat;
   let musicGain = null, musicTimer = null, nextBeat = 0, beat = 0, step = 4, intensity = 0;

@@ -13,6 +13,7 @@
   const ui = {
     end: $('endModal'), menu: $('menuModal'), mapList: $('mapList'), diffList: $('diffList'), btnStart: $('btnStart'), btnResume: $('btnResume'),
     forgeStars: $('forgeStars'), forgeList: $('forgeList'), forgeReset: $('forgeReset'), forgeHint: $('forgeHint'),
+    relicCount: $('relicCount'), relicList: $('relicList'),
     heroList: $('heroList'), story: $('storyModal'), storyChapter: $('storyChapter'), storyTitle: $('storyTitle'),
     storyText: $('storyText'), storyGo: $('storyGo'), challengeList: $('challengeList'), challengeNote: $('challengeNote'),
     dailyText: $('dailyText'), btnDaily: $('btnDaily'), foldChallenges: $('foldChallenges'), foldForge: $('foldForge'),
@@ -162,6 +163,7 @@
     ui.challengeNote.textContent = n ? `${n} ${n === 1 ? 'ativo' : 'ativos'}` : '';
     renderDaily();
     renderForge();
+    renderRelics();
   }
 
   function renderDaily() {
@@ -199,6 +201,20 @@
     }).join('');
     ui.forgeReset.hidden = meta.spent() === 0;
     ui.forgeHint.hidden = total > 0;
+  }
+
+  // Relíquias achadas nos baús: equipadas valem a partir da próxima partida
+  function renderRelics() {
+    const R = TD.relics, mine = R.owned();
+    ui.relicCount.textContent = `${mine.length} de ${TD.RELICS.length} · ${R.equipped().length}/${TD.RELIC_SLOTS} equipadas`;
+    ui.relicList.innerHTML = TD.RELICS.map(r => {
+      if (!R.isOwned(r.id)) {
+        return '<div class="perk relic-off"><div class="perk-txt"><span class="perk-nm">Relíquia desconhecida</span><span class="perk-ds">Ainda escondida em algum baú.</span></div></div>';
+      }
+      const on = R.isEquipped(r.id), full = !on && R.equipped().length >= TD.RELIC_SLOTS;
+      return `<div class="perk${on ? ' relic-on' : ''}"><div class="perk-txt"><span class="perk-nm">${r.name}</span><span class="perk-ds">${r.desc}</span></div>`
+        + `<button class="btn small" id="relic-${r.id}" data-relic="${r.id}" aria-pressed="${on}" ${full ? 'disabled title="Tire outra relíquia antes"' : ''}>${on ? 'Equipada' : 'Equipar'}</button></div>`;
+    }).join('');
   }
 
   function openMenu() {
@@ -251,6 +267,10 @@
     if (id && TD.meta.buy(id)) { sfx.play('spec'); renderForge(); }
   });
   ui.forgeReset.addEventListener('click', () => { TD.meta.reset(); renderForge(); });
+  ui.relicList.addEventListener('click', ev => {
+    const id = ev.target.closest('[data-relic]')?.dataset.relic;
+    if (id && TD.relics.toggle(id)) { sfx.play('build'); renderRelics(); }
+  });
   ui.storyGo.addEventListener('click', closeStory);
 
   const menu = {

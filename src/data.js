@@ -53,7 +53,26 @@
     berserker: { name: 'Berserker', plural: 'Berserkers', hp: 75, speed: 1.0, armor: 1, gold: 9, r: 10, color: '#a0603a', dark: '#40200e', gap: 0.9, atk: 10, enrage: 0.5, enrageMul: 1.9 },
     // a cada burrowEvery s fica burrowDur s embaixo da terra, onde golpes e disparos não o alcançam
     burrower: { name: 'Escavador', plural: 'Escavadores', hp: 55, speed: 1.15, armor: 2, gold: 10, r: 9, color: '#7a6a50', dark: '#2e261a', gap: 0.8, atk: 5, burrowEvery: 4, burrowDur: 1.6 },
+    // resist: multiplicador do dano por tipo de golpe (TD.DMG_KIND); abaixo de 1 resiste, acima é fraqueza
+    // a cada blinkEvery s salta blinkDist casas adiante na estrada (congelado, atordoado ou seguro não salta)
+    blinker: { name: 'Saltador', plural: 'Saltadores', hp: 50, speed: 1.1, armor: 0, gold: 9, r: 8, color: '#5a7ac0', dark: '#1a2644', gap: 0.8, atk: 5, blinkEvery: 3.5, blinkDist: 1.6, resist: { magia: 0.5, explosao: 1.4 } },
+    // os aliados a até wardRange casas ganham wardArmor de armadura enquanto ele estiver de pé
+    warder: { name: 'Guardião', plural: 'Guardiões', hp: 120, speed: 0.85, armor: 3, gold: 12, r: 11, color: '#8a7a5a', dark: '#36301e', gap: 1.2, atk: 9, wardArmor: 2, wardRange: 1.6, resist: { fisico: 0.6, magia: 1.4 } },
+    // a cada bombEvery s joga uma bomba na torre mais próxima até bombRange casas, que para por bombStun s
+    saboteur: { name: 'Sabotador', plural: 'Sabotadores', hp: 70, speed: 1.05, armor: 1, gold: 11, r: 9, color: '#7a5a3a', dark: '#2e1e10', gap: 1.0, atk: 6, bombEvery: 5, bombRange: 2.4, bombStun: 2, resist: { explosao: 0.4, gelo: 1.5 } },
+    // chefe em fases: ao cruzar cada fração da vida em phases, vira pedra por shellDur s (nada o fere),
+    // chama summonCount Saltadores e o tremor faz as torres próximas pararem por quakeStun s
+    titan: { name: 'Titã Ancestral', plural: 'Titãs Ancestrais', hp: 2400, speed: 0.42, armor: 5, gold: 160, r: 19, color: '#7a6a8a', dark: '#2a2034', gap: 3, lives: 8, atk: 55, boss: true, phases: [0.66, 0.33], shellDur: 2.5, summon: 'blinker', summonCount: 3, quakeRange: 2.2, quakeStun: 1.5 },
+    // evento: foge com o ouro do vale e não custa vidas se escapar; derrubado, deixa um baú (world.js)
+    thief: { name: 'Ladrão de Ouro', plural: 'Ladrões de Ouro', hp: 70, speed: 2.1, armor: 0, gold: 0, r: 8, color: '#d6a547', dark: '#5a3e10', gap: 0.6, atk: 2, thief: true, lives: 0 },
   };
+
+  // Tipo de golpe de cada torre e de cada herói, para as resistências e fraquezas dos inimigos
+  TD.DMG_KIND = {
+    archer: 'fisico', ballista: 'fisico', barracks: 'fisico', knight: 'fisico', ranger: 'fisico',
+    cannon: 'explosao', frost: 'gelo', arcane: 'magia', mage: 'magia', cauldron: 'acido',
+  };
+  TD.DMG_NAMES = { fisico: 'golpes físicos', explosao: 'explosões', gelo: 'gelo', magia: 'magia', acido: 'ácido' };
 
   // Texto do Compêndio e do cartão de descoberta: o que o inimigo faz e como enfrentá-lo
   TD.ENEMY_INFO = {
@@ -71,6 +90,11 @@
     dragon: 'Chefe voador. Cospe fogo na torre mais próxima, que para de atirar por 3 s.',
     berserker: 'Ao perder metade da vida entra em fúria e corre quase o dobro. Derrube de uma vez com dano alto, ou deixe lento antes.',
     burrower: 'A cada 4 s mergulha na terra por um instante: nada o acerta enquanto está embaixo. Poças do Caldeirão e veneno continuam agindo.',
+    blinker: 'A cada 3,5 s some e reaparece mais adiante na estrada. Congelado, atordoado ou seguro por um soldado, não salta.',
+    warder: 'Ergue o escudo sobre quem está perto: os aliados ganham 2 de armadura enquanto ele estiver de pé.',
+    saboteur: 'A cada 5 s joga uma bomba na torre mais próxima, que para de atirar por 2 s. Derrube-o de longe.',
+    titan: 'Chefe em fases: ao perder um terço da vida vira pedra por um instante, chama Saltadores e faz as torres próximas tremerem.',
+    thief: 'Foge com o ouro do vale. Se escapar não custa vidas, mas derrubado deixa um baú de tesouro.',
   };
 
   // Desafios opcionais escolhidos no menu; os efeitos são aplicados em sim.js
@@ -81,9 +105,16 @@
     { id: 'nopower', name: 'Sem poderes', desc: 'Chuva, Congelar e Chamado ficam bloqueados.' },
   ];
 
-  // Chefes em rodízio a cada 5 ondas
+  // Chefes em rodízio a cada 5 ondas; os campos com finalBoss trocam o chefe da onda 20 pelo deles,
+  // e no modo sem fim o Titã entra no rodízio
   TD.BOSS_ROTATION = ['boss', 'witch', 'colossus', 'dragon'];
-  TD.bossFor = n => TD.BOSS_ROTATION[(n / 5 - 1) % TD.BOSS_ROTATION.length];
+  TD.ENDLESS_BOSSES = [...TD.BOSS_ROTATION, 'titan'];
+  TD.bossFor = (n, mapId = null) => {
+    const map = mapId && TD.MAPS.find(m => m.id === mapId);
+    if (map && map.finalBoss && n === TD.MAX_WAVES) return map.finalBoss;
+    const list = n > TD.MAX_WAVES ? TD.ENDLESS_BOSSES : TD.BOSS_ROTATION;
+    return list[(n / 5 - 1) % list.length];
+  };
 
   // Herói: xpPerLevel[n] é a experiência total para passar do nível n ao n+1
   // melee: bloqueia um inimigo terrestre e recebe dano dele; ranged: atira de longe, inclusive em voadores
@@ -120,9 +151,11 @@
     pantano: { chapter: 'Capítulo V', text: 'Além do pântano, a floresta inteira marcha contra o bastião. Formigas, aranhas e árvores antigas abrem caminho até o mar.' },
     costa: { chapter: 'Capítulo VI', text: 'A horda tomou a costa. Piratas desembarcam dos navios e marcham pela areia até o bastião. O mar guarda um flanco, mas também rouba espaço.' },
     cemiterio: { chapter: 'Capítulo VII', text: 'No velho cemitério do reino, os mortos não descansam. Duas criptas se abriram, e o caminho até o vulcão passa entre as lápides.' },
-    vulcao: { chapter: 'Capítulo VIII', text: 'A última fortaleza da horda fica na boca do vulcão. Dizem que o Dragão Ancião dorme ali, entre rios de lava. Vença aqui e o vale terá paz.' },
+    vulcao: { chapter: 'Capítulo VIII', text: 'A fortaleza da horda fica na boca do vulcão. Dizem que o Dragão Ancião dorme ali, entre rios de lava, guardando um selo mais antigo que o próprio reino.' },
+    ruinas: { chapter: 'Capítulo IX', text: 'Com o Dragão Ancião morto, o selo que ele guardava se partiu. Nas Ruínas do Sol, os portais de pedra voltaram a brilhar e a horda os usa para cortar caminho. Toque num portal para selá-lo por um tempo e obrigue a coluna a dar a volta inteira.' },
+    minas: { chapter: 'Capítulo X', text: 'Os portais levam às Minas de Cristal, sob a montanha, onde pulsa o Coração da Montanha que dá força à horda. No escuro só os cristais iluminam, e as torres erguidas sobre os veios ficam mais fortes. Derrube o Coração e os portais se apagam para sempre.' },
   };
-  TD.EPILOGUE = 'O Dragão Ancião caiu na lava de onde nasceu e a horda se dispersou pelas montanhas. Nas aldeias, contam que o bastião nunca cedeu.';
+  TD.EPILOGUE = 'O Coração da Montanha se partiu em mil cristais apagados e os portais do Sol se fecharam para sempre. A horda, sem caminho de volta, se dispersou pelas serras. Nas aldeias, contam que o bastião nunca cedeu.';
 
   // Forja do Bastião: melhorias permanentes compradas com estrelas
   TD.PERKS = [
@@ -189,6 +222,22 @@
     { id: 'rain', key: 'q', name: 'Chuva de flechas', desc: 'Toque no mapa para cobrir uma área de flechas. Acerta voadores.', cd: 40, radius: 1.6 },
     { id: 'freeze', key: 'w', name: 'Congelar', desc: 'Congela todos os inimigos por 2,5 s (chefes por 1 s).', cd: 60, dur: 2.5 },
     { id: 'rally', key: 'e', name: 'Chamado às armas', desc: 'Todas as torres atiram 50% mais rápido por 8 s.', cd: 70, dur: 8 },
+    // aim: o poder pede um ponto no mapa; unlockStars: estrelas da campanha para liberar (meta.js)
+    { id: 'barricade', key: 'b', name: 'Barricada', desc: 'Toque na estrada para erguer uma barricada que segura os inimigos terrestres até cair ou passarem 10 s.', cd: 45, dur: 10, radius: 0.7, hp: 300, hpPerWave: 40, unlockStars: 1 },
+  ];
+  TD.AIMED_POWERS = new Set(['rain', 'barricade']);
+
+  // Relíquias: achadas nos baús de tesouro e guardadas entre partidas; o herói leva até 2 (relics.js)
+  TD.RELIC_SLOTS = 2;
+  TD.RELICS = [
+    { id: 'amulet', name: 'Amuleto do Curupira', desc: 'O herói tem 30% mais vida.', hp: 1.3 },
+    { id: 'blade', name: 'Lâmina de Obsidiana', desc: 'O herói causa 25% mais dano.', dmg: 1.25 },
+    { id: 'chalice', name: 'Cálice da Iara', desc: 'O herói se recupera três vezes mais rápido e volta 40% antes ao cair.', regen: 3, respawn: 0.6 },
+    { id: 'hourglass', name: 'Ampulheta do Sol', desc: 'A habilidade do herói recarrega 30% mais rápido.', cd: 0.7 },
+    { id: 'crown', name: 'Coroa do Faraó', desc: 'Abates do herói rendem o dobro de experiência e +2 de ouro.', xp: 2, gold: 2 },
+    { id: 'idol', name: 'Ídolo de Jade', desc: 'Todas as torres causam 6% mais dano.', towerDmg: 1.06 },
+    { id: 'compass', name: 'Bússola dos Portais', desc: 'Selar um portal custa metade do ouro e o selo dura 50% mais.', sealCost: 0.5, sealDur: 1.5 },
+    { id: 'lantern', name: 'Lanterna do Mineiro', desc: 'Começa cada partida com 60 de ouro a mais.', startGold: 60 },
   ];
 
   TD.TARGETING = [
@@ -272,7 +321,31 @@
       lava: true, waterColor: '#b8401c',
       palette: { grass: '#3a3230', tufts: ['#4e4440', '#28221f'], road: ['#5e5048', '#7a6a5e'], pebbles: ['#2a2220', '#8a7a6e'], flowers: ['#f08a3a', '#c8401e'] },
     },
+    {
+      // portals: quem pisa na casa a sai na casa b, pulando o trecho entre elas (world.js); selados, os inimigos dão a volta
+      // finalBoss: chefe da onda 20 no lugar do rodízio
+      id: 'ruinas', biome: 'templo', name: 'Ruínas do Sol', desc: 'Um portal de pedra encurta a estrada. Sele-o na hora certa para obrigar a horda a dar a volta.',
+      way: [[-1, 6], [4, 6], [4, 1], [9, 1], [9, 10], [15, 10], [15, 4], [20, 4]],
+      portals: [{ a: [4, 2], b: [9, 2] }],
+      finalBoss: 'titan',
+      // o cenote e as ruínas ficam nas bordas: o miolo das curvas é o lugar das torres
+      water: [[17, 7], [18, 7], [17, 8], [18, 8]], waterColor: '#2e6a6a',
+      props: [[1, 3], [2, 3], [1, 9], [2, 10], [0, 10], [0, 11], [1, 11], [3, 11], [5, 11], [7, 11], [11, 0], [13, 0], [16, 0], [17, 1], [18, 2], [18, 11], [19, 10], [0, 0], [19, 0], [12, 11]],
+      palette: { grass: '#4a5a32', tufts: ['#5e7240', '#34421f'], road: ['#9a8a6a', '#b8a888'], pebbles: ['#7a6a4a', '#d0c4a0'], flowers: ['#f0c040', '#e86a3a'] },
+    },
+    {
+      // crystals: casas livres sobre veios de cristal; a torre construída ali fica mais forte (sim.js)
+      id: 'minas', biome: 'cristal', name: 'Minas de Cristal', desc: 'Escuridão sob a montanha. Torres sobre os veios de cristal ficam mais fortes, e o teto às vezes desaba.',
+      way: [[-1, 9], [5, 9], [5, 3], [10, 3], [10, 8], [15, 8], [15, 2], [20, 2]],
+      crystals: [[3, 7], [7, 5], [8, 6], [12, 5], [13, 6], [17, 4], [12, 10], [7, 1]],
+      finalBoss: 'titan',
+      water: [[1, 2], [2, 2], [1, 3], [2, 3]], waterColor: '#1e3a4a',
+      props: [[0, 0], [1, 0], [3, 1], [8, 0], [12, 0], [13, 1], [18, 5], [19, 6], [18, 9], [17, 10], [13, 11], [8, 11], [3, 11], [0, 5], [7, 8], [12, 7]],
+      palette: { grass: '#2e2c36', tufts: ['#3e3c4c', '#201e28'], road: ['#5a4e44', '#74685a'], pebbles: ['#3a322c', '#8a7e70'], flowers: ['#7ad8f0', '#c08af0'] },
+    },
   ];
+  TD.CRYSTAL_DMG = 1.15;
+  TD.CRYSTAL_RANGE = 1.1;
   TD.MUD_SLOW = 0.65;
 
   // ---------- Campos desenhados pelo jogador ----------
@@ -400,9 +473,26 @@
     const mud = new Set(mudCells.map(([c, r]) => `${c},${r}`));
     const mudAt = (x, y) => mud.size > 0 && mud.has(`${Math.floor(x / T)},${Math.floor(y / T)}`);
 
+    const crystalSet = new Set((map.crystals || []).filter(([c, r]) => inGrid(c, r) && !blocked[r][c]).map(([c, r]) => `${c},${r}`));
+    const crystalAt = (c, r) => crystalSet.has(`${c},${r}`);
+
+    // Portais: distância na estrada de cada boca (a primeira estrada é a que os tem)
+    const distOf = (path, [c, r]) => {
+      const x = (c + 0.5) * T, y = (r + 0.5) * T;
+      for (const s of path.segs) {
+        const k = s.len ? ((x - s.a.x) * (s.b.x - s.a.x) + (y - s.a.y) * (s.b.y - s.a.y)) / (s.len * s.len) : 0;
+        if (k < 0 || k > 1) continue;
+        const px = s.a.x + (s.b.x - s.a.x) * k, py = s.a.y + (s.b.y - s.a.y) * k;
+        if (Math.hypot(px - x, py - y) < 1) return s.start + s.len * k;
+      }
+      return null;
+    };
+    const portals = (map.portals || []).map(({ a, b }) => ({ a, b, da: distOf(paths[0], a), db: distOf(paths[0], b) }))
+      .filter(p => p.da !== null && p.db !== null && p.db > p.da);
+
     const p0 = paths[0];
     return {
-      map, paths, blocked, bridges, exitRow, mudCells, mudAt,
+      map, paths, blocked, bridges, exitRow, mudCells, mudAt, crystalAt, crystals: [...crystalSet].map(k => k.split(',').map(Number)), portals,
       // atalhos para a primeira estrada (herói, prévias e testes)
       pts: p0.pts, segs: p0.segs, pathLen: p0.len, posAt: p0.posAt, flyLen: p0.flyLen, flyAt: p0.flyAt, startRow: p0.startRow,
     };
@@ -439,7 +529,8 @@
   };
 
   // seed opcional: com ela, a onda n sai sempre igual (Desafio do dia); sem ela, é sorteada na hora
-  TD.makeWave = (n, seed = null) => {
+  TD.THIEF_CHANCE = 0.15;
+  TD.makeWave = (n, seed = null, mapId = null) => {
     const random = seed === null ? Math.random : TD.seeded((seed ^ Math.imul(n, 2654435761)) >>> 0);
     const list = [];
     const count = 6 + Math.floor(n * 2.2);
@@ -451,9 +542,13 @@
     const necroP = n >= 11 ? 0.02 + Math.min(n, 20) * 0.002 : 0;
     const berserkP = n >= 4 ? 0.05 + Math.min(n, 20) * 0.004 : 0;
     const burrowP = n >= 9 ? 0.03 + Math.min(n, 20) * 0.003 : 0;
+    const blinkP = n >= 6 ? 0.02 + Math.min(n, 20) * 0.002 : 0;
+    const wardP = n >= 8 ? 0.015 + Math.min(n, 20) * 0.0015 : 0;
+    const sabotP = n >= 10 ? 0.015 + Math.min(n, 20) * 0.0015 : 0;
     // Sorteio proporcional: os soldados ficam com o que sobra, nunca menos de 15% das chances.
     // (Antes as chances somavam mais de 100% nas ondas altas e os últimos tipos eram cortados.)
-    const weights = [['scout', scoutP], ['brute', bruteP], ['healer', healP], ['flyer', flyP], ['stalker', stalkP], ['necro', necroP], ['berserker', berserkP], ['burrower', burrowP]];
+    const weights = [['scout', scoutP], ['brute', bruteP], ['healer', healP], ['flyer', flyP], ['stalker', stalkP], ['necro', necroP], ['berserker', berserkP], ['burrower', burrowP],
+      ['blinker', blinkP], ['warder', wardP], ['saboteur', sabotP]];
     const others = weights.reduce((sum, [, w]) => sum + w, 0);
     const table = [['soldier', Math.max(0.15, 1 - others)], ...weights];
     const total = table.reduce((sum, [, w]) => sum + w, 0);
@@ -464,7 +559,9 @@
       for (const [t, w] of table) { if (r < w) { type = t; break; } r -= w; }
       list.push(type);
     }
-    if (n % 5 === 0) for (let b = 0; b < 1 + Math.floor((n - 1) / 20); b++) list.push(TD.bossFor(n));
+    if (n % 5 === 0) for (let b = 0; b < 1 + Math.floor((n - 1) / 20); b++) list.push(TD.bossFor(n, mapId));
+    // ladrão de ouro: evento raro no meio da coluna, fora das ondas de chefe
+    if (n >= 4 && n % 5 !== 0 && random() < TD.THIEF_CHANCE) list.splice(Math.floor(list.length / 2), 0, 'thief');
     return list;
   };
 })();

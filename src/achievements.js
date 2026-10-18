@@ -22,7 +22,7 @@
     { id: 'kills_1000', name: 'Mil inimigos', desc: 'Derrote 1.000 inimigos somando todas as partidas.' },
     { id: 'endless_30', name: 'Além da lenda', desc: 'Chegue à onda 30 no modo sem fim.' },
     { id: 'rush', name: 'Pressa na batalha', desc: 'Chame 10 ondas antes da hora numa mesma partida.' },
-    { id: 'commander', name: 'Comandante', desc: 'Use os 3 poderes durante uma mesma onda.' },
+    { id: 'commander', name: 'Comandante', desc: 'Use 3 poderes diferentes durante uma mesma onda.' },
     { id: 'blessed', name: 'Abençoado', desc: 'Reúna 6 bênçãos numa mesma partida.' },
     { id: 'archmage', name: 'Arquimago', desc: 'Derrote 5 inimigos com um único Meteoro do Mago.' },
     { id: 'banner_six', name: 'Sob a Bandeira', desc: 'Tenha 6 torres fortalecidas por Estandartes ao mesmo tempo.' },
@@ -31,6 +31,11 @@
     { id: 'alchemist', name: 'Mestre Alquimista', desc: 'Tenha 15 inimigos dentro de poças do Caldeirão ao mesmo tempo.' },
     { id: 'reaper', name: 'Ceifador', desc: 'Faça uma sequência de 20 abates.' },
     { id: 'legend_tower', name: 'Torre Lendária', desc: 'Leve uma torre à patente Lendária (250 abates).' },
+    { id: 'titan', name: 'Quebra-selos', desc: 'Derrote um Titã Ancestral, em qualquer versão.' },
+    { id: 'sealer', name: 'Senhor dos Portais', desc: 'Sele portais 5 vezes numa mesma partida.' },
+    { id: 'thief', name: 'Pega ladrão', desc: 'Derrube um Ladrão de Ouro antes que ele fuja.' },
+    { id: 'relics_all', name: 'Colecionador', desc: `Encontre as ${TD.RELICS.length} relíquias nos baús de tesouro.` },
+    { id: 'heart', name: 'Coração partido', desc: 'Vença o último capítulo, as Minas de Cristal.' },
   ];
   // heróis com que o jogador já venceu, entre partidas (para o Trio Lendário)
   const HEROES_KEY = 'bastiao-herois-vitoriosos';
@@ -73,7 +78,13 @@
     // vale também a versão de cada ambiente (Dragão Ancião, Esfinge...)
     if (e.d.role === 'dragon') unlock('dragon');
     if (e.d.role === 'colossus') unlock('colossus');
+    if (e.d.role === 'titan') unlock('titan');
   }
+
+  // Eventos dos portais, baús e ladrões (world.js)
+  function onSeal(n) { if (n >= 5) unlock('sealer'); }
+  function onThief() { unlock('thief'); }
+  function onRelic() { if (!TD.relics.missing().length) unlock('relics_all'); }
 
   function onWaveEnd() {
     flushKills();
@@ -85,6 +96,7 @@
     flushKills();
     const S = G.S;
     unlock('first_win');
+    if (S.mapId === 'minas') unlock('heart');
     if (S.lives >= S.maxLives) unlock('flawless');
     if (S.diffId === 'dificil') unlock('hard_win');
     if (S.mods.nohero) unlock('no_hero_win');
@@ -116,7 +128,7 @@
       if (S.towers.filter(t => t.spec).length >= 4) unlock('specs');
       if (S.hero && S.hero.level >= TD.HERO.maxLevel) unlock('hero_max');
       if ((S.earlyCalls || 0) >= 10) unlock('rush');
-      if (S.wavePowers && TD.POWERS.every(p => S.wavePowers[p.id])) unlock('commander');
+      if (S.wavePowers && Object.keys(S.wavePowers).length >= 3) unlock('commander');
       if (S.blessings.length >= 6) unlock('blessed');
       if (S.towers.filter(t => t.s.buff > 0).length >= 6) unlock('banner_six');
       if (S.mined >= 500) unlock('tycoon');
@@ -161,5 +173,5 @@
     writeJson(RUNS_KEY, [...others, run].sort(better).slice(0, RUNS_MAX));
   }
 
-  TD.achievements = { onKill, onWaveEnd, onVictory, onMeteor, onCombo, flushKills, sync, list, has, totalKills: () => totalKills + pendingKills, runs, recordRun };
+  TD.achievements = { onSeal, onThief, onRelic, onKill, onWaveEnd, onVictory, onMeteor, onCombo, flushKills, sync, list, has, totalKills: () => totalKills + pendingKills, runs, recordRun };
 })();

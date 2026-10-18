@@ -18,7 +18,10 @@
   const CYCLE = ['night', 'day', 'day', 'golden', 'dusk']; // índice: onda % 5 (as ondas 5, 10, 15... são de noite)
   const CAPTION = { golden: 'A tarde cai', dusk: 'Crepúsculo', night: 'A noite chega', day: 'Amanhece' };
   // Campos com clima próprio: escuridão mínima e tom
-  const BIOME = { cripta: { dark: 0.32, tint: '#7a86a8', ta: 0.28 }, vulcao: { dark: 0.14, tint: '#e0805a', ta: 0.24 } };
+  const BIOME = {
+    cripta: { dark: 0.32, tint: '#7a86a8', ta: 0.28 }, vulcao: { dark: 0.14, tint: '#e0805a', ta: 0.24 },
+    templo: { dark: 0.04, tint: '#ffd89a', ta: 0.16 }, cristal: { dark: 0.5, tint: '#6a74c0', ta: 0.32 },
+  };
 
   function phaseOf(wave) { return wave <= 0 ? 'day' : CYCLE[wave % 5]; }
   function targetFor(S, md) {
@@ -76,6 +79,7 @@
     }
     for (const p of S.puddles) out.push([p.x, p.y, p.r * 1.4, p.acid ? '#d8e05a' : '#9ae05a']);
     for (const l of TD.ambience.lights()) out.push(l);
+    for (const l of TD.world.lights()) out.push(l);
     for (const f of S.fx) {
       const k = 1 - f.t / f.life;
       if (f.kind === 'blast') out.push([f.x, f.y, f.r * 2.6 * k, f.fire ? '#ff7a30' : '#ffb060']);
@@ -118,7 +122,7 @@
     const ph = phaseOf(S.wave);
     if (ph !== lastPhase && S.inGame) { caption = { text: CAPTION[ph], t: 0 }; lastPhase = ph; }
     const storming = S.storm && S.waveActive;
-    if (storming && !lastStorm) caption = { text: md.map.biome === 'neve' ? 'Nevasca' : 'Tempestade', t: 0 };
+    if (storming && !lastStorm) caption = { text: md.map.biome === 'neve' ? 'Nevasca' : md.map.biome === 'cristal' ? 'Tremor de terra' : 'Tempestade', t: 0 };
     lastStorm = storming;
     rain += ((storming ? 1 : 0) - rain) * Math.min(1, dt * 0.8);
     if (caption) { caption.t += dt; if (caption.t > 3) caption = null; }
@@ -175,7 +179,7 @@
       for (const [x, y, r, color] of lights) if (r > 1) g.drawImage(spot(rgb(color)), x - r * 0.8, y - r * 0.8, r * 1.6, r * 1.6);
       g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
     }
-    drawRain(g, reducedMotion ? 0 : time, md.map.biome === 'neve');
+    if (md.map.biome !== 'cristal') drawRain(g, reducedMotion ? 0 : time, md.map.biome === 'neve');
     if (S.flashT > 0) { g.fillStyle = `rgba(230,240,255,${(S.flashT / 0.3 * 0.35).toFixed(3)})`; g.fillRect(0, 0, W, H); }
     if (caption) {
       const a = Math.min(1, caption.t / 0.5, (3 - caption.t) / 0.8);

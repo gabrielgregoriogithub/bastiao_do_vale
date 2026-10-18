@@ -13,9 +13,11 @@
 
   const defOf = h => HEROES[h.kind] || HEROES.knight;
 
+  // relíquias equipadas na partida (relics.js) multiplicam vida, dano, recuperação, volta e recarga
+  const relic = key => TD.relics.mul(key, G.S?.relics);
   const statsFor = (def, level) => {
     const k = 1 + 0.2 * (level - 1);
-    return { maxHp: def.hp * k, dmg: def.dmg * k };
+    return { maxHp: def.hp * k * relic('hp'), dmg: def.dmg * k * relic('dmg') };
   };
 
   function homePoint() {
@@ -40,8 +42,10 @@
 
   function onKill(h, e) {
     const def = defOf(h);
+    const bonus = TD.relics.add('gold', G.S.relics);
+    if (bonus) G.S.gold += bonus;
     if (h.level >= def.maxLevel) return;
-    h.xp += e.d.gold * 2;
+    h.xp += e.d.gold * 2 * relic('xp');
     while (h.level < def.maxLevel && h.xp >= def.xpPerLevel[h.level]) {
       h.level += 1;
       const st = statsFor(def, h.level);
@@ -175,9 +179,11 @@
       });
       sfx.play('rain');
     }
-    h.abilityCd = ab.cd;
+    h.abilityCd = abilityCdOf(h);
     return true;
   }
+  // recarga cheia da habilidade, já com a Ampulheta do Sol
+  function abilityCdOf(h) { return abilityOf(h).cd * relic('cd'); }
 
   // ---------- Atualização ----------
   function update(dt) {
@@ -208,14 +214,14 @@
         if (def.melee) fightMelee(h, h.target, dt);
         else fightRanged(h, h.target);
       } else {
-        h.hp = Math.min(h.maxHp, h.hp + def.regen * dt);
+        h.hp = Math.min(h.maxHp, h.hp + def.regen * relic('regen') * dt);
         stepToward(h, h.home.x, h.home.y, dt);
       }
     }
 
     if (h.hp <= 0) {
       h.hp = 0;
-      h.deadT = def.respawn;
+      h.deadT = def.respawn * relic('respawn');
       h.target = null;
       S.heroSel = false;
       G.addFx({ kind: 'puff', x: h.x, y: h.y, r: 10, color: '#4f6d8f', life: 0.6 });
@@ -224,5 +230,5 @@
     }
   }
 
-  TD.hero = { create, update, onKill, order, heroAt, xpToNext, homePoint, defOf, canUseAbility, useAbility };
+  TD.hero = { create, update, onKill, order, heroAt, xpToNext, homePoint, defOf, canUseAbility, useAbility, abilityCdOf };
 })();

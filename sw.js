@@ -2,7 +2,7 @@
 // Com internet o jogador sempre recebe a versão mais nova (e a cópia guardada é atualizada);
 // sem internet, usa a cópia. Ao criar um arquivo novo no jogo, inclua-o em FILES
 // (tests/offline.test.js confere se a lista bate com o que o index.html usa).
-const CACHE = 'bastiao-v1';
+const CACHE = 'bastiao-v2';
 const FILES = [
   './',
   'index.html',
@@ -19,8 +19,10 @@ const FILES = [
   'src/creatures.js',
   'src/towers-art.js',
   'src/meta.js',
+  'src/relics.js',
   'src/sim.js',
   'src/foes.js',
+  'src/world.js',
   'src/hero.js',
   'src/units.js',
   'src/tutorial.js',

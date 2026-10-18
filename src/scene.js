@@ -458,6 +458,7 @@
     const idle = reducedMotion ? 0 : performance.now() / 1000;
     drawPuddles(idle);
     drawGroundFx();
+    TD.world.draw(ctx, idle);
     for (const t of S.towers) {
       // torre recém-construída sobe do chão com um pequeno quique
       const age = t.born === undefined || reducedMotion ? 1 : (S.clock - t.born) / BUILD_RISE;
@@ -489,6 +490,7 @@
     TD.ambience.draw(ctx, G.md, frameDt, performance.now() / 1000, reducedMotion);
     TD.lighting.draw(ctx, frameDt, performance.now() / 1000);
     drawFx();
+    TD.world.drawFx(ctx);
     drawPlacement();
 
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);

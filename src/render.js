@@ -280,6 +280,149 @@
     g.lineCap = 'butt';
   }
 
+
+  // ---------- Ruínas do Sol (templo) ----------
+  // Lajes de pedra quebradas e trepadeiras pelo chão: o templo antigo engolido pela mata
+  function drawTempleFloor(g, rnd) {
+    for (let i = 0; i < 26; i++) {
+      const x = rnd() * W, y = rnd() * H, w = 14 + rnd() * 18, h = 10 + rnd() * 12;
+      g.fillStyle = rnd() > 0.5 ? 'rgba(170,160,130,.32)' : 'rgba(140,132,108,.3)';
+      g.save(); g.translate(x, y); g.rotate((rnd() - 0.5) * 0.3);
+      rr(g, -w / 2, -h / 2, w, h, 2); g.fill();
+      g.strokeStyle = 'rgba(40,36,26,.25)'; g.lineWidth = 1; g.stroke();
+      g.restore();
+    }
+    g.strokeStyle = '#3e6a2e'; g.lineWidth = 1.2;
+    for (let i = 0; i < 18; i++) {
+      const x = rnd() * W, y = rnd() * H;
+      g.beginPath(); g.moveTo(x, y);
+      for (let k = 1; k <= 4; k++) g.quadraticCurveTo(x + k * 6 - 3, y + (k % 2 ? -5 : 5), x + k * 6, y + (rnd() - 0.5) * 4);
+      g.stroke();
+      g.fillStyle = '#5a9a3e'; circle(g, x + 12, y - 2, 1.8); g.fill(); circle(g, x + 20, y + 2, 1.6); g.fill();
+    }
+  }
+  // Juntas das pedras do calçamento antigo ao longo da estrada
+  function drawPaving(g, md) {
+    g.strokeStyle = 'rgba(60,50,34,.35)'; g.lineWidth = 1;
+    for (const path of md.paths) {
+      for (let d = 0; d < path.len; d += 14) {
+        const a = path.posAt(d), b = path.posAt(Math.min(path.len, d + 1));
+        const len = Math.hypot(b.x - a.x, b.y - a.y) || 1, nx = -(b.y - a.y) / len, ny = (b.x - a.x) / len;
+        const half = T * 0.42, off = (Math.floor(d / 14) % 2) * 6 - 3;
+        g.beginPath(); g.moveTo(a.x + nx * half, a.y + ny * half); g.lineTo(a.x - nx * half, a.y - ny * half); g.stroke();
+        g.beginPath(); g.moveTo(a.x + (b.x - a.x) / len * 7 + nx * off, a.y + (b.y - a.y) / len * 7 + ny * off);
+        g.lineTo(a.x + (b.x - a.x) / len * 7 + nx * (off + 6), a.y + (b.y - a.y) / len * 7 + ny * (off + 6)); g.stroke();
+      }
+    }
+  }
+  // Coluna partida, cabeça de pedra ou pedra do sol, sempre com musgo
+  function drawRuin(g, x, y, rnd) {
+    const v = rnd();
+    g.fillStyle = 'rgba(0,0,0,.3)'; g.beginPath(); g.ellipse(x + 3, y + 12, 15, 5, 0, 0, Math.PI * 2); g.fill();
+    if (v < 0.45) {
+      // coluna com capitel, quebrada no alto
+      const h = 18 + rnd() * 8;
+      g.fillStyle = '#a8a088'; g.strokeStyle = '#3e3a2c'; g.lineWidth = 1.3;
+      g.fillRect(x - 9, y + 7, 18, 5); g.strokeRect(x - 9, y + 7, 18, 5);
+      g.beginPath(); g.moveTo(x - 6, y + 7); g.lineTo(x - 6, y + 7 - h); g.lineTo(x - 2, y + 9 - h); g.lineTo(x + 1, y + 5 - h); g.lineTo(x + 6, y + 8 - h); g.lineTo(x + 6, y + 7); g.closePath();
+      g.fill(); g.stroke();
+      g.strokeStyle = 'rgba(60,54,40,.45)';
+      for (const dx of [-3, 0, 3]) { g.beginPath(); g.moveTo(x + dx, y + 6); g.lineTo(x + dx, y + 10 - h); g.stroke(); }
+      g.fillStyle = 'rgba(255,250,220,.18)'; g.fillRect(x - 5, y + 8 - h, 2.5, h - 2);
+      g.fillStyle = '#4e7a32'; circle(g, x - 5, y + 4, 3.5); g.fill(); circle(g, x + 4, y + 9 - h, 2.5); g.fill();
+    } else if (v < 0.75) {
+      // cabeça de pedra colossal, meio enterrada
+      g.fillStyle = '#8a8470'; g.strokeStyle = '#34302a'; g.lineWidth = 1.4;
+      g.beginPath(); g.moveTo(x - 12, y + 10); g.quadraticCurveTo(x - 14, y - 12, x, y - 14); g.quadraticCurveTo(x + 14, y - 12, x + 12, y + 10); g.closePath(); g.fill(); g.stroke();
+      g.fillStyle = '#6a6452'; g.fillRect(x - 12, y - 10, 24, 5);
+      g.fillStyle = '#2a2620'; rr(g, x - 7, y - 3, 5, 3, 1); g.fill(); rr(g, x + 2, y - 3, 5, 3, 1); g.fill();
+      g.strokeStyle = '#34302a'; g.beginPath(); g.moveTo(x, y - 1); g.lineTo(x - 1.5, y + 4); g.lineTo(x + 1.5, y + 4); g.moveTo(x - 4, y + 7); g.lineTo(x + 4, y + 7); g.stroke();
+      g.fillStyle = '#4e7a32'; circle(g, x - 9, y + 8, 3.5); g.fill(); circle(g, x + 10, y - 9, 2.6); g.fill();
+    } else {
+      // pedra do sol: disco esculpido encostado num bloco
+      g.fillStyle = '#9a9278'; g.strokeStyle = '#3a3628'; g.lineWidth = 1.3;
+      g.fillRect(x - 11, y + 2, 22, 10); g.strokeRect(x - 11, y + 2, 22, 10);
+      circle(g, x, y - 3, 11); g.fill(); g.stroke();
+      g.strokeStyle = '#6a6250'; g.lineWidth = 1;
+      circle(g, x, y - 3, 7); g.stroke(); circle(g, x, y - 3, 3); g.stroke();
+      for (let k = 0; k < 8; k++) { const a = (k / 8) * Math.PI * 2; g.beginPath(); g.moveTo(x + Math.cos(a) * 7, y - 3 + Math.sin(a) * 7); g.lineTo(x + Math.cos(a) * 10, y - 3 + Math.sin(a) * 10); g.stroke(); }
+      g.fillStyle = 'rgba(230,190,90,.35)'; circle(g, x, y - 3, 3); g.fill();
+    }
+  }
+
+  // ---------- Minas de Cristal ----------
+  // Chão de caverna: manchas escuras, cascalho e pontos de cristal que cintilam no escuro
+  function drawCaveFloor(g, rnd) {
+    for (let i = 0; i < 30; i++) blot(g, rnd() * W, rnd() * H, 30 + rnd() * 60, 'rgba(0,0,10,.18)');
+    for (let i = 0; i < 160; i++) {
+      g.fillStyle = rnd() > 0.5 ? '#45424e' : '#1c1a22';
+      g.beginPath(); g.ellipse(rnd() * W, rnd() * H, 1 + rnd() * 2, 0.8 + rnd(), rnd() * 3, 0, Math.PI * 2); g.fill();
+    }
+    for (let i = 0; i < 40; i++) {
+      g.fillStyle = rnd() > 0.5 ? 'rgba(130,220,255,.6)' : 'rgba(200,150,255,.55)';
+      circle(g, rnd() * W, rnd() * H, 0.9); g.fill();
+    }
+  }
+  // Trilhos dos vagonetes ao longo da estrada: dormentes de madeira e dois trilhos de ferro
+  function drawRails(g, md) {
+    for (const path of md.paths) {
+      g.strokeStyle = '#4a3624'; g.lineWidth = 3;
+      for (let d = 4; d < path.len; d += 11) {
+        const a = path.posAt(d), b = path.posAt(Math.min(path.len, d + 1));
+        const len = Math.hypot(b.x - a.x, b.y - a.y) || 1, nx = -(b.y - a.y) / len, ny = (b.x - a.x) / len;
+        g.beginPath(); g.moveTo(a.x + nx * 11, a.y + ny * 11); g.lineTo(a.x - nx * 11, a.y - ny * 11); g.stroke();
+      }
+      for (const off of [-7, 7]) {
+        g.strokeStyle = '#8a8c94'; g.lineWidth = 1.6; g.lineJoin = 'round';
+        g.beginPath();
+        for (let d = 0; d <= path.len; d += 4) {
+          const a = path.posAt(d), b = path.posAt(Math.min(path.len, d + 1));
+          const len = Math.hypot(b.x - a.x, b.y - a.y) || 1, nx = -(b.y - a.y) / len, ny = (b.x - a.x) / len;
+          if (d === 0) g.moveTo(a.x + nx * off, a.y + ny * off); else g.lineTo(a.x + nx * off, a.y + ny * off);
+        }
+        g.stroke();
+      }
+    }
+  }
+  // Prismas de cristal agrupados (no cenário e nos veios onde as torres ficam mais fortes)
+  function crystalCluster(g, x, y, s, rnd, hue) {
+    const colors = hue ? ['#5ab0e0', '#9ae0ff', '#2a6a9a'] : ['#9a6ad0', '#d0a8ff', '#5a3a8a'];
+    for (let k = 0; k < 4; k++) {
+      const dx = (k - 1.5) * s * 0.42 + (rnd() - 0.5) * 2, h = s * (0.9 + rnd() * 0.9), w = s * 0.24, lean = (k - 1.5) * 0.18;
+      g.save(); g.translate(x + dx, y); g.rotate(lean);
+      g.fillStyle = colors[0]; g.strokeStyle = colors[2]; g.lineWidth = 1;
+      g.beginPath(); g.moveTo(-w, 0); g.lineTo(-w, -h * 0.7); g.lineTo(0, -h); g.lineTo(w, -h * 0.7); g.lineTo(w, 0); g.closePath(); g.fill(); g.stroke();
+      g.fillStyle = colors[1]; g.beginPath(); g.moveTo(-w * 0.6, -h * 0.1); g.lineTo(-w * 0.6, -h * 0.68); g.lineTo(0, -h * 0.92); g.lineTo(0, -h * 0.1); g.closePath(); g.fill();
+      g.restore();
+    }
+  }
+  function drawCaveProp(g, x, y, rnd) {
+    g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.ellipse(x + 3, y + 11, 15, 5, 0, 0, Math.PI * 2); g.fill();
+    if (rnd() < 0.55) {
+      // estalagmites de pedra, a maior no meio
+      for (const [dx, h, w] of [[-7, 14, 5], [1, 24, 7], [8, 11, 4]]) {
+        g.fillStyle = '#56525e'; g.strokeStyle = '#1e1c24'; g.lineWidth = 1.2;
+        g.beginPath(); g.moveTo(x + dx - w, y + 10); g.quadraticCurveTo(x + dx - w * 0.3, y + 10 - h * 0.6, x + dx, y + 10 - h); g.quadraticCurveTo(x + dx + w * 0.3, y + 10 - h * 0.6, x + dx + w, y + 10); g.closePath(); g.fill(); g.stroke();
+        g.fillStyle = 'rgba(255,255,255,.12)'; g.beginPath(); g.moveTo(x + dx - w * 0.6, y + 9); g.lineTo(x + dx - 0.5, y + 12 - h); g.lineTo(x + dx - w * 0.1, y + 9); g.closePath(); g.fill();
+      }
+    } else {
+      g.fillStyle = '#3a3644'; g.beginPath(); g.ellipse(x, y + 8, 13, 5, 0, 0, Math.PI * 2); g.fill();
+      crystalCluster(g, x, y + 8, 20, rnd, rnd() > 0.5);
+    }
+  }
+  // Veios: a casa toda brilha por baixo, com um grupo de cristais azuis no canto
+  function drawCrystalVeins(g, md, rnd) {
+    for (const [c, r] of md.crystals) {
+      const x = c * T, y = r * T;
+      const glow = g.createRadialGradient(x + T / 2, y + T / 2, 2, x + T / 2, y + T / 2, T * 0.75);
+      glow.addColorStop(0, 'rgba(120,210,255,.38)'); glow.addColorStop(1, 'rgba(120,210,255,0)');
+      g.fillStyle = glow; g.fillRect(x - T * 0.25, y - T * 0.25, T * 1.5, T * 1.5);
+      g.strokeStyle = 'rgba(150,225,255,.7)'; g.lineWidth = 1.4;
+      g.beginPath(); g.moveTo(x + 5, y + T - 8); g.lineTo(x + 14, y + T - 15); g.lineTo(x + 22, y + T - 11); g.lineTo(x + T - 5, y + 8); g.stroke();
+      crystalCluster(g, x + T - 9, y + T - 4, 11, rnd, true);
+    }
+  }
+
   // Cenário nas casas ao lado da caverna (a coluna da muralha fica coberta por ela), conforme o ambiente:
   // arbustos e pedras; no deserto, cactos; na neve, pinheiros; no vulcão, rocha negra com brasas
   const ROCK = { vulcao: ['#2e2826', '#433a36'], neve: ['#8a929a', '#a8b0b8'] };
@@ -292,6 +435,8 @@
         const v = rnd();
         if (v < 0.58) drawJungleTree(g, x, y, rnd); else if (v < 0.82) drawAcai(g, x, y, rnd); else drawHeliconia(g, x, y, rnd);
       } else if (biome === 'cripta') drawGrave(g, x, y, rnd);
+      else if (biome === 'templo') drawRuin(g, x, y, rnd);
+      else if (biome === 'cristal') drawCaveProp(g, x, y, rnd);
       else if (plant && biome === 'neve') drawPine(g, x, y);
       else if (plant && biome === 'costa') drawPalm(g, x, y);
       else if (plant && biome === 'deserto') drawCactus(g, x, y);
@@ -398,8 +543,13 @@
     const rnd = mulberry(md.map.id.length * 97 + 7);
     drawGrass(g, md.map.palette, rnd);
     if (md.map.theme === 'amazonia') drawJungleFloor(g, rnd);
+    else if (md.map.biome === 'templo') drawTempleFloor(g, rnd);
+    else if (md.map.biome === 'cristal') drawCaveFloor(g, rnd);
     drawWater(g, md, rnd);
     drawRoad(g, md, rnd);
+    if (md.map.biome === 'templo') drawPaving(g, md);
+    else if (md.map.biome === 'cristal') drawRails(g, md);
+    if (md.crystals && md.crystals.length) drawCrystalVeins(g, md, rnd);
     drawMud(g, md, rnd);
     drawBridges(g, md);
     for (const p of md.paths) drawCave(g, p.startRow);

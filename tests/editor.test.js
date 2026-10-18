@@ -53,7 +53,7 @@ test('o campo salvo aparece entre os campos e dá para jogar nele', () => {
 });
 
 test('o campo do jogador fica fora do desafio do dia e de todos os campos', () => {
-  assert.equal(TD.officialMaps().length, 8);
+  assert.equal(TD.officialMaps().length, 10);
   for (let d = 1; d <= 60; d++) assert.notEqual(TD.dailyFor(new Date(2026, 0, d)).map, 'custom');
 });
 

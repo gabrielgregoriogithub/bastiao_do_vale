@@ -36,13 +36,15 @@
     const diff = DIFFICULTIES[diffId];
     const perks = TD.meta.current();
     const lives = diff.lives + 3 * perks.walls;
+    const relics = TD.relics.equipped(); // as relíquias valem pela partida inteira, mesmo se trocadas no menu
     return {
-      mapId, diffId, diff, perks, gold: diff.gold + 25 * perks.gold, lives, maxLives: lives,
+      mapId, diffId, diff, perks, relics, gold: diff.gold + 25 * perks.gold + TD.relics.add('startGold', relics), lives, maxLives: lives,
       wave: 0, kills: 0, best: readBest(mapId, diffId), hero: null, heroSel: false, mods: {}, history: [], corpses: [], clock: 0,
       blessings: [], offer: null,
       towers: [], enemies: [], shots: [], fx: [], strikes: [], puddles: [], mined: 0, bossWarn: 0, combo: null, bestCombo: 0,
+      bombs: [], chests: [], barricades: [], seals: [], sealsUsed: 0, chestsOpened: 0, thieves: 0,
       storm: false, boltT: 0, flashT: 0,
-      queue: [], spawnT: 0, waveActive: false, next: TD.makeWave(1), seed: null, daily: null,
+      queue: [], spawnT: 0, waveActive: false, next: TD.makeWave(1, null, mapId), seed: null, daily: null,
       speed: 1, paused: false, over: false, halted: false, endless: false, auto: false, autoT: null,
       inGame: false, menuOpen: false,
       build: null, sel: null, aim: null, hover: null, hoverPx: null, banner: null, inspect: null,
@@ -54,6 +56,7 @@
   function prepare(mapId, diffId) {
     G.S = freshState(mapId, diffId);
     G.md = TD.buildMap(MAPS.find(m => m.id === mapId) || MAPS[0]);
+    G.S.seals = G.md.portals.map(() => ({ t: 0, cd: 0 }));
   }
 
   // mods: ids de desafios ativos nesta partida
@@ -130,6 +133,9 @@
       default: break;
     }
     blessStats(t, s);
+    // veio de cristal sob a torre (Minas de Cristal)
+    if (G.md?.crystalAt?.(t.c, t.r)) { s.dmg *= TD.CRYSTAL_DMG; s.range *= TD.CRYSTAL_RANGE; s.crystal = true; }
+    s.dmg *= TD.relics.mul('towerDmg', G.S?.relics);
     s.dmg *= 1 + 0.05 * (G.S?.perks?.aim || 0);
     s.dmg *= 1 + RANK_BONUS * rankOf(t);
     if (!d.support && !d.economy) applyAura(t, s);
@@ -266,7 +272,7 @@
     newGame(d.map, d.diff, d.mods, heroKind);
     G.S.daily = d.key;
     G.S.seed = d.seed;
-    G.S.next = TD.makeWave(1, d.seed);
+    G.S.next = TD.makeWave(1, d.seed, d.map);
     return d;
   }
 
@@ -347,9 +353,11 @@
     if (S.auto) S.autoT = AUTO_DELAY;
   }
 
+  // poder ainda trancado: pede estrelas da campanha (a Barricada libera com a primeira vitória)
+  const powerLocked = p => !!p.unlockStars && TD.meta.totalStars() < p.unlockStars;
   const canUsePower = id => {
-    const S = G.S;
-    return S.inGame && !S.over && !S.halted && S.waveActive && S.cooldowns[id] <= 0 && !S.mods?.nopower;
+    const S = G.S, p = POWERS.find(q => q.id === id);
+    return S.inGame && !S.over && !S.halted && S.waveActive && S.cooldowns[id] <= 0 && !S.mods?.nopower && !!p && !powerLocked(p);
   };
 
   function usePower(id, x, y) {
@@ -368,6 +376,8 @@
       S.rallyT = p.dur;
       for (const t of S.towers) addFx({ kind: 'ring', x: t.x, y: t.y, r: T * 0.8, color: '#e8bd5c', life: 0.6 });
       sfx.play('rally');
+    } else if (id === 'barricade') {
+      if (!TD.world.raiseBarricade(x, y, p)) return false;
     }
     S.cooldowns[id] = powerCd(p);
     S.wavePowers = { ...S.wavePowers, [id]: true };
@@ -393,13 +403,16 @@
     S.wave += 1;
     for (const t of S.towers) t.fresh = false;
     S.queue = S.next.slice();
-    S.next = TD.makeWave(S.wave + 1, S.seed);
+    S.next = TD.makeWave(S.wave + 1, S.seed, S.mapId);
     S.waveActive = true;
+    TD.world.onWaveStart();
     S.spawnT = 0.3;
     S.autoT = null;
     S.storm = stormFor(S.wave);
     S.boltT = 3 + Math.random() * 3;
-    const tag = S.wave % 5 === 0 ? ` · ${TD.enemyName(S.mapId, TD.bossFor(S.wave))}` : TD.isSwarm(S.wave) ? ' · revoada' : S.storm ? ' · tempestade' : '';
+    const stormName = G.md.map.biome === 'cristal' ? 'tremor' : 'tempestade';
+    const tag = S.wave % 5 === 0 ? ` · ${TD.enemyName(S.mapId, TD.bossFor(S.wave, S.mapId))}` : TD.isSwarm(S.wave) ? ' · revoada'
+      : S.storm ? ` · ${stormName}` : S.queue.includes('thief') ? ' · ladrão à vista' : '';
     S.banner = { text: `Onda ${S.wave}${tag}`, t: 0, life: 2 };
     sfx.play('wave');
   }
@@ -414,7 +427,7 @@
     const r = G.S.seed === null ? Math.random() : TD.seeded((G.S.seed ^ Math.imul(n, 2246822519)) >>> 0)();
     return r < STORM_CHANCE;
   }
-  // Relâmpago: atinge um inimigo ao acaso; na nevasca não há raios
+  // Relâmpago: atinge um inimigo ao acaso; na nevasca não há raios; nas minas o teto desaba (pedra no lugar do raio)
   function tickStorm(dt) {
     const S = G.S;
     S.flashT = Math.max(0, S.flashT - dt);
@@ -426,11 +439,21 @@
     if (!alive.length) return;
     const e = alive[Math.floor(Math.random() * alive.length)];
     const y = e.d.flying ? e.y - 12 : e.y;
-    addFx({ kind: 'lightning', x: e.x, y, seed: Math.random() * 1000, life: 0.35 });
-    addFx({ kind: 'ring', x: e.x, y, r: T, color: '#e8f0ff', life: 0.4 });
-    S.flashT = 0.3;
-    S.shake = Math.max(S.shake, 0.2);
-    sfx.play('thunder');
+    if (G.md.map.biome === 'cristal') {
+      addFx({ kind: 'rockfall', x: e.x, y, life: 0.4 });
+      for (let i = 0; i < 6; i++) {
+        const a = Math.random() * Math.PI * 2, sp = 40 + Math.random() * 70;
+        addFx({ kind: 'shard', x: e.x, y: y + 4, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 70, color: i % 2 ? '#6a6070' : '#9a90a0', life: 0.5 });
+      }
+      S.shake = Math.max(S.shake, 0.3);
+      sfx.play('boom');
+    } else {
+      addFx({ kind: 'lightning', x: e.x, y, seed: Math.random() * 1000, life: 0.35 });
+      addFx({ kind: 'ring', x: e.x, y, r: T, color: '#e8f0ff', life: 0.4 });
+      S.flashT = 0.3;
+      S.shake = Math.max(S.shake, 0.2);
+      sfx.play('thunder');
+    }
     hurt(e, e.maxHp * (e.d.boss ? BOLT_BOSS_PCT : BOLT_PCT), true, null);
   }
 
@@ -533,15 +556,25 @@
     });
   }
 
+  // Resistência ou fraqueza do inimigo ao tipo de golpe de quem bate (torre ou herói)
+  
+  const resistMul = (e, src) => {
+    if (!e.d.resist || !src) return 1;
+    const kind = TD.DMG_KIND[src.isHero ? src.kind : src.type];
+    return (kind && e.d.resist[kind]) || 1;
+  };
+
   // quiet: dano contínuo (veneno, fogo, poças), que também alcança quem está embaixo da terra
+  // o Titã virado pedra (shellT) não sofre dano nenhum
   function hurt(e, dmg, pierce, src, quiet = false) {
-    if (e.dead || (e.under && !quiet)) return;
+    if (e.dead || (e.under && !quiet) || e.shellT > 0) return;
     const S = G.S;
     // acerto crítico das torres de precisão: dano dobrado antes da armadura
     const crit = !quiet && src && src.s && src.s.crit > 0 && Math.random() < src.s.crit;
     if (crit) dmg *= 2;
-    const armor = e.corrodeT > 0 ? 0 : e.d.armor;
+    const armor = e.corrodeT > 0 ? 0 : e.d.armor + (e.warded || 0);
     let real = pierce ? dmg : Math.max(dmg * 0.25, dmg - armor);
+    real *= resistMul(e, src);
     if (e.weakT > 0) real *= TD.WEAK_MUL;
     if (e.shield > 0) {
       const absorbed = Math.min(e.shield, real);
@@ -793,6 +826,11 @@
   function leak(e) {
     const S = G.S, lost = e.d.lives || 1;
     e.dead = true;
+    if (e.d.thief) {
+      // o ladrão some com o ouro, mas a muralha não perde vidas
+      addFx({ kind: 'text', x: W - T * 1.6, y: e.y - 18, txt: 'Fugiu com o ouro!', color: '#e8c56e', life: 1.4 });
+      return;
+    }
     S.lives = Math.max(0, S.lives - lost);
     S.shake = 0.35;
     S.hurtFlash = 0.6;
@@ -816,12 +854,13 @@
       if (e.dead) continue;
       tickNumbers(e, dt);
       // embaixo da terra ninguém o segura
-      let f = e.frozenT > 0 || e.stunT > 0 || (e.blocked && !e.under) ? 0 : e.slowT > 0 ? 1 - e.slowF : 1;
+      let f = e.frozenT > 0 || e.stunT > 0 || e.shellT > 0 || (e.blocked && !e.under) ? 0 : e.slowT > 0 ? 1 - e.slowF : 1;
       if (e.enraged) f *= e.d.enrageMul;
       if (!e.d.flying && md.mudAt(e.x, e.y)) f *= TD.MUD_SLOW;
       if (!e.d.flying && caltrops) f *= CALTROPS_MUL;
-      const len = lenOf(e);
+      const len = lenOf(e), before = e.dist;
       e.dist += e.d.speed * (G.S.mods?.swift ? SWIFT_MUL : 1) * T * f * dt;
+      TD.world.onMove(e, before);
       e.prog = e.dist / len;
       e.wob += dt * 9 * f;
       if (e.dist >= len) {
@@ -914,8 +953,10 @@
 
     TD.hero.update(dt);
     TD.units.update(dt);
+    TD.world.update(dt); // barricadas seguram depois dos soldados; selos dos portais
     moveEnemies(dt);
     if (S.over) return;
+    TD.foes.update(dt);
     updateTowers(dt);
     moveShots(dt);
     updateStrikes(dt);
@@ -1010,7 +1051,7 @@
       S.daily = data.daily;
       S.seed = data.seed >>> 0;
     }
-    S.next = TD.makeWave(S.wave + 1, S.seed);
+    S.next = TD.makeWave(S.wave + 1, S.seed, S.mapId);
     // antes das torres: as bênçãos entram no cálculo delas
     if (Array.isArray(data.blessings)) {
       const valid = data.blessings.filter(id => TD.BLESSINGS.some(b => b.id === id));
@@ -1045,7 +1086,7 @@
   }
 
   Object.assign(G, {
-    celebrate, enemyAt, rankOf, nextRankAt, RANK_NAMES, RANK_BONUS, store, readBest, readStars, readChallenges, readDaily, newDaily, towerStats, prepare, newGame, hurt, addFx, spawn, costOf, powerCd,
+    celebrate, enemyAt, powerLocked, resistMul, rankOf, nextRankAt, RANK_NAMES, RANK_BONUS, store, readBest, readStars, readChallenges, readDaily, newDaily, towerStats, prepare, newGame, hurt, addFx, spawn, costOf, powerCd,
     build, upgrade, specialize, sell, cycleTarget, toggleAuto, continueEndless, startWave, usePower, canUsePower, update,
     towerAt, canBuild, upCost, specCost, refund, specOf, waveBonus, earlyBonus, canCallEarly, snapshot, restore, blessed, refreshStats, strike,
   });

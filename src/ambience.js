@@ -13,6 +13,8 @@
     pantano: { count: 22, spawn: r => ({ x: r() * W, y: r() * H, vx: 0, vy: 0, size: 1.6 + r() * 1, phase: r() * 6 }), color: 'rgba(200,240,120,A)', firefly: true },
     costa: { count: 12, spawn: r => ({ x: r() * W, y: r() * H, vx: 10 + r() * 8, vy: 0, size: 30 + r() * 30, phase: r() * 6 }), color: 'rgba(240,248,250,A)', mist: true },
     cemiterio: { count: 16, spawn: r => ({ x: r() * W, y: r() * H, vx: 5 + r() * 6, vy: 0, size: 40 + r() * 40, phase: r() * 6 }), color: 'rgba(200,210,220,A)', mist: true },
+    ruinas: { count: 26, spawn: r => ({ x: r() * W, y: r() * H, vx: 3 + r() * 5, vy: -3 - r() * 4, size: 0.9 + r() * 1, phase: r() * 6 }), color: 'rgba(255,226,150,A)' },
+    minas: { count: 24, spawn: r => ({ x: r() * W, y: r() * H, vx: 0, vy: 0, size: 1.2 + r() * 0.9, phase: r() * 6 }), color: 'rgba(150,220,255,A)', firefly: true, light: '#8ad8ff' },
     vulcao: { count: 30, spawn: r => ({ x: r() * W, y: r() * H, vx: 4 + r() * 8, vy: -14 - r() * 18, size: 1 + r() * 1.3, phase: r() * 6 }), color: 'rgba(255,150,60,A)' },
   };
 
@@ -171,7 +173,7 @@
   function lights() {
     const k = KINDS[mapId];
     if (!k || !(k.firefly || mapId === 'vulcao')) return [];
-    return parts.map(p => [p.x, p.y, k.firefly ? 16 : 10, k.firefly ? '#c8f078' : '#ff9a3c']);
+    return parts.map(p => [p.x, p.y, k.firefly ? 16 : 10, k.light || (k.firefly ? '#c8f078' : '#ff9a3c')]);
   }
 
   function draw(g, md, dt, time, reducedMotion) {

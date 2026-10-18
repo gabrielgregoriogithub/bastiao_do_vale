@@ -246,6 +246,8 @@
   .perk-ds { font-size: 13px; color: var(--muted); }
   .perk-max { font-size: 13px; color: var(--brass); white-space: nowrap; }
   .perk .btn { white-space: nowrap; }
+  .perk.relic-off { opacity: .6; }
+  .perk.relic-on { border-color: #6b5626; box-shadow: inset 3px 0 0 var(--brass); }
   .pips { display: flex; gap: 4px; margin-top: 2px; }
   .pip { width: 14px; height: 4px; border-radius: 2px; background: var(--line); }
   .pip.on { background: var(--brass); }
@@ -647,6 +649,14 @@
       <div class="perks" id="forgeList"></div>
       <button id="forgeReset" class="btn small" hidden>Devolver todas as estrelas</button>
     </details>
+    <details class="fold forge" id="foldRelics">
+      <summary class="forge-head">
+        <h3>Relíquias do herói</h3>
+        <span class="forge-stars" id="relicCount"></span>
+      </summary>
+      <p class="forge-hint">Baús de tesouro aparecem escondidos no cenário em algumas ondas, e todo Ladrão de Ouro derrubado deixa um. Toque no baú para abrir: às vezes há uma relíquia dentro. O herói leva até 2 por partida.</p>
+      <div class="perks" id="relicList"></div>
+    </details>
     <div class="menu-actions">
       <button id="btnResume" class="btn" hidden>Voltar ao jogo</button>
       <button id="btnStart" class="btn primary">Começar</button>
@@ -713,6 +723,7 @@
         <dt><kbd>Espaço</kbd></dt><dd>Iniciar ou chamar a próxima onda</dd>
         <dt><kbd>Q</kbd> <kbd>W</kbd> <kbd>E</kbd></dt><dd>Chuva de flechas, Congelar, Chamado às armas</dd>
         <dt><kbd>H</kbd></dt><dd>Selecionar o herói</dd>
+        <dt><kbd>B</kbd></dt><dd>Barricada (libera com a primeira vitória)</dd>
         <dt><kbd>R</kbd></dt><dd>Habilidade do herói</dd>
         <dt><kbd>A</kbd> <kbd>F</kbd> <kbd>P</kbd></dt><dd>Automático, velocidade, pausa</dd>
         <dt><kbd>M</kbd> <kbd>N</kbd> <kbd>C</kbd></dt><dd>Som, música, Compêndio</dd>
@@ -782,8 +793,10 @@
 <script src="src/creatures.js" charset="utf-8"></script>
 <script src="src/towers-art.js" charset="utf-8"></script>
 <script src="src/meta.js" charset="utf-8"></script>
+<script src="src/relics.js" charset="utf-8"></script>
 <script src="src/sim.js" charset="utf-8"></script>
 <script src="src/foes.js" charset="utf-8"></script>
+<script src="src/world.js" charset="utf-8"></script>
 <script src="src/hero.js" charset="utf-8"></script>
 <script src="src/units.js" charset="utf-8"></script>
 <script src="src/tutorial.js" charset="utf-8"></script>

@@ -132,7 +132,7 @@
     b.title = ab ? ab.desc : 'O desafio Sem herói está ativo.';
     b.disabled = !TD.hero.canUseAbility();
     const cd = h ? h.abilityCd : 0;
-    b.style.setProperty('--p', ab ? String(1 - cd / ab.cd) : '0');
+    b.style.setProperty('--p', ab ? String(1 - cd / TD.hero.abilityCdOf(h)) : '0');
     b.querySelector('.cd').textContent = !h ? 'Indisponível' : h.deadT > 0 ? 'Herói caído' : cd > 0 ? `${Math.ceil(cd)} s` : S.waveActive ? 'Pronto' : 'Na onda';
   }
 
@@ -141,11 +141,12 @@
     for (const b of ui.powerList.children) {
       if (b.dataset.power === 'ability') { syncAbilityButton(b); continue; }
       const p = POWERS.find(q => q.id === b.dataset.power), cd = S.cooldowns[p.id];
-      const ready = G.canUsePower(p.id);
+      const ready = G.canUsePower(p.id), locked = G.powerLocked(p);
       b.disabled = !ready;
       b.classList.toggle('aiming', S.aim === p.id);
-      b.style.setProperty('--p', S.mods.nopower ? '0' : String(1 - cd / G.powerCd(p)));
-      b.querySelector('.cd').textContent = S.mods.nopower ? 'Bloqueado' : cd > 0 ? `${Math.ceil(cd)} s` : S.waveActive ? 'Pronto' : 'Na onda';
+      b.title = locked ? `${p.desc} Libera com a primeira vitória numa campanha.` : p.desc;
+      b.style.setProperty('--p', S.mods.nopower || locked ? '0' : String(1 - cd / G.powerCd(p)));
+      b.querySelector('.cd').textContent = locked ? 'Vença um campo' : S.mods.nopower ? 'Bloqueado' : cd > 0 ? `${Math.ceil(cd)} s` : S.waveActive ? 'Pronto' : 'Na onda';
     }
   }
 
@@ -168,8 +169,8 @@
   function triggerPower(id) {
     const S = G.S;
     if (!G.canUsePower(id)) return;
-    if (id === 'rain') {
-      S.aim = S.aim === 'rain' ? null : 'rain';
+    if (TD.AIMED_POWERS.has(id)) {
+      S.aim = S.aim === id ? null : id;
       S.build = null;
       S.sel = null; // com uma torre marcada, o painel e a barra seguiam mostrando a torre em vez da mira
       S.heroSel = false;
@@ -222,6 +223,7 @@
     if (d.pierce) rows.push(['Armadura', 'Ignorada']);
     if (d.ground) rows.push(['Voadores', 'Não acerta']);
     if (s.buff) rows.push(['Estandarte', `+${Math.round(s.buff * 100)}% de dano`]);
+    if (s.crystal) rows.push(['Veio de cristal', `+${Math.round((TD.CRYSTAL_DMG - 1) * 100)}% de dano e +${Math.round((TD.CRYSTAL_RANGE - 1) * 100)}% de alcance`]);
     return rows.map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join('');
   }
 
@@ -255,6 +257,7 @@
         ${def.melee ? '' : `<dt>Alcance</dt><dd>${fmt(def.range)} casas</dd>`}
         <dt>Experiência</dt><dd id="hXp">${next === null ? 'Nível máximo' : `${h.xp} / ${next}`}</dd>
         <dt>Abates</dt><dd id="hKills">${h.kills}</dd>
+        ${TD.relics.defsOf(G.S.relics).length ? `<dt>Relíquias</dt><dd>${TD.relics.defsOf(G.S.relics).map(r => r.name).join(', ')}</dd>` : ''}
       </dl>`;
   }
 
@@ -354,7 +357,7 @@
     const S = G.S;
     if (!S.inGame) { lastWaveActive = false; lowLivesWarned = false; return; }
     if (S.waveActive && !lastWaveActive) {
-      const bossText = S.wave > 0 && S.wave % 5 === 0 ? ` Chefe a caminho: ${TD.enemyName(S.mapId, TD.bossFor(S.wave))}.` : '';
+      const bossText = S.wave > 0 && S.wave % 5 === 0 ? ` Chefe a caminho: ${TD.enemyName(S.mapId, TD.bossFor(S.wave, S.mapId))}.` : '';
       announce(`Onda ${S.wave} começou, com ${S.queue.length + S.enemies.length} inimigos.${bossText}`);
     } else if (!S.waveActive && lastWaveActive && !S.over && !S.halted) {
       announce(`Onda ${S.wave} vencida. Ouro: ${S.gold}. Vidas: ${S.lives}.`);
@@ -456,6 +459,8 @@
       if (G.usePower(S.aim, p.x, p.y)) S.aim = null;
       return;
     }
+    // baús e portais respondem ao toque antes das torres e do herói
+    if (!S.build && !S.heroSel && TD.world.tap(p.x, p.y, isTouch)) return;
     const t = G.towerAt(c, r);
     if (!S.build && TD.hero.heroAt(p.x, p.y, isTouch ? 28 : 18)) { toggleHero(); return; }
     if (t) { S.sel = t; S.build = null; S.heroSel = false; return; }
