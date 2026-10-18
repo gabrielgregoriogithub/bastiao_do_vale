@@ -54,7 +54,7 @@ test('a Mina de Ouro paga no fim da onda; Cofre Real paga mais e Recompensa dá 
   const mine = G.S.towers[0];
   assert.equal(mine.s.income, 12);
   G.startWave();
-  G.S.queue = []; G.S.enemies = [];
+  G.S.queue = []; G.S.enemies = []; G.S.ambush = G.S.caravan = null;
   const gold = G.S.gold;
   G.update(1 / 60);
   assert.equal(G.S.gold - gold, G.waveBonus(1) + 12);

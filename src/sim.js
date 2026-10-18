@@ -42,7 +42,7 @@
       wave: 0, kills: 0, best: readBest(mapId, diffId), hero: null, heroSel: false, mods: {}, history: [], corpses: [], clock: 0,
       blessings: [], offer: null,
       towers: [], enemies: [], shots: [], fx: [], strikes: [], puddles: [], mined: 0, bossWarn: 0, combo: null, bestCombo: 0,
-      bombs: [], chests: [], barricades: [], ambush: null, seals: [], sealsUsed: 0, chestsOpened: 0, thieves: 0,
+      bombs: [], chests: [], barricades: [], ambush: null, caravan: null, caravans: 0, seals: [], sealsUsed: 0, chestsOpened: 0, thieves: 0,
       storm: false, boltT: 0, flashT: 0,
       queue: [], spawnT: 0, waveActive: false, next: TD.makeWave(1, null, mapId), seed: null, daily: null,
       speed: 1, paused: false, over: false, halted: false, endless: false, auto: false, autoT: null,
@@ -219,7 +219,7 @@
   const canHit = (t, e) => !(e.d.flying && TOWERS[t.type].ground);
   const waveBonus = n => 15 + n * 4;
   const earlyBonus = () => 10 + G.S.wave;
-  const canCallEarly = () => G.S.waveActive && !G.S.queue.length && !G.S.ambush && (G.S.endless || G.S.wave < MAX_WAVES);
+  const canCallEarly = () => G.S.waveActive && !G.S.queue.length && !TD.world.busy() && (G.S.endless || G.S.wave < MAX_WAVES);
 
   function makeTower({ type, c, r, level = 1, spent = TOWERS[type].cost, target = 'first', spec = null, kills = 0, dmgDone = 0 }) {
     const t = { id: nextId++, type, c, r, x: (c + 0.5) * T, y: (r + 0.5) * T, level, spent, target, spec, kills, dmgDone, cd: 0, ang: Math.PI };
@@ -412,7 +412,7 @@
     S.boltT = 3 + Math.random() * 3;
     const stormName = G.md.map.biome === 'cristal' ? 'tremor' : 'tempestade';
     const tag = S.wave % 5 === 0 ? ` · ${TD.enemyName(S.mapId, TD.bossFor(S.wave, S.mapId))}` : TD.isSwarm(S.wave) ? ' · revoada'
-      : S.storm ? ` · ${stormName}` : S.ambush ? ' · emboscada' : S.queue.includes('thief') ? ' · ladrão à vista' : '';
+      : S.storm ? ` · ${stormName}` : S.ambush ? ' · emboscada' : S.caravan ? ' · caravana na estrada' : S.queue.includes('thief') ? ' · ladrão à vista' : '';
     S.banner = { text: `Onda ${S.wave}${tag}`, t: 0, life: 2 };
     sfx.play('wave');
   }
@@ -976,7 +976,7 @@
     if (S.sel && !S.towers.includes(S.sel)) S.sel = null;
     if (S.inspect && S.inspect.dead) S.inspect = null;
 
-    if (S.waveActive && !S.queue.length && !S.ambush && !S.enemies.length) endWave();
+    if (S.waveActive && !S.queue.length && !TD.world.busy() && !S.enemies.length) endWave();
   }
 
   // Efeitos andam e somem; também roda na festa da vitória, com a partida parada

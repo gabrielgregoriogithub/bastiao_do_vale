@@ -296,3 +296,47 @@ test('emboscada não acontece em onda de chefe nem cedo demais', () => {
     }
   } finally { Math.random = rnd; }
 });
+
+// Caravana armada à mão no fim da estrada, para cada teste começar do mesmo jeito
+function caravanOn(map) {
+  const S = fresh(map);
+  S.wave = 6;
+  const rnd = Math.random;
+  Math.random = () => 0.9; // sem emboscada nem baú escondido...
+  try { TD.world.onWaveStart(); } finally { Math.random = rnd; }
+  Math.random = () => 0.05; // ...mas com caravana
+  try { TD.world.onWaveStart(); } finally { Math.random = rnd; }
+  return S;
+}
+
+test('caravana desce a estrada na contramão e, a salvo, deixa um baú', () => {
+  const S = caravanOn('vale');
+  const k = S.caravan;
+  assert.ok(k, 'a caravana saiu do castelo');
+  const start = k.dist;
+  G.update(1);
+  assert.ok(k.dist < start, 'anda para a entrada do vale');
+  assert.ok(S.waveActive, 'a onda espera a caravana');
+  const chests = S.chests.length;
+  runUntil(G, () => !S.caravan, 90);
+  assert.equal(S.caravans, 1);
+  assert.equal(S.chests.length, chests + 1, 'deixou o baú');
+  assert.equal(S.chests[S.chests.length - 1].kind, 'caravan');
+  runUntil(G, () => !S.waveActive, 2);
+  assert.ok(!S.waveActive, 'sem caravana a onda termina');
+});
+
+test('inimigo que encosta para e saqueia a caravana', () => {
+  const S = caravanOn('vale');
+  const k = S.caravan;
+  G.spawn('brute', k.dist, k.path);
+  const e = S.enemies[0];
+  e.frozenT = 99; // fica parado em cima da carroça
+  G.update(0.1);
+  assert.ok(k.stopped, 'a carroça parou');
+  const at = k.dist;
+  runUntil(G, () => !S.caravan, 60);
+  assert.equal(S.caravan, null);
+  assert.equal(S.caravans, 0, 'não chegou');
+  assert.ok(at > 0);
+});

@@ -83,7 +83,7 @@
     sfx.play('chirp');
   }
 
-  // kind: 'hidden' (do cenário) ou 'thief' (caiu do Ladrão de Ouro, com mais chance de relíquia)
+  // kind: 'hidden' (do cenário), 'thief' (caiu do Ladrão de Ouro) ou 'caravan' (presente dos mercadores); os dois últimos pagam mais
   function dropChest(x, y, kind = 'thief') {
     const S = G.S;
     S.thieves += kind === 'thief' ? 1 : 0;
@@ -95,7 +95,7 @@
     const S = G.S;
     S.chests = S.chests.filter(k => k !== chest);
     S.chestsOpened += 1;
-    const gold = (chest.kind === 'thief' ? 40 + 6 * S.wave : 25 + 5 * S.wave);
+    const gold = (chest.kind === 'hidden' ? 25 + 5 * S.wave : 40 + 6 * S.wave);
     S.gold += gold;
     G.addFx({ kind: 'text', x: chest.x, y: chest.y - 16, txt: `+${gold} de ouro`, color: '#f0d27a', life: 1.4 });
     G.addFx({ kind: 'ring', x: chest.x, y: chest.y, r: T * 0.7, color: '#f0d27a', life: 0.5 });
@@ -104,7 +104,7 @@
       G.addFx({ kind: 'coin', x: chest.x, y: chest.y - 6, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0.6 });
     }
     sfx.play('coins');
-    const chance = chest.kind === 'thief' ? THIEF_RELIC : CHEST_RELIC;
+    const chance = chest.kind === 'hidden' ? CHEST_RELIC : THIEF_RELIC;
     if (Math.random() < chance) {
       const id = TD.relics.grantRandom();
       if (id) {
@@ -221,11 +221,62 @@
     S.ambush = null;
   }
 
+  // ---------- Caravana ----------
+  // Mercadores saem do castelo e descem a estrada na contramão até a entrada do vale. Quem encosta
+  // nela a faz parar e a fere; se chega inteira, deixa um baú de tesouro no fim do caminho.
+  const CARAVAN_FIRST = 4, CARAVAN_CHANCE = 0.15, CARAVAN_SPEED = 1.1, CARAVAN_REACH = 16;
+  const CARAVAN_HP = 140, CARAVAN_HP_WAVE = 18, CARAVAN_END = 1.5 * T;
+  function planCaravan() {
+    const S = G.S;
+    S.caravan = null;
+    if (S.wave < CARAVAN_FIRST || S.wave % 5 === 0 || TD.isSwarm(S.wave) || S.ambush) return;
+    const roll = S.seed === null ? Math.random() : TD.seeded((S.seed ^ Math.imul(S.wave, 1597334677)) >>> 0)();
+    if (roll >= CARAVAN_CHANCE) return;
+    const path = G.md.paths[0], dist = path.len - T, q = path.posAt(dist);
+    const hp = CARAVAN_HP + CARAVAN_HP_WAVE * S.wave;
+    S.caravan = { path, dist, x: q.x, y: q.y, hp, maxHp: hp, face: -1, stopped: false, roll: 0 };
+  }
+  function tickCaravan(dt) {
+    const S = G.S, k = S.caravan;
+    if (!k || !S.waveActive) return;
+    // quem está encostando: inimigos de a pé, visíveis e fora da terra
+    const touching = S.enemies.filter(e => !e.dead && !e.d.flying && !e.under && Math.hypot(e.x - k.x, e.y - k.y) <= CARAVAN_REACH + e.d.r);
+    k.stopped = touching.length > 0;
+    for (const e of touching) k.hp -= (e.d.atk || 0) * (1 + S.wave * 0.05) * S.diff.hp * dt;
+    if (k.hp <= 0) {
+      G.addFx({ kind: 'text', x: k.x, y: k.y - 22, txt: 'Caravana saqueada', color: '#e8806a', life: 1.6 });
+      G.addFx({ kind: 'puff', x: k.x, y: k.y, r: 14, color: '#8a6a40', life: 0.6 });
+      for (let i = 0; i < 8; i++) {
+        const a = Math.random() * Math.PI * 2, sp = 50 + Math.random() * 70;
+        G.addFx({ kind: 'shard', x: k.x, y: k.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 60, color: i % 2 ? '#8a6a40' : '#e0d2a8', life: 0.6 });
+      }
+      sfx.play('leak');
+      S.caravan = null;
+      return;
+    }
+    if (k.stopped) return;
+    const before = k.x;
+    k.dist = Math.max(CARAVAN_END, k.dist - CARAVAN_SPEED * T * dt);
+    const q = k.path.posAt(k.dist);
+    k.x = q.x; k.y = q.y; k.roll += CARAVAN_SPEED * dt * 6;
+    if (Math.abs(q.x - before) > 0.01) k.face = q.x < before ? -1 : 1;
+    if (k.dist > CARAVAN_END) return;
+    S.caravans = (S.caravans || 0) + 1;
+    G.addFx({ kind: 'text', x: k.x, y: k.y - 24, txt: 'Caravana a salvo!', color: '#86b46f', life: 1.6 });
+    dropChest(k.x, k.y + 4, 'caravan');
+    TD.achievements?.onCaravan(S.caravans);
+    S.caravan = null;
+  }
+
+  // Ainda há algo da onda em andamento (bando escondido ou caravana na estrada)
+  const busy = () => !!(G.S.ambush || G.S.caravan);
+
   // ---------- Ciclo ----------
   function update(dt) {
     tickSeals(dt);
     holdBarricades(dt);
     tickAmbush(dt);
+    tickCaravan(dt);
   }
 
   function onWaveStart() {
@@ -233,6 +284,7 @@
     S.chests = S.chests.filter(k => k.until >= S.wave);
     if (S.wave >= CHEST_FIRST && (S.wave - CHEST_FIRST) % CHEST_EVERY === 0) hideChest();
     planAmbush();
+    planCaravan();
   }
 
   // Toque do jogador no campo: abre um baú ou sela um portal. Devolve true se usou o toque.
@@ -367,10 +419,37 @@
     g.fillText(`! ${Math.ceil(a.t)}`, a.x, a.y - 20);
   }
 
-  // Por baixo dos inimigos: cristais, portais, baús, barricadas e o mato da emboscada
+  // Carroça coberta de lona, com rodas que giram e a barra de vida por cima
+  function drawCaravan(g, k, time) {
+    const bob = k.stopped ? Math.sin(time * 30) * 0.8 : Math.sin(k.roll * 2) * 0.6;
+    g.save();
+    g.translate(k.x, k.y + bob);
+    g.scale(k.face * 1.3, 1.3);
+    g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(0, 9, 16, 4, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#7a5530'; g.strokeStyle = '#3a2410'; g.lineWidth = 1.2;
+    g.fillRect(-13, -2, 24, 8); g.strokeRect(-13, -2, 24, 8);
+    g.strokeStyle = '#3a2410'; g.beginPath(); g.moveTo(-13, 3); g.lineTo(-20, 5); g.stroke(); // varal
+    g.fillStyle = '#e8dcb8'; g.strokeStyle = '#8a7a5a';
+    g.beginPath(); g.moveTo(-12, -2); g.quadraticCurveTo(-1, -18, 10, -2); g.closePath(); g.fill(); g.stroke();
+    g.strokeStyle = '#b8a880'; g.beginPath(); g.moveTo(-4, -2); g.lineTo(-3, -11); g.moveTo(3, -2); g.lineTo(3, -10); g.stroke();
+    for (const wx of [-8, 6]) {
+      g.fillStyle = '#4a3218'; TD.circle(g, wx, 7, 4); g.fill();
+      g.strokeStyle = '#c8a870'; g.lineWidth = 1;
+      const a = k.roll;
+      g.beginPath(); g.moveTo(wx + Math.cos(a) * 3.5, 7 + Math.sin(a) * 3.5); g.lineTo(wx - Math.cos(a) * 3.5, 7 - Math.sin(a) * 3.5);
+      g.moveTo(wx - Math.sin(a) * 3.5, 7 + Math.cos(a) * 3.5); g.lineTo(wx + Math.sin(a) * 3.5, 7 - Math.cos(a) * 3.5); g.stroke();
+    }
+    g.restore();
+    const w = 26, f = Math.max(0, k.hp / k.maxHp);
+    g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(k.x - w / 2 - 1, k.y - 29, w + 2, 5);
+    g.fillStyle = f > 0.5 ? '#86b46f' : f > 0.25 ? '#e0b040' : '#e0604a'; g.fillRect(k.x - w / 2, k.y - 28, w * f, 3);
+  }
+
+  // Por baixo dos inimigos: cristais, portais, baús, barricadas, o mato da emboscada e a caravana
   function draw(g, time) {
     const S = G.S;
     if (S.ambush) drawAmbush(g, S.ambush, time);
+    if (S.caravan) drawCaravan(g, S.caravan, time);
     if (G.md.crystals.length) drawCrystals(g, time);
     if (G.md.portals.length) drawPortals(g, time);
     for (const k of S.chests) drawChest(g, k, time);
@@ -420,10 +499,11 @@
       for (const end of [p.a, p.b]) { const q = cellCenter(end); out.push([q.x, q.y, portalOpen(i) ? 56 : 34, portalOpen(i) ? '#b48cff' : '#f0c860']); }
     });
     for (const k of G.S.chests) out.push([k.x, k.y, 30, '#ffd27a']);
+    if (G.S.caravan) out.push([G.S.caravan.x, G.S.caravan.y, 40, '#ffc870']); // lanterna da carroça
     return out;
   }
 
   TD.world = {
-    update, onMove, onWaveStart, tap, seal, canSeal, sealCost, portalOpen, dropChest, openChest, hideChest, raiseBarricade, draw, drawFx, lights,
+    update, onMove, onWaveStart, busy, tap, seal, canSeal, sealCost, portalOpen, dropChest, openChest, hideChest, raiseBarricade, draw, drawFx, lights,
   };
 })();

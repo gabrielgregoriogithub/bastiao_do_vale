@@ -35,6 +35,7 @@
     { id: 'sealer', name: 'Senhor dos Portais', desc: 'Sele portais 5 vezes numa mesma partida.' },
     { id: 'thief', name: 'Pega ladrão', desc: 'Derrube um Ladrão de Ouro antes que ele fuja.' },
     { id: 'relics_all', name: 'Colecionador', desc: `Encontre as ${TD.RELICS.length} relíquias nos baús de tesouro.` },
+    { id: 'escort', name: 'Escolta real', desc: 'Leve 3 caravanas a salvo numa mesma partida.' },
     { id: 'heart', name: 'Coração partido', desc: 'Vença o último capítulo, as Minas de Cristal.' },
   ];
   // heróis com que o jogador já venceu, entre partidas (para o Trio Lendário)
@@ -84,6 +85,7 @@
   // Eventos dos portais, baús e ladrões (world.js)
   function onSeal(n) { if (n >= 5) unlock('sealer'); }
   function onThief() { unlock('thief'); }
+  function onCaravan(n) { if (n >= 3) unlock('escort'); }
   function onRelic() { if (!TD.relics.missing().length) unlock('relics_all'); }
 
   function onWaveEnd() {
@@ -173,5 +175,5 @@
     writeJson(RUNS_KEY, [...others, run].sort(better).slice(0, RUNS_MAX));
   }
 
-  TD.achievements = { onSeal, onThief, onRelic, onKill, onWaveEnd, onVictory, onMeteor, onCombo, flushKills, sync, list, has, totalKills: () => totalKills + pendingKills, runs, recordRun };
+  TD.achievements = { onSeal, onThief, onCaravan, onRelic, onKill, onWaveEnd, onVictory, onMeteor, onCombo, flushKills, sync, list, has, totalKills: () => totalKills + pendingKills, runs, recordRun };
 })();

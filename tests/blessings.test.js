@@ -9,7 +9,7 @@ const { T } = TD;
 function winWave() {
   G.startWave();
   G.S.queue = [];
-  G.S.enemies = [];
+  G.S.enemies = []; G.S.ambush = G.S.caravan = null; // eventos da onda também seguram o fim
   G.update(1 / 60);
 }
 
@@ -42,7 +42,7 @@ test('chamar a onda antes da hora não faz perder a bênção', () => {
   G.S.queue = [];
   G.startWave(); // chamada antecipada: a onda 3 nunca termina sozinha
   assert.equal(G.S.wave, 4);
-  G.S.queue = []; G.S.enemies = [];
+  G.S.queue = []; G.S.enemies = []; G.S.ambush = G.S.caravan = null;
   G.update(1 / 60);
   assert.equal(G.S.offer.length, 3, 'a oferta da onda 3 aparece no fim da onda 4');
 });
@@ -104,7 +104,7 @@ test('Cofre do Rei quadruplica o ouro dos chefes e Estrepes deixam a estrada mai
   G.hurt(boss, 1e9, true, null);
   assert.equal(G.S.gold - before, plain * 4);
 
-  G.S.enemies = [];
+  G.S.enemies = []; G.S.ambush = G.S.caravan = null; // eventos da onda também seguram o fim
   G.spawn('soldier', 100);
   const e = G.S.enemies[0];
   G.update(1);
