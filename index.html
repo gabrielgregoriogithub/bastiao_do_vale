@@ -311,6 +311,12 @@
   .discover-x { font: inherit; font-size: 20px; line-height: 1; color: var(--muted); background: none; border: 0; cursor: pointer; padding: 0 2px; }
   .discover-x:hover { color: var(--fg); }
   @media (max-width: 560px) { .discover { top: 6px; right: 6px; padding: 6px; grid-template-columns: 36px minmax(0, 1fr) auto; } .discover canvas { width: 36px; height: 36px; } .discover-ds { font-size: 12px; } }
+  .codex-maps { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+  .codex-maps .btn small { color: var(--muted); font-weight: 500; }
+  .codex-maps .btn.on { border-color: var(--brass); color: var(--brass); }
+  .enemy-head { display: flex; align-items: center; gap: 8px; }
+  .enemy-head canvas { width: 40px; height: 40px; flex: none; }
+  .enemy-head h3 { margin: 0; }
   .codex-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 10px; }
   .codex-head h2 { margin: 0; }
   .codex-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
@@ -446,7 +452,8 @@
   .dock-stats b.gold { color: var(--brass); }
   .dock-stats b.low { color: var(--danger); }
   .dock-row { display: grid; gap: 5px; }
-  .dock-build { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  /* --towers vem de dock.js: uma coluna por torre */
+  .dock-build { grid-template-columns: repeat(var(--towers, 9), minmax(0, 1fr)); gap: 4px; }
   .dock-act { grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(0, 1.5fr); }
   .dock-sel { display: flex; gap: 5px; align-items: stretch; }
   .dbtn {
@@ -486,7 +493,7 @@
       padding-top: max(8px, env(safe-area-inset-top, 0px)); border-top: 0; border-left: 1px solid #6b5626; box-shadow: -6px 0 18px rgba(0, 0, 0, .45);
     }
     body { padding-bottom: 12px; padding-top: 8px; padding-right: calc(var(--dock-w, 260px) + 12px); }
-    .dock-build { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .dock-build { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .dock-act { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .dwave { grid-column: 1 / -1; }
     .dock-sel { flex-wrap: wrap; }
@@ -720,6 +727,7 @@
     <div class="codex-cols">
       <section>
         <h3>Inimigos · <span id="codexCount"></span></h3>
+        <div class="codex-maps" id="codexMaps" role="group" aria-label="Campo dos inimigos"></div>
         <ul class="codex-list" id="codexEnemies"></ul>
       </section>
       <section>

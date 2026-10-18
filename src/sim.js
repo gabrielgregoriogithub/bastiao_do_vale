@@ -44,7 +44,7 @@
       queue: [], spawnT: 0, waveActive: false, next: TD.makeWave(1), seed: null, daily: null,
       speed: 1, paused: false, over: false, halted: false, endless: false, auto: false, autoT: null,
       inGame: false, menuOpen: false,
-      build: null, sel: null, aim: null, hover: null, hoverPx: null, banner: null,
+      build: null, sel: null, aim: null, hover: null, hoverPx: null, banner: null, inspect: null,
       shake: 0, hurtFlash: 0, iceFlash: 0, rallyT: 0,
       cooldowns: Object.fromEntries(POWERS.map(p => [p.id, 0])),
     };
@@ -427,6 +427,17 @@
     const paths = G.md.paths;
     G.S.spawnIdx = (G.S.spawnIdx || 0) + 1;
     return paths[G.S.spawnIdx % paths.length];
+  }
+
+  // Inimigo sob o ponto (x, y), para o jogador tocar e ver quem é; voadores são desenhados 10 px acima
+  function enemyAt(x, y, slop = 0) {
+    let best = null, bestD = Infinity;
+    for (const e of G.S.enemies) {
+      if (e.dead || (e.d.stealth && !e.revealed)) continue;
+      const d = Math.hypot(e.x - x, (e.d.flying ? e.y - 10 : e.y) - y);
+      if (d <= e.d.r + slop && d < bestD) { best = e; bestD = d; }
+    }
+    return best;
   }
 
   const lenOf = e => (e.d.flying ? e.path.flyLen : e.path.len);
@@ -825,6 +836,7 @@
     S.shots = S.shots.filter(s => !s.done);
     S.fx = S.fx.filter(f => f.t < f.life);
     if (S.sel && !S.towers.includes(S.sel)) S.sel = null;
+    if (S.inspect && S.inspect.dead) S.inspect = null;
 
     if (S.waveActive && !S.queue.length && !S.enemies.length) endWave();
   }
@@ -903,7 +915,7 @@
   }
 
   Object.assign(G, {
-    store, readBest, readStars, readChallenges, readDaily, newDaily, towerStats, prepare, newGame, hurt, addFx, spawn, costOf, powerCd,
+    enemyAt, store, readBest, readStars, readChallenges, readDaily, newDaily, towerStats, prepare, newGame, hurt, addFx, spawn, costOf, powerCd,
     build, upgrade, specialize, sell, cycleTarget, toggleAuto, continueEndless, startWave, usePower, canUsePower, update,
     towerAt, canBuild, upCost, specCost, refund, specOf, waveBonus, earlyBonus, canCallEarly, snapshot, restore, blessed, refreshStats, strike,
   });

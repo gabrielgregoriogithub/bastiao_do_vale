@@ -405,6 +405,12 @@
       TD.rr(ctx, S.sel.x - 18, S.sel.y - 18, 36, 36, 7); ctx.stroke();
       if (TOWERS[S.sel.type].support) markBuffed(S.sel.x, S.sel.y, S.sel.s.range);
     }
+    if (S.inspect) {
+      // marca o inimigo tocado: anel tracejado que o acompanha
+      const e = S.inspect, y = e.d.flying ? e.y - 10 : e.y;
+      ctx.strokeStyle = '#e8bd5c'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+      TD.circle(ctx, e.x, y, e.d.r + 7); ctx.stroke(); ctx.setLineDash([]);
+    }
     for (const e of S.enemies) if (!e.d.flying) TD.drawEnemy(ctx, e, reducedMotion);
     TD.units.draw(ctx, reducedMotion);
     if (S.hero) TD.drawHero(ctx, S.hero, S.heroSel, reducedMotion);

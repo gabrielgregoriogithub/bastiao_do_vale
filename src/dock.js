@@ -13,6 +13,7 @@
   // ---------- Montagem ----------
   function buildTowers() {
     buildRow.innerHTML = '';
+    buildRow.style.setProperty('--towers', ORDER.length);
     for (const type of ORDER) {
       const b = document.createElement('button');
       b.className = 'dbtn dtower';
@@ -72,6 +73,10 @@
     }
     if (S.sel) return towerSel(S.sel);
     if (S.aim) return `<span class="dsel-nm">Chuva de flechas<small>toque duas vezes onde ela deve cair</small></span><button class="dbtn dact" data-act="close">Cancelar</button>`;
+    if (S.inspect && !S.build) {
+      const d = S.inspect.d;
+      return `<span class="dsel-nm">${d.name}<small>vida ${Math.ceil(S.inspect.hp)} de ${S.inspect.maxHp} · armadura ${d.armor}${d.flying ? ' · voa' : ''}</small></span><button class="dbtn dact dclose" data-act="close" aria-label="Fechar">✕</button>`;
+    }
     return '';
   }
 
@@ -83,7 +88,9 @@
       const price = t.level < MAX_LVL ? G.upCost(t) : G.specCost(t);
       return `t${t.id}-${t.level}-${t.spec}-${t.target}-${S.gold >= price}-${G.refund(t)}`;
     }
-    return S.aim ? 'aim' : '';
+    if (S.aim) return 'aim';
+    // vida em décimos: a ficha do inimigo acompanha os golpes sem refazer a fileira a cada quadro
+    return S.inspect && !S.build ? `e${S.inspect.type}-${Math.ceil(S.inspect.hp / S.inspect.maxHp * 10)}` : '';
   }
 
   selRow.addEventListener('click', ev => {

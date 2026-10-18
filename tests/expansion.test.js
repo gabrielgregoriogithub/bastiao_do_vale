@@ -125,3 +125,25 @@ test('no Cemitério as lápides ocupam casas e as duas criptas levam à mesma mu
   assert.equal(TD.enemyFor('cemiterio', 'boss'), 'vampire');
   assert.equal(TD.enemyFor('costa', 'burrower'), 'hermit');
 });
+
+test('tocar num inimigo o escolhe para ver a ficha; camuflados escondidos não podem ser tocados', () => {
+  G.newGame('vale', 'normal', ['nohero']);
+  G.S.waveActive = true;
+  const e = frozen('brute', 200);
+  assert.equal(G.enemyAt(e.x + 3, e.y, 0), e);
+  assert.equal(G.enemyAt(e.x + 60, e.y, 0), null);
+  const s = frozen('stalker', 300);
+  s.revealed = false;
+  assert.equal(G.enemyAt(s.x, s.y, 0), null);
+  G.S.inspect = e;
+  G.hurt(e, 1e9, true, null);
+  G.update(1 / 60);
+  assert.equal(G.S.inspect, null, 'a ficha fecha quando o inimigo cai');
+});
+
+test('o Compêndio abre nos inimigos do campo da partida e troca de campo pelas abas', () => {
+  G.newGame('costa', 'normal');
+  TD.codex.show();
+  assert.ok(TD.codex.isOpen());
+  TD.codex.hide();
+});

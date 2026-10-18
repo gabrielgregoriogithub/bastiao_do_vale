@@ -239,6 +239,23 @@
     nextStat = (pick, unit = '') => `<span class="next" aria-label="no próximo nível">→ ${fmt(pick(n))}${unit}</span>`;
   }
 
+  // Ficha do inimigo tocado no mapa: números desta onda e o que ele faz
+  function enemyInfo(e) {
+    const d = e.d, armor = e.corrodeT > 0 ? '0 (corroída)' : d.armor;
+    const state = [e.enraged ? 'Em fúria' : null, e.under ? 'Embaixo da terra' : null].filter(Boolean).join(' · ');
+    return `<div class="enemy-head"><canvas width="96" height="96" aria-hidden="true"></canvas><h3>${d.name}${d.boss ? ' <span class="tag">Chefe</span>' : ''}</h3></div>
+      ${state ? `<p class="spec-line" style="--spec:#e0503a">${state}</p>` : ''}
+      <dl class="statgrid">
+        <dt>Vida</dt><dd id="eHp">${Math.ceil(e.hp)} / ${e.maxHp}</dd>
+        ${e.shield > 0 ? `<dt>Escudo</dt><dd id="eShield">${Math.ceil(e.shield)}</dd>` : ''}
+        <dt>Armadura</dt><dd>${armor}</dd>
+        <dt>Velocidade</dt><dd>${fmt(d.speed)} casas/s${d.flying ? ' · voa' : ''}</dd>
+        <dt>Rende</dt><dd>${d.gold} de ouro</dd>
+        <dt>Se passar</dt><dd>${d.lives || 1} ${(d.lives || 1) > 1 ? 'vidas' : 'vida'}</dd>
+      </dl>
+      <p>${TD.ENEMY_INFO[e.type]}</p>`;
+  }
+
   function renderInfo() {
     setNextPreview(G.S.sel);
     const S = G.S, t = S.sel;
@@ -274,6 +291,9 @@
       ui.info.innerHTML = `<h3>Construindo: ${d.name}</h3>
         <p><strong>${d.desc}</strong>${armor}</p>
         <p>Clique numa casa de gramado para construir. No celular, o primeiro toque mostra o alcance e o segundo confirma. Esc ou clique direito cancela.</p>`;
+    } else if (S.inspect) {
+      ui.info.innerHTML = enemyInfo(S.inspect);
+      TD.codex.enemyIcon(ui.info.querySelector('canvas'), S.inspect.type);
     } else {
       ui.info.innerHTML = `<h3>Como jogar</h3>
         <p>Escolha uma torre e toque no <strong>gramado</strong> para construir. Toque numa torre para melhorar, vender ou mudar a mira. No nível 3 ela ganha uma <strong>especialização</strong>.</p>
@@ -355,8 +375,14 @@
     const t = S.sel, h = S.hero;
     const afford = t ? (t.level < MAX_LVL ? S.gold >= G.upCost(t) : S.gold >= G.specCost(t)) : false;
     const info = S.heroSel && h ? `h${h.level}-${h.deadT > 0}`
-      : t ? `t${t.id}-${t.level}-${t.spec}-${t.target}-${afford}-${!!t.fresh}-${t.s.buff}-${S.towers.length}` : S.aim ? 'aim' : S.build ? 'b' + S.build : 'none';
+      : t ? `t${t.id}-${t.level}-${t.spec}-${t.target}-${afford}-${!!t.fresh}-${t.s.buff}-${S.towers.length}` : S.aim ? 'aim' : S.build ? 'b' + S.build
+      : S.inspect ? `e${S.inspect.type}-${S.inspect.enraged}-${S.inspect.corrodeT > 0}` : 'none';
     if (info !== lastInfo) { lastInfo = info; renderInfo(); }
+    if (!t && !S.heroSel && !S.aim && !S.build && S.inspect) {
+      const hp = $('eHp'), sh = $('eShield');
+      if (hp) hp.textContent = `${Math.ceil(S.inspect.hp)} / ${S.inspect.maxHp}`;
+      if (sh) sh.textContent = Math.ceil(S.inspect.shield);
+    }
     if (t) {
       const k = $('iKills'), d = $('iDmg');
       if (k) k.textContent = t.kills;
@@ -410,6 +436,8 @@
       return;
     }
     S.sel = null;
+    // tocar num inimigo mostra quem ele é; tocar no vazio fecha
+    S.inspect = G.enemyAt(p.x, p.y, isTouch ? 14 : 6);
   }
 
   // Teclado: as setas movem um cursor de casa em casa; Enter constrói ou manda o herói para lá
@@ -424,7 +452,7 @@
     if (t) S.sel = t;
   }
 
-  function cancel() { const S = G.S; S.build = null; S.sel = null; S.aim = null; S.heroSel = false; }
+  function cancel() { const S = G.S; S.build = null; S.sel = null; S.aim = null; S.heroSel = false; S.inspect = null; }
   function cycleSpeed() { const S = G.S; S.speed = S.speed === 1 ? 2 : S.speed === 2 ? 3 : 1; }
   function toggleSound() { sfx.setMuted(!sfx.isMuted()); store.save('bastiao-mudo', sfx.isMuted() ? 1 : 0); }
 
