@@ -40,7 +40,7 @@
       mapId, diffId, diff, perks, gold: diff.gold + 25 * perks.gold, lives, maxLives: lives,
       wave: 0, kills: 0, best: readBest(mapId, diffId), hero: null, heroSel: false, mods: {}, history: [], corpses: [], clock: 0,
       blessings: [], offer: null,
-      towers: [], enemies: [], shots: [], fx: [], strikes: [],
+      towers: [], enemies: [], shots: [], fx: [], strikes: [], puddles: [], mined: 0, bossWarn: 0,
       queue: [], spawnT: 0, waveActive: false, next: TD.makeWave(1), seed: null, daily: null,
       speed: 1, paused: false, over: false, halted: false, endless: false, auto: false, autoT: null,
       inGame: false, menuOpen: false,
@@ -106,6 +106,8 @@
       chain: d.chain || 0, chainRange: (d.chainRange || 0) * T, chainFalloff: d.chainFalloff || 1, weakDur: 0,
       units: d.units || 0, unitHp: (d.unitHp || 0) * Math.pow(1.4, L), unitArmor: 0, regen: d.regen || 0, pierce: false,
       aura: d.support ? d.aura + AURA_PER_LVL * L : 0, buff: 0,
+      puddle: d.puddle ? (d.puddle + 0.15 * L) * T : 0, puddleDur: d.puddleDur || 0, corrode: 0,
+      income: d.income ? Math.round(d.income * (1 + 0.7 * L)) : 0, bounty: 0,
     };
     switch (t.spec) {
       case 'volley': s.dmg *= 1.1; s.targets = 3; break;
@@ -120,11 +122,15 @@
       case 'hex': s.dmg *= 1.1; s.weakDur = 3; break;
       case 'guard': s.units = 3; s.unitHp *= 1.6; s.unitArmor = 0.35; break;
       case 'templar': s.dmg *= 1.5; s.pierce = true; s.regen *= 3; break;
+      case 'plague': s.dmg *= 1.3; s.puddle *= 1.4; s.puddleDur = 5; break;
+      case 'acid': s.corrode = 4; break;
+      case 'vault': s.income = Math.round(s.income * 1.75); break;
+      case 'bounty': s.bounty = 3; break;
       default: break;
     }
     blessStats(t, s);
     s.dmg *= 1 + 0.05 * (G.S?.perks?.aim || 0);
-    if (!d.support) applyAura(t, s);
+    if (!d.support && !d.economy) applyAura(t, s);
     return s;
   }
 
@@ -179,6 +185,33 @@
 
   function addFx(f) { G.S.fx.push({ t: 0, ...f }); }
 
+  // Brilhos que sobem da torre ao melhorar ou especializar
+  function glints(x, y, color, n) {
+    for (let i = 0; i < n; i++) {
+      addFx({ kind: 'glint', x: x + (Math.random() - 0.5) * 26, y: y + (Math.random() - 0.5) * 18, vy: -30 - Math.random() * 40, color, life: 0.6 + Math.random() * 0.5 });
+    }
+  }
+  // Moedas que saltam de onde o ouro foi ganho
+  function coins(x, y, n) {
+    for (let i = 0; i < n; i++) {
+      const a = -Math.PI / 2 + (Math.random() - 0.5) * 1.6, sp = 70 + Math.random() * 60;
+      addFx({ kind: 'coin', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0.55 + Math.random() * 0.2 });
+    }
+  }
+
+  // Minas de Ouro pagam no fim de cada onda; devolve o total
+  function minePayout() {
+    let total = 0;
+    for (const t of G.S.towers) {
+      if (!t.s.income) continue;
+      total += t.s.income;
+      addFx({ kind: 'text', x: t.x, y: t.y - 16, txt: `+${t.s.income}`, color: '#f0d27a', life: 1.4 });
+      coins(t.x, t.y - 6, 5);
+    }
+    G.S.mined += total;
+    return total;
+  }
+
   const dailyKey = key => `bastiao-diario-${key}`;
   const readDaily = key => Number(store.load(dailyKey(key), 0)) || 0;
 
@@ -203,9 +236,15 @@
     const S = G.S, cost = costOf(type);
     if (!canBuild(c, r) || S.gold < cost) return;
     S.gold -= cost;
-    S.towers = [...S.towers, { ...makeTower({ type, c, r, spent: cost }), fresh: true }];
+    // born: a torre sobe do chão nos primeiros instantes (scene.js)
+    S.towers = [...S.towers, { ...makeTower({ type, c, r, spent: cost }), fresh: true, born: S.clock }];
     refreshStats();
-    addFx({ kind: 'ring', x: (c + 0.5) * T, y: (r + 0.5) * T, r: T * 0.7, color: '#d6a547', life: 0.4 });
+    const x = (c + 0.5) * T, y = (r + 0.5) * T;
+    addFx({ kind: 'ring', x, y, r: T * 0.7, color: '#d6a547', life: 0.4 });
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      addFx({ kind: 'smoke', x: x + Math.cos(a) * 14, y: y + 10 + Math.sin(a) * 6, r: 5 + Math.random() * 4, life: 0.7 + Math.random() * 0.4 });
+    }
     sfx.play('build');
   }
 
@@ -219,6 +258,7 @@
     refreshStats();
     if (t.units) TD.units.refresh(t);
     addFx({ kind: 'ring', x: t.x, y: t.y, r: T * 0.9, color: '#d6a547', life: 0.5 });
+    glints(t.x, t.y, '#f0d27a', 8);
     sfx.play('upgrade');
   }
 
@@ -233,6 +273,7 @@
     refreshStats();
     if (t.units) TD.units.refresh(t);
     addFx({ kind: 'ring', x: t.x, y: t.y, r: T * 1.2, color: specOf(t).color, life: 0.7 });
+    glints(t.x, t.y, specOf(t).color, 14);
     sfx.play('spec');
   }
 
@@ -333,7 +374,8 @@
     // juros sobre o ouro guardado antes do bônus da onda
     const interest = blessed('interest') ? Math.min(INTEREST_MAX, Math.floor(S.gold * INTEREST_RATE)) : 0;
     const bonus = waveBonus(S.wave);
-    S.gold += bonus + interest;
+    S.gold += bonus + interest + minePayout();
+    if (S.towers.some(t => t.s.income)) sfx.play('coins');
     if (interest) addFx({ kind: 'text', x: W / 2, y: H / 2 + 26, txt: `Juros do Tesouro · +${interest}`, color: '#e8c56e', life: 1.8 });
     if (blessed('livingWall') && S.lives < S.maxLives) {
       S.lives += 1;
@@ -397,7 +439,11 @@
     const route = path || nextPath();
     const len = d.flying ? route.flyLen : route.len;
     const p = d.flying ? route.flyAt(dist) : route.posAt(dist);
-    if (d.boss && dist === 0) S.shake = Math.max(S.shake, 0.3);
+    if (d.boss && dist === 0) {
+      S.shake = Math.max(S.shake, 0.5);
+      S.bossWarn = 2; // borda vermelha pulsando enquanto o chefe sai da caverna
+      sfx.play('roar');
+    }
     S.enemies.push({
       type, d, path: route, weakT: 0, hp, maxHp: hp, dist, prog: dist / len, x: p.x, y: p.y,
       slowT: 0, slowF: 0, frozenT: 0, flash: 0, healT: 1, abilT: 2, shield: 0, blocked: false,
@@ -405,10 +451,12 @@
     });
   }
 
+  // quiet: dano contínuo (veneno, fogo, poças), que também alcança quem está embaixo da terra
   function hurt(e, dmg, pierce, src, quiet = false) {
-    if (e.dead) return;
+    if (e.dead || (e.under && !quiet)) return;
     const S = G.S;
-    let real = pierce ? dmg : Math.max(dmg * 0.25, dmg - e.d.armor);
+    const armor = e.corrodeT > 0 ? 0 : e.d.armor;
+    let real = pierce ? dmg : Math.max(dmg * 0.25, dmg - armor);
     if (e.weakT > 0) real *= TD.WEAK_MUL;
     if (e.shield > 0) {
       const absorbed = Math.min(e.shield, real);
@@ -427,8 +475,9 @@
     TD.foes.onDeath(e);
     const vault = e.d.boss && blessed('kingsVault') ? 4 : 1;
     const g = Math.floor((e.d.gold + Math.floor(S.wave / 5)) * (S.mods?.poor ? POOR_MUL : 1)) * vault;
-    S.gold += g;
+    S.gold += g + bounty(e);
     const py = e.d.flying ? e.y - 10 : e.y;
+    coins(e.x, py - 4, e.d.boss ? 8 : 2);
     addFx({ kind: 'puff', x: e.x, y: py, r: e.d.r, color: e.d.color, life: 0.45 });
     if (!e.d.flying) addFx({ kind: 'stain', x: e.x, y: e.y + 2, r: e.d.r * 0.9, color: e.d.dark, life: 4 });
     const shards = e.d.boss ? 14 : 5;
@@ -439,6 +488,14 @@
     if (e.d.boss) S.shake = Math.max(S.shake, 0.4);
     addFx({ kind: 'text', x: e.x, y: e.y - 8, txt: '+' + g, color: '#e8c56e', life: 0.9 });
     sfx.play('kill');
+  }
+
+  // Mina com Recompensa ao alcance: ouro extra por abate
+  function bounty(e) {
+    let extra = 0;
+    for (const t of G.S.towers) if (t.s.bounty && Math.hypot(e.x - t.x, e.y - t.y) <= t.s.range) extra += t.s.bounty;
+    if (extra) addFx({ kind: 'text', x: e.x + 10, y: e.y - 18, txt: `+${extra}`, color: '#f0a040', life: 0.9 });
+    return extra;
   }
 
   function applySlow(e, slow, dur) {
@@ -465,7 +522,7 @@
   function findTargets(t, n) {
     const score = TARGET_SCORE[t.target] || TARGET_SCORE.first;
     const r2 = t.s.range * t.s.range;
-    const inRange = e => !e.dead && canHit(t, e) && !(e.d.stealth && !e.revealed) && (e.x - t.x) ** 2 + (e.y - t.y) ** 2 <= r2;
+    const inRange = e => !e.dead && !e.under && canHit(t, e) && !(e.d.stealth && !e.revealed) && (e.x - t.x) ** 2 + (e.y - t.y) ** 2 <= r2;
     if (n === 1) {
       let best = null, bestSc = -Infinity;
       for (const e of G.S.enemies) {
@@ -533,10 +590,11 @@
     if (t.type === 'arcane') { fireArcane(t, e); return; }
     const s = t.s;
     G.S.shots.push({
-      kind: t.type, spec: t.spec, src: t, x: t.x, y: t.y, tx: e.x, ty: e.y, vx: 0, vy: 0, target: e,
+      kind: t.type, spec: t.spec, src: t, x: t.x, y: t.y, x0: t.x, y0: t.y, tx: e.x, ty: e.y, vx: 0, vy: 0, target: e,
       speed: t.spec === 'mortar' ? 210 : TOWERS[t.type].speed,
       dmg: s.dmg, splash: s.splash, slow: s.slow, slowDur: s.slowDur,
       dot: s.dot, dotDur: s.dotDur, dotKind: s.dotKind, freezeChance: s.freezeChance, done: false,
+      puddle: s.puddle, puddleDur: s.puddleDur, corrode: s.corrode,
     });
   }
 
@@ -559,6 +617,16 @@
       const hit = G.S.enemies.filter(e => !e.dead && Math.hypot(e.x - s.tx, e.y - s.ty) <= s.splash);
       for (const e of hit) hurt(e, s.dmg, false, s.src);
       addFx({ kind: 'ring', x: s.tx, y: s.ty, r: s.splash, color: '#b79cff', life: 0.3 });
+      return;
+    }
+    if (s.kind === 'cauldron') {
+      // o frasco quebra e deixa uma poça; o dano vem dela (updatePuddles)
+      G.S.puddles.push({ x: s.tx, y: s.ty, r: s.puddle, dps: s.dmg, t: s.puddleDur, life: s.puddleDur, src: s.src, corrode: s.corrode, acid: s.spec === 'acid' });
+      for (let i = 0; i < 6; i++) {
+        const a = Math.random() * Math.PI * 2, sp = 40 + Math.random() * 60;
+        addFx({ kind: 'shard', x: s.tx, y: s.ty, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 60, color: s.spec === 'acid' ? '#d8e05a' : '#8fd05a', life: 0.45 });
+      }
+      sfx.play('splash');
       return;
     }
     if (s.kind === 'cannon') {
@@ -598,6 +666,20 @@
     }
   }
 
+  // Poças do Caldeirão: ferem (ignorando armadura) quem está dentro, mesmo embaixo da terra
+  function updatePuddles(dt) {
+    const S = G.S;
+    for (const p of S.puddles) {
+      p.t -= dt;
+      for (const e of S.enemies) {
+        if (e.dead || e.d.flying || Math.hypot(e.x - p.x, e.y - p.y) > p.r) continue;
+        hurt(e, p.dps * dt, true, p.src, true);
+        if (p.corrode) e.corrodeT = Math.max(e.corrodeT || 0, p.corrode);
+      }
+    }
+    S.puddles = S.puddles.filter(p => p.t > 0);
+  }
+
   function leak(e) {
     const S = G.S, lost = e.d.lives || 1;
     e.dead = true;
@@ -619,9 +701,12 @@
       e.flash = Math.max(0, e.flash - dt);
       e.weakT = Math.max(0, e.weakT - dt);
       e.stunT = Math.max(0, (e.stunT || 0) - dt);
+      e.corrodeT = Math.max(0, (e.corrodeT || 0) - dt);
       tickDots(e, dt);
       if (e.dead) continue;
-      let f = e.frozenT > 0 || e.stunT > 0 || e.blocked ? 0 : e.slowT > 0 ? 1 - e.slowF : 1;
+      // embaixo da terra ninguém o segura
+      let f = e.frozenT > 0 || e.stunT > 0 || (e.blocked && !e.under) ? 0 : e.slowT > 0 ? 1 - e.slowF : 1;
+      if (e.enraged) f *= e.d.enrageMul;
       if (!e.d.flying && md.mudAt(e.x, e.y)) f *= TD.MUD_SLOW;
       if (!e.d.flying && caltrops) f *= CALTROPS_MUL;
       const len = lenOf(e);
@@ -646,7 +731,8 @@
       t.cd -= dt;
       t.kick = Math.max(0, (t.kick || 0) - dt * 7);
       if (t.stunT > 0) { t.stunT = Math.max(0, t.stunT - dt); continue; }
-      if (TOWERS[t.type].melee || TOWERS[t.type].support) continue; // o quartel luta pelos soldados (units.js); o estandarte não ataca
+      // o quartel luta pelos soldados (units.js); o estandarte e a mina não atacam
+      if (TOWERS[t.type].melee || TOWERS[t.type].support || TOWERS[t.type].economy) continue;
       if (t.spec === 'blizzard') {
         if (t.cd <= 0 && pulseBlizzard(t)) t.cd = t.s.rate * mul;
         continue;
@@ -722,11 +808,14 @@
     updateTowers(dt);
     moveShots(dt);
     updateStrikes(dt);
+    updatePuddles(dt);
 
     for (const f of S.fx) {
       f.t += dt;
-      if (f.kind === 'shard') { f.vy += 420 * dt; f.x += f.vx * dt; f.y += f.vy * dt; }
+      if (f.kind === 'shard' || f.kind === 'coin') { f.vy += 420 * dt; f.x += f.vx * dt; f.y += f.vy * dt; }
+      else if (f.kind === 'glint') f.y += f.vy * dt;
     }
+    S.bossWarn = Math.max(0, S.bossWarn - dt);
     if (S.banner) { S.banner.t += dt; if (S.banner.t >= S.banner.life) S.banner = null; }
     S.shake = Math.max(0, S.shake - dt);
     S.hurtFlash = Math.max(0, S.hurtFlash - dt);

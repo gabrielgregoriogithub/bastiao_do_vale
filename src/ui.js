@@ -176,6 +176,8 @@
     const s = t.s, d = TOWERS[t.type];
     const rows = [];
     if (s.splash) rows.push(['Raio da explosão', `${fmt(s.splash / T)} casas`]);
+    if (s.puddle) rows.push(['Poça', `${fmt(s.puddle / T)} casas por ${fmt(s.puddleDur)} s`]);
+    if (s.corrode) rows.push(['Corrosão', `sem armadura por ${fmt(s.corrode)} s`]);
     if (s.slow) rows.push(['Lentidão', `${Math.round(s.slow * 100)}% por ${fmt(s.slowDur)} s`]);
     if (s.targets > 1) rows.push(['Alvos por disparo', s.targets]);
     if (s.dot) rows.push([s.dotKind === 'poison' ? 'Veneno' : 'Queimadura', `${fmt(s.dot)} por segundo`]);
@@ -199,7 +201,7 @@
   function towerActions(t) {
     const S = G.S;
     const mode = TARGETING.find(x => x.id === t.target) || TARGETING[0];
-    const target = t.spec === 'blizzard' || TOWERS[t.type].melee || TOWERS[t.type].support ? '' : `<button class="btn wide" id="btnTarget" data-act="target">Mira: ${mode.name}</button>`;
+    const target = t.spec === 'blizzard' || TOWERS[t.type].melee || TOWERS[t.type].support || TOWERS[t.type].economy ? '' : `<button class="btn wide" id="btnTarget" data-act="target">Mira: ${mode.name}</button>`;
     const sellBtn = `<button class="btn danger" id="btnSell" data-act="sell" title="${t.fresh ? 'Ainda não atirou: devolve o preço cheio.' : 'Devolve 70% do que foi gasto.'}">Vender · ${G.refund(t)}${t.fresh ? ' (preço cheio)' : ''}</button>`;
     if (t.level < MAX_LVL) {
       const cost = G.upCost(t);
@@ -248,7 +250,11 @@
       const title = sp ? `${d.name} · ${sp.name}` : `${d.name} · nível ${t.level} de ${MAX_LVL}`;
       const range = `<dt>Alcance</dt><dd>${fmt(s.range / T)} casas${nextStat(n => n.range / T)}</dd>`;
       // o Estandarte não ataca: mostra o bônus que dá e quantas torres estão ao alcance dele
-      const rows = d.support
+      // a Mina também não ataca: mostra quanto rende por onda e o que já rendeu na partida
+      const rows = d.economy
+        ? `<dt>Ouro por onda</dt><dd>${s.income}${nextStat(n => n.income)}</dd>${s.bounty ? `${range}<dt>Por abate ao alcance</dt><dd>+${s.bounty}</dd>` : ''}
+          <dt>Rendeu nesta partida</dt><dd>${G.S.mined} (todas as minas)</dd>`
+        : d.support
         ? `<dt>Bônus às vizinhas</dt><dd>+${Math.round(s.aura * 100)}% de dano${nextStat(n => n.aura * 100, '%')}</dd>${range}
           <dt>Torres ao alcance</dt><dd>${S.towers.filter(o => !TOWERS[o.type].support && Math.hypot(o.x - t.x, o.y - t.y) <= s.range).length}</dd>`
         : `<dt>Dano</dt><dd>${fmt(s.dmg)}${nextStat(n => n.dmg)}</dd>${range}

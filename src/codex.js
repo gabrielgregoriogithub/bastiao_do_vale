@@ -86,7 +86,7 @@
 
   function enemyRow(type) {
     const d = ENEMIES[type], known = seen.has(type);
-    const tags = [d.flying ? 'Voa' : null, d.stealth ? 'Camuflado' : null, d.boss ? 'Chefe' : null].filter(Boolean).map(t => `<span class="tag">${t}</span>`).join('');
+    const tags = [d.flying ? 'Voa' : null, d.stealth ? 'Camuflado' : null, d.boss ? 'Chefe' : null, d.enrage ? 'Fúria' : null, d.burrowEvery ? 'Cava' : null].filter(Boolean).map(t => `<span class="tag">${t}</span>`).join('');
     const stats = `Vida ${d.hp} · Velocidade ${fmt(d.speed)} · Armadura ${d.armor} · Custa ${d.lives || 1} ${d.lives > 1 ? 'vidas' : 'vida'}`;
     return `<li class="codex-row${known ? '' : ' unknown'}">
       <canvas width="96" height="96" data-enemy="${type}" aria-hidden="true"></canvas>
@@ -101,12 +101,14 @@
   function towerRow(type) {
     const d = TOWERS[type];
     const specs = SPECS[type].map(s => s.name).join(' ou ');
-    const extras = [d.ground ? 'Não acerta voadores' : null, d.pierce ? 'Ignora armadura' : null, d.chain ? `Salta entre ${d.chain} inimigos` : null].filter(Boolean).join(' · ');
+    const extras = [d.ground ? 'Não acerta voadores' : null, d.pierce || d.puddle ? 'Ignora armadura' : null, d.chain ? `Salta entre ${d.chain} inimigos` : null].filter(Boolean).join(' · ');
     return `<li class="codex-row">
       <canvas width="96" height="96" data-tower="${type}" aria-hidden="true"></canvas>
       <div class="codex-txt">
         <span class="codex-nm">${d.name} <span class="tag gold">${d.cost} de ouro</span></span>
-        <span class="codex-stats">${d.support
+        <span class="codex-stats">${d.economy
+          ? `Não ataca · ${d.income} de ouro por onda no nível 1, ${Math.round(d.income * 2.4)} no nível 3`
+          : d.support
           ? `Não ataca · +${Math.round(d.aura * 100)}% de dano às torres a até ${fmt(d.range)} casas (vários não se somam)`
           : `Dano ${d.dmg} · Alcance ${fmt(d.range)} casas · ${fmt(1 / d.rate)} ${d.melee ? 'golpes' : 'disparos'} por segundo${d.units ? ` · ${d.units} soldados de ${d.unitHp} de vida` : ''}${extras ? ` · ${extras}` : ''}`}</span>
         <span class="codex-ds">${d.desc} No nível 3: ${specs}.</span>

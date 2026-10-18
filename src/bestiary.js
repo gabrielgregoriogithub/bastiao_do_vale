@@ -1,16 +1,17 @@
-// Bestiário dos ambientes: cada campo oficial tem sua própria versão dos 12 inimigos clássicos.
+// Bestiário dos ambientes: cada campo oficial tem sua própria versão dos 14 inimigos clássicos.
 // A versão temática troca nome, cores e enfeites, mas mantém os números e a habilidade do papel (role)
 // que ela ocupa. As ondas continuam sorteando papéis (makeWave); spawn os troca pelo inimigo do campo.
 (() => {
   const TD = window.TD;
   const { ENEMIES, ENEMY_INFO } = TD;
 
-  TD.ROLE_ORDER = ['soldier', 'scout', 'brute', 'healer', 'flyer', 'stalker', 'necro', 'skeleton', 'boss', 'witch', 'colossus', 'dragon'];
+  TD.ROLE_ORDER = ['soldier', 'scout', 'brute', 'healer', 'flyer', 'stalker', 'necro', 'skeleton', 'boss', 'witch', 'colossus', 'dragon', 'berserker', 'burrower'];
 
   // look: enfeites desenhados sobre o corpo (render.js); 'square' e 'bigsquare' dão corpo quadrado
   const CLASSIC_LOOK = {
     soldier: ['spear'], scout: ['dagger'], brute: ['square', 'visor'], healer: ['cross'], flyer: [], stalker: ['eye'],
     necro: ['hood'], skeleton: ['spear', 'bones'], boss: ['crown'], witch: ['hat'], colossus: ['bigsquare', 'cracks'], dragon: [],
+    berserker: ['axe'], burrower: ['claws', 'lamp'],
   };
   for (const role of TD.ROLE_ORDER) Object.assign(ENEMIES[role], { role, look: CLASSIC_LOOK[role] });
 
@@ -29,6 +30,8 @@
       ['riverwitch', 'Bruxa do Rio', 'Bruxas do Rio', '#4a8a8f', '#173638', ['hat'], 'Ergue escudos de água ao redor dos aliados.'],
       ['turtle', 'Tartaruga Colossal', 'Tartarugas Colossais', '#6a7d4f', '#262f1a', ['bigsquare', 'shell'], 'Uma ilha que anda.'],
       ['hydra', 'Hidra Alada', 'Hidras Aladas', '#3d7a6a', '#123028', ['horns'], 'Sobrevoa o vale com três bocas famintas.'],
+      ['hippo', 'Hipopótamo Bravo', 'Hipopótamos Bravos', '#8a7a8a', '#3a2e3a', ['tusks'], 'Parece manso até levar o primeiro golpe.'],
+      ['mudeel', 'Enguia do Lodo', 'Enguias do Lodo', '#5a6a4a', '#202a18', ['stripes'], 'Afunda na lama da estrada e surge mais adiante.'],
     ],
     deserto: [
       ['nomad', 'Nômade', 'Nômades', '#c08a4e', '#5a3a18', ['spear', 'turban'], 'Guerreiro das dunas, de turbante e lança.'],
@@ -43,6 +46,8 @@
       ['djinn', 'Gênio do Deserto', 'Gênios do Deserto', '#4a7ac0', '#1a2c4e', ['turban'], 'Envolve os aliados num redemoinho que absorve golpes.'],
       ['sphinx', 'Esfinge', 'Esfinges', '#c9a46a', '#5a4220', ['bigsquare', 'ears'], 'Leão de pedra com rosto de rei.'],
       ['roc', 'Pássaro Roca', 'Pássaros Roca', '#a8603a', '#45200e', ['beak'], 'Ave gigante que tapa o sol.'],
+      ['scorpion', 'Escorpião Gigante', 'Escorpiões Gigantes', '#a8703a', '#40240c', ['claws', 'stripes'], 'Ferrão erguido e pinças abertas.'],
+      ['sandworm', 'Verme da Areia', 'Vermes da Areia', '#c8a070', '#5a3e1e', ['stripes'], 'Mergulha nas dunas e reaparece sem aviso.'],
     ],
     neve: [
       ['frostman', 'Guerreiro do Gelo', 'Guerreiros do Gelo', '#6a8aa8', '#22303e', ['spear', 'fur'], 'Vem das geleiras vestindo peles.'],
@@ -57,6 +62,8 @@
       ['icequeen', 'Rainha do Gelo', 'Rainhas do Gelo', '#8fc4e0', '#244a5e', ['hat'], 'Ergue escudos de gelo sobre os aliados.'],
       ['icegolem', 'Gigante de Gelo', 'Gigantes de Gelo', '#9fc8dc', '#38566a', ['bigsquare', 'cracks'], 'Um bloco de geleira que aprendeu a andar.'],
       ['frostwyrm', 'Serpe Glacial', 'Serpes Glaciais', '#7aa8c8', '#1e3a4e', ['horns'], 'Asas de gelo e hálito que paralisa.'],
+      ['polarbear', 'Urso Polar', 'Ursos Polares', '#eef2f4', '#6a7880', ['ears', 'fur'], 'Ferido, vira uma avalanche de garras.'],
+      ['icemole', 'Toupeira Gelada', 'Toupeiras Geladas', '#8a9aa8', '#2e3a44', ['claws'], 'Cava túneis sob o gelo.'],
     ],
     floresta: [
       ['warant', 'Formiga Guerreira', 'Formigas Guerreiras', '#8a3a2a', '#33120c', ['spear', 'antennae'], 'Marcha em colunas sem fim.'],
@@ -71,6 +78,40 @@
       ['hag', 'Bruxa do Brejo', 'Bruxas do Brejo', '#6a5a8a', '#241c36', ['hat'], 'Cobre os aliados com uma névoa que absorve golpes.'],
       ['treant', 'Árvore Anciã', 'Árvores Anciãs', '#6a5038', '#261a10', ['bigsquare', 'leaf'], 'O carvalho mais velho do pântano, de pé e em marcha.'],
       ['wyvern', 'Serpe do Pântano', 'Serpes do Pântano', '#4a6a3a', '#182812', ['horns'], 'Cospe fogo de dentro da névoa.'],
+      ['brownbear', 'Urso Furioso', 'Ursos Furiosos', '#6a4a30', '#281a0e', ['ears'], 'Dono da floresta, não aceita ser ferido.'],
+      ['mole', 'Toupeira Gigante', 'Toupeiras Gigantes', '#5a4a44', '#201814', ['claws'], 'Some na terra fofa e brota adiante.'],
+    ],
+    costa: [
+      ['pirate', 'Pirata', 'Piratas', '#a8503a', '#401a10', ['spear', 'bandana'], 'Desembarcou de lança em punho e sorriso sem dentes.'],
+      ['cabinboy', 'Grumete', 'Grumetes', '#d0a070', '#5a3a1a', ['dagger', 'bandana'], 'Pequeno e ligeiro, corre à frente do bando.'],
+      ['corsair', 'Corsário de Couraça', 'Corsários de Couraça', '#6a7080', '#262a34', ['square', 'visor'], 'Couraça roubada de um navio de guerra.'],
+      ['surgeon', 'Cirurgião de Bordo', 'Cirurgiões de Bordo', '#c8c0a8', '#4a4434', ['cross'], 'Remenda os marujos no meio da batalha.'],
+      ['gull', 'Gaivota Ladra', 'Gaivotas Ladras', '#e8eaec', '#5a6068', ['beak'], 'Rouba tudo o que brilha, inclusive moedas.'],
+      ['smuggler', 'Contrabandista', 'Contrabandistas', '#3a4a5a', '#141c24', ['eye', 'bandana'], 'Anda nas sombras do cais sem ser notado.'],
+      ['ghostcaptain', 'Capitão Fantasma', 'Capitães Fantasmas', '#6a8aa0', '#1e2c38', ['tricorn'], 'Comanda uma tripulação que o mar não quis.'],
+      ['ghostsailor', 'Marujo Fantasma', 'Marujos Fantasmas', '#a8c8d8', '#3e5868', ['spear', 'bones'], 'Um afogado que voltou para o convés.'],
+      ['piratelord', 'Rei dos Piratas', 'Reis dos Piratas', '#8a2a2a', '#300c0c', ['tricorn', 'tusks'], 'O pirata mais temido dos sete mares.'],
+      ['siren', 'Sereia', 'Sereias', '#4ab0a0', '#14403a', ['drop'], 'Seu canto envolve os aliados numa espuma que absorve golpes.'],
+      ['kraken', 'Kraken', 'Krakens', '#7a3a5a', '#2c1020', ['bigsquare', 'legs'], 'Saiu do fundo do mar arrastando os tentáculos.'],
+      ['seaserpent', 'Serpente Marinha', 'Serpentes Marinhas', '#2a7a7a', '#0c2c2c', ['horns'], 'Voa baixo sobre as ondas, cuspindo água fervente.'],
+      ['buccaneer', 'Bucaneiro Furioso', 'Bucaneiros Furiosos', '#b05a2a', '#40200c', ['axe', 'bandana'], 'Ferido, larga a prudência e corre de machado em punho.'],
+      ['hermit', 'Caranguejo-Ermitão', 'Caranguejos-Ermitões', '#c86a4a', '#4a2010', ['claws', 'shell'], 'Se esconde na concha e some na areia.'],
+    ],
+    cripta: [
+      ['ghoul', 'Carniçal', 'Carniçais', '#7a8a6a', '#2a3222', ['claws'], 'Morto faminto que nunca para de andar.'],
+      ['cryptrat', 'Rato da Cripta', 'Ratos da Cripta', '#6a5a5a', '#241c1c', ['ears'], 'Corre em bandos entre as lápides.'],
+      ['deathknight', 'Cavaleiro Morto', 'Cavaleiros Mortos', '#4a4a5a', '#16161e', ['square', 'visor'], 'Armadura enferrujada que ainda obedece.'],
+      ['acolyte', 'Acólito Sombrio', 'Acólitos Sombrios', '#5a4a6a', '#1e1626', ['cross'], 'Reza para fechar as feridas dos mortos.'],
+      ['vampbat', 'Morcego Vampiro', 'Morcegos Vampiros', '#5a2a3a', '#1e0a12', ['ears'], 'Desce das torres do mausoléu ao cair da noite.'],
+      ['ghost', 'Fantasma', 'Fantasmas', '#c8d4e0', '#56606e', ['eye'], 'Atravessa a névoa sem ser visto.'],
+      ['lich', 'Lich', 'Liches', '#3a4a3a', '#121a12', ['hood'], 'Rei dos mortos-vivos, ergue quem cai perto dele.'],
+      ['oldbones', 'Ossada', 'Ossadas', '#e0d8c0', '#605840', ['spear', 'bones'], 'Esqueleto antigo, mais pó que osso.'],
+      ['vampire', 'Rei Vampiro', 'Reis Vampiros', '#6a1a2a', '#240810', ['crown'], 'Senhor da cripta, sedento e paciente.'],
+      ['banshee', 'Banshee', 'Banshees', '#a8b8d8', '#3a4460', ['wraps'], 'Seu lamento envolve os aliados num escudo gelado.'],
+      ['abomination', 'Abominação', 'Abominações', '#7a6a5a', '#2a2018', ['bigsquare', 'wraps'], 'Costurada com pedaços de muitos guerreiros.'],
+      ['bonedragon', 'Dragão Esqueleto', 'Dragões Esqueletos', '#d8d0b8', '#5a5240', ['horns'], 'Ossos de dragão erguidos por magia negra.'],
+      ['werewolf', 'Lobisomem', 'Lobisomens', '#5a4a3a', '#201810', ['ears', 'fur'], 'Ferido, a lua fala mais alto e ele dispara.'],
+      ['tombworm', 'Verme da Tumba', 'Vermes da Tumba', '#8a7a6a', '#30281e', ['stripes'], 'Cava entre os caixões e sai onde ninguém espera.'],
     ],
     vulcao: [
       ['cultist', 'Cultista da Chama', 'Cultistas da Chama', '#a8402c', '#40140c', ['spear', 'flame'], 'Fanático que adora o fogo da montanha.'],
@@ -85,6 +126,8 @@
       ['lavawitch', 'Bruxa da Lava', 'Bruxas da Lava', '#c0462a', '#481608', ['hat', 'flame'], 'Cobre os aliados com uma crosta de magma.'],
       ['magmagolem', 'Golem de Magma', 'Golens de Magma', '#4a3a34', '#180e0a', ['bigsquare', 'cracks', 'flame'], 'Rocha negra com lava correndo nas rachaduras.'],
       ['elderdragon', 'Dragão Ancião', 'Dragões Anciões', '#c8401e', '#4a1006', ['horns', 'flame'], 'O primeiro dos dragões, nascido dentro do vulcão.'],
+      ['flameogre', 'Ogro em Chamas', 'Ogros em Chamas', '#b0482a', '#401408', ['axe', 'flame'], 'Quanto mais apanha, mais queima.'],
+      ['magmaworm', 'Verme de Magma', 'Vermes de Magma', '#d0602a', '#4a1a08', ['stripes', 'flame'], 'Nada na rocha derretida sob a estrada.'],
     ],
   };
 
@@ -103,6 +146,8 @@
     witch: () => 'Chefe que protege os aliados próximos com escudos. O escudo absorve dano antes da vida.',
     colossus: r => `Chefe enorme com armadura 8. Ao cair, se parte em 4 ${n(r, 'brute', true)} no mesmo lugar.`,
     dragon: () => 'Chefe voador. Cospe fogo na torre mais próxima, que para de atirar por 3 s.',
+    berserker: () => 'Ao perder metade da vida entra em fúria e corre quase o dobro. Derrube de uma vez, ou deixe lento antes.',
+    burrower: () => 'A cada 4 s mergulha na terra e nada o acerta. Poças do Caldeirão e veneno continuam agindo.',
   };
 
   const rosterIds = {};
@@ -116,7 +161,7 @@
   }
 
   const biomeOf = mapId => (TD.MAPS.find(m => m.id === mapId) || {}).biome;
-  // Os 12 inimigos do campo; o Vale e os campos do editor usam os clássicos
+  // Os inimigos do campo, na ordem dos papéis; o Vale e os campos do editor usam os clássicos
   TD.rosterOf = mapId => rosterIds[biomeOf(mapId)] || TD.ROLE_ORDER;
   // type pode ser um papel ('brute') ou o inimigo de outro ambiente: vira a versão deste campo
   TD.enemyFor = (mapId, type) => {

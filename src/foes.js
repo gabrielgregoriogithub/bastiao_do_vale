@@ -98,6 +98,26 @@
     S.corpses = [...S.corpses, { path: e.path, dist: e.dist, x: e.x, y: e.y, t: S.clock }].slice(-CORPSE_MAX);
   }
 
+  // Berserker: abaixo de uma fração da vida entra em fúria (moveEnemies acelera quem está enraged)
+  function checkRage(e) {
+    if (e.enraged || e.hp >= e.maxHp * e.d.enrage) return;
+    e.enraged = true;
+    G.addFx({ kind: 'ring', x: e.x, y: e.y, r: T * 0.9, color: '#e0503a', life: 0.5 });
+    sfx.play('rage');
+  }
+
+  // Escavador: alterna entre andar na superfície e mergulhar na terra
+  function burrow(e, dt) {
+    e.burrowT = (e.burrowT ?? e.d.burrowEvery * 0.6) - dt;
+    if (e.burrowT > 0) return;
+    e.under = !e.under;
+    e.burrowT = e.under ? e.d.burrowDur : e.d.burrowEvery;
+    for (let i = 0; i < 5; i++) {
+      const a = Math.random() * Math.PI * 2, sp = 40 + Math.random() * 50;
+      G.addFx({ kind: 'shard', x: e.x, y: e.y + 4, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 70, color: i % 2 ? '#6a5236' : '#8a7050', life: 0.45 });
+    }
+  }
+
   function onDeath(e) {
     if (e.d.splitInto) split(e);
     addCorpse(e);
@@ -108,6 +128,8 @@
     bossAbilities(e, dt);
     if (e.d.raiseEvery) raiseDead(e, dt);
     if (e.d.heal) healAround(e, dt);
+    if (e.d.enrage) checkRage(e);
+    if (e.d.burrowEvery) burrow(e, dt);
   }
 
   TD.foes = { onDeath, tick, updateReveal };

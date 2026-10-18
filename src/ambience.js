@@ -11,6 +11,8 @@
     serpente: { count: 18, spawn: r => ({ x: r() * W, y: r() * H, vx: 120 + r() * 80, vy: 6, size: 14 + r() * 18, phase: r() * 6 }), color: 'rgba(236,210,150,A)', streak: true },
     encruzilhada: { count: 40, spawn: r => ({ x: r() * W, y: -10 - r() * H, vx: 8 + r() * 10, vy: 22 + r() * 18, size: 1.2 + r() * 1.4, phase: r() * 6 }), color: 'rgba(255,255,255,A)' },
     pantano: { count: 22, spawn: r => ({ x: r() * W, y: r() * H, vx: 0, vy: 0, size: 1.6 + r() * 1, phase: r() * 6 }), color: 'rgba(200,240,120,A)', firefly: true },
+    costa: { count: 12, spawn: r => ({ x: r() * W, y: r() * H, vx: 10 + r() * 8, vy: 0, size: 30 + r() * 30, phase: r() * 6 }), color: 'rgba(240,248,250,A)', mist: true },
+    cemiterio: { count: 16, spawn: r => ({ x: r() * W, y: r() * H, vx: 5 + r() * 6, vy: 0, size: 40 + r() * 40, phase: r() * 6 }), color: 'rgba(200,210,220,A)', mist: true },
     vulcao: { count: 30, spawn: r => ({ x: r() * W, y: r() * H, vx: 4 + r() * 8, vy: -14 - r() * 18, size: 1 + r() * 1.3, phase: r() * 6 }), color: 'rgba(255,150,60,A)' },
   };
 
@@ -70,7 +72,7 @@
       }
     }
     // o pântano é mais escuro e úmido; o vulcão, quente
-    if (mapId === 'pantano') {
+    if (mapId === 'pantano' || mapId === 'cemiterio') {
       g.fillStyle = 'rgba(10,20,15,.12)';
       g.fillRect(0, 0, W, H);
     } else if (mapId === 'vulcao') {

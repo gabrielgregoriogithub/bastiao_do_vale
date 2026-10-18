@@ -56,7 +56,7 @@
   function pick(home, engaged) {
     let free = null, freeD = Infinity, any = null, anyD = Infinity;
     for (const e of G.S.enemies) {
-      if (e.dead || e.d.flying) continue;
+      if (e.dead || e.d.flying || e.under) continue;
       const d = Math.hypot(e.x - home.x, e.y - home.y);
       if (d > LEASH) continue;
       if (!engaged.has(e) && d < freeD) { free = e; freeD = d; }
@@ -88,7 +88,7 @@
       return;
     }
     if (t.stunT > 0) return; // quartel em chamas: os soldados recuam e esperam
-    if (u.target && (u.target.dead || Math.hypot(u.target.x - home.x, u.target.y - home.y) > LEASH * 1.4)) u.target = null;
+    if (u.target && (u.target.dead || u.target.under || Math.hypot(u.target.x - home.x, u.target.y - home.y) > LEASH * 1.4)) u.target = null;
     if (!u.target) u.target = pick(home, engaged);
     if (u.target) {
       engaged.add(u.target);

@@ -158,6 +158,32 @@
       g.fillStyle = '#f2f6f8'; g.beginPath(); g.moveTo(x - w * 0.5, y + dy - 6); g.lineTo(x, y + dy - 12); g.lineTo(x + w * 0.5, y + dy - 6); g.closePath(); g.fill();
     }
   }
+  // Lápide com cruz ou arco (Cemitério)
+  function drawGrave(g, x, y, rnd) {
+    g.fillStyle = 'rgba(0,0,0,.28)'; g.beginPath(); g.ellipse(x + 2, y + 11, 11, 4, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#4a3e30'; g.beginPath(); g.ellipse(x, y + 10, 10, 3.5, 0, 0, Math.PI * 2); g.fill();
+    if (rnd() > 0.5) {
+      g.fillStyle = '#7a7670'; g.strokeStyle = '#3a3834'; g.lineWidth = 1.5;
+      g.beginPath(); g.moveTo(x - 7, y + 10); g.lineTo(x - 7, y - 4); g.arc(x, y - 4, 7, Math.PI, 0); g.lineTo(x + 7, y + 10); g.closePath(); g.fill(); g.stroke();
+      g.strokeStyle = 'rgba(0,0,0,.35)'; g.lineWidth = 1;
+      g.beginPath(); g.moveTo(x - 3, y - 2); g.lineTo(x + 3, y - 2); g.moveTo(x - 3, y + 2); g.lineTo(x + 3, y + 2); g.stroke();
+    } else {
+      g.fillStyle = '#86827a';
+      g.fillRect(x - 2, y - 10, 4, 20); g.fillRect(x - 7, y - 5, 14, 4);
+    }
+  }
+  // Coqueiro inclinado (Costa)
+  function drawPalm(g, x, y) {
+    g.fillStyle = 'rgba(0,0,0,.2)'; g.beginPath(); g.ellipse(x + 6, y + 12, 13, 4, 0, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = '#7a5a36'; g.lineWidth = 4; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(x - 3, y + 12); g.quadraticCurveTo(x - 4, y - 2, x + 3, y - 10); g.stroke();
+    g.lineCap = 'butt';
+    g.fillStyle = '#3e7a3a';
+    for (const a of [-2.6, -1.9, -1.2, -0.5, 0.2]) {
+      g.beginPath(); g.ellipse(x + 3 + Math.cos(a) * 8, y - 10 + Math.sin(a) * 5, 9, 2.6, a, 0, Math.PI * 2); g.fill();
+    }
+    g.fillStyle = '#5a3a1a'; circle(g, x + 2, y - 8, 2); g.fill(); circle(g, x + 5, y - 7, 2); g.fill();
+  }
   // Cacto de dois braços (Serpente, no deserto)
   function drawCactus(g, x, y) {
     g.fillStyle = 'rgba(0,0,0,.22)'; g.beginPath(); g.ellipse(x + 2, y + 12, 10, 4, 0, 0, Math.PI * 2); g.fill();
@@ -177,7 +203,9 @@
     for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS - 1; c++) {
       if (md.blocked[r][c] !== 2) continue;
       const x = (c + 0.5) * T, y = (r + 0.5) * T, plant = rnd() > 0.45;
-      if (plant && biome === 'neve') drawPine(g, x, y);
+      if (biome === 'cripta') drawGrave(g, x, y, rnd);
+      else if (plant && biome === 'neve') drawPine(g, x, y);
+      else if (plant && biome === 'costa') drawPalm(g, x, y);
       else if (plant && biome === 'deserto') drawCactus(g, x, y);
       else if (plant && biome !== 'vulcao') {
         g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(x + 2, y + 9, 15, 6, 0, 0, Math.PI * 2); g.fill();
@@ -292,7 +320,7 @@
     return bg;
   }
 
-  const PENNANT = { archer: '#c9a45c', cannon: '#9aa0a8', frost: '#8fd3e8', ballista: '#b0743a', arcane: '#9b7be0', barracks: '#b0473b', banner: '#d6a547' };
+  const PENNANT = { archer: '#c9a45c', cannon: '#9aa0a8', frost: '#8fd3e8', ballista: '#b0743a', arcane: '#9b7be0', barracks: '#b0473b', banner: '#d6a547', cauldron: '#8fd05a', mine: '#e8c56e' };
 
   // Nível 2 ganha rebites de bronze; nível 3 ergue um estandarte com a cor da torre
   function drawTowerTier(g, type, level, specColor) {
@@ -372,6 +400,29 @@
       g.beginPath(); g.moveTo(-2, -12); g.quadraticCurveTo(4, -12 + wave, 10, -10); g.lineTo(10, -2);
       g.quadraticCurveTo(4, -4 - wave, -2, -3); g.closePath(); g.fill(); g.stroke();
       g.fillStyle = '#d6a547'; circle(g, 4, -7, 1.6); g.fill();
+    } else if (type === 'cauldron') {
+      // panela de ferro sobre brasas, com ácido verde borbulhando; balança um pouco ao arremessar
+      g.rotate(kick * 0.25);
+      g.fillStyle = 'rgba(255,120,40,.55)'; g.beginPath(); g.ellipse(0, 9, 8, 3, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#2b2b2e'; g.strokeStyle = '#121214'; g.lineWidth = 1.5;
+      g.beginPath(); g.arc(0, 1, 10, 0, Math.PI); g.lineTo(-10, -2); g.lineTo(10, -2); g.closePath(); g.fill(); g.stroke();
+      g.fillStyle = '#7fc84a'; g.beginPath(); g.ellipse(0, -2, 10, 3.6, 0, 0, Math.PI * 2); g.fill();
+      const bub = time ? (time * 1.8) % 1 : 0.5;
+      g.fillStyle = '#c8f08a';
+      circle(g, -4, -3 - bub * 5, 1.6 * (1 - bub) + 0.4); g.fill();
+      circle(g, 3, -2 - ((bub + 0.5) % 1) * 6, 1.3); g.fill();
+      g.strokeStyle = '#5a5a60'; g.lineWidth = 1.5;
+      g.beginPath(); g.moveTo(-11, -2); g.lineTo(-13, 3); g.moveTo(11, -2); g.lineTo(13, 3); g.stroke();
+    } else if (type === 'mine') {
+      // entrada de mina com escoras de madeira e um carrinho cheio de ouro que brilha
+      g.fillStyle = '#4a3a2a'; g.beginPath(); g.moveTo(-10, 6); g.lineTo(-10, -6); g.quadraticCurveTo(0, -14, 10, -6); g.lineTo(10, 6); g.closePath(); g.fill();
+      g.fillStyle = '#120e0a'; g.beginPath(); g.moveTo(-6, 6); g.lineTo(-6, -3); g.quadraticCurveTo(0, -9, 6, -3); g.lineTo(6, 6); g.closePath(); g.fill();
+      g.strokeStyle = '#8a6a44'; g.lineWidth = 2.2;
+      g.beginPath(); g.moveTo(-7, 7); g.lineTo(-7, -4); g.moveTo(7, 7); g.lineTo(7, -4); g.moveTo(-9, -5); g.lineTo(9, -5); g.stroke();
+      g.fillStyle = '#5a5a60'; rr(g, -5, 3, 10, 5, 1.5); g.fill();
+      g.fillStyle = '#e8c56e'; circle(g, -2, 3, 2.2); g.fill(); circle(g, 2, 2.5, 2.4); g.fill();
+      const shine = time ? 0.5 + 0.5 * Math.sin(time * 3) : 0.5;
+      g.fillStyle = `rgba(255,250,210,${0.4 + 0.5 * shine})`; circle(g, 1.2, 1.6, 0.9); g.fill();
     } else if (type === 'ballista') {
       g.rotate(ang);
       g.translate(recoil, 0);
@@ -731,6 +782,28 @@
       g.quadraticCurveTo(x + r * 0.25, y - r * (0.75 + 0.7 * f), x + r * 0.4, y - r * 0.75); g.closePath(); g.fill();
       g.fillStyle = 'rgba(255,230,140,.9)'; circle(g, x, y - r * 0.95, r * 0.16); g.fill();
     },
+    axe(g, e, x, y, r, ang) {
+      const fx = Math.cos(ang), fy = Math.sin(ang), px = -fy * r * 0.85, py = fx * r * 0.85;
+      const hx = x + px + fx * r * 0.9, hy = y + py + fy * r * 0.9;
+      g.strokeStyle = '#3d2c1a'; g.lineWidth = 2.4;
+      g.beginPath(); g.moveTo(x + px - fx * r * 0.4, y + py - fy * r * 0.4); g.lineTo(hx, hy); g.stroke();
+      g.fillStyle = '#d8d4c8';
+      g.beginPath(); g.moveTo(hx, hy); g.arc(hx, hy, 6, ang - 1.9, ang - 0.4); g.closePath(); g.fill();
+    },
+    lamp(g, e, x, y, r) {
+      g.fillStyle = '#c9a04a'; g.beginPath(); g.arc(x, y - r * 0.2, r * 0.82, Math.PI, 0); g.closePath(); g.fill();
+      g.fillStyle = '#fff2b0'; circle(g, x, y - r * 0.75, 2); g.fill();
+    },
+    bandana(g, e, x, y, r) {
+      g.fillStyle = '#c0392b'; g.beginPath(); g.arc(x, y - r * 0.25, r * 0.8, Math.PI * 1.05, Math.PI * 1.95); g.closePath(); g.fill();
+      g.fillStyle = '#f2ece0'; circle(g, x - r * 0.3, y - r * 0.6, 1); g.fill(); circle(g, x + r * 0.25, y - r * 0.7, 1); g.fill();
+    },
+    tricorn(g, e, x, y, r) {
+      g.fillStyle = '#1e1a18'; g.strokeStyle = '#d6a547'; g.lineWidth = 1;
+      g.beginPath(); g.moveTo(x - r * 1.05, y - r * 0.55); g.quadraticCurveTo(x, y - r * 0.2, x + r * 1.05, y - r * 0.55);
+      g.lineTo(x + r * 0.5, y - r * 1.1); g.quadraticCurveTo(x, y - r * 1.4, x - r * 0.5, y - r * 1.1); g.closePath(); g.fill(); g.stroke();
+      g.fillStyle = '#f2ece0'; circle(g, x, y - r * 0.85, r * 0.13); g.fill();
+    },
     shell(g, e, x, y, r) {
       g.strokeStyle = mix(e.d.color, '#ffffff', 0.3); g.lineWidth = 1.4;
       g.beginPath(); g.moveTo(x, y - r * 0.85); g.lineTo(x, y + r * 0.85);
@@ -750,6 +823,12 @@
     }
     const d = e.d, r = d.r, bob = reducedMotion ? 0 : Math.sin(e.wob) * 1.2;
     const x = e.x, y = e.y + bob;
+    if (e.under) { drawMound(g, e, reducedMotion); return; }
+    // fúria do Berserker: brilho vermelho pulsando no chão
+    if (e.enraged) {
+      const p = reducedMotion ? 0.5 : 0.5 + 0.5 * Math.sin(e.wob * 2);
+      g.fillStyle = `rgba(230,60,40,${0.18 + 0.15 * p})`; circle(g, x, y, r + 6 + p * 2); g.fill();
+    }
     // camuflado e não revelado: quase transparente, com um tremor de calor
     const hidden = d.stealth && !e.revealed;
     if (hidden) { g.save(); g.globalAlpha *= 0.32; }
@@ -768,6 +847,17 @@
     drawStatus(g, e, x, y, r);
     drawHpBar(g, e, x, y, r);
     if (hidden) g.restore();
+  }
+
+  // Escavador embaixo da terra: só um monte de terra andando, com a barra de vida
+  function drawMound(g, e, reducedMotion) {
+    const r = e.d.r, x = e.x, y = e.y + r * 0.3, w = reducedMotion ? 0 : Math.sin(e.wob * 2) * 1.5;
+    g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(x + 2, y + 3, r * 1.1, r * 0.45, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#6a5236'; g.beginPath(); g.ellipse(x, y, r * 1.05 + w, r * 0.55, 0, Math.PI, 0); g.closePath(); g.fill();
+    g.fillStyle = '#8a7050';
+    for (const [dx, dy] of [[-0.5, -0.25], [0.2, -0.4], [0.55, -0.15]]) { circle(g, x + dx * r, y + dy * r, 1.6); g.fill(); }
+    drawStatus(g, e, x, y - 2, r * 0.8);
+    drawHpBar(g, e, x, y, r);
   }
 
   function drawHero(g, h, selected, reducedMotion) {

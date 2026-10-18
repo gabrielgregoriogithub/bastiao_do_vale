@@ -11,7 +11,7 @@
   const LIST = [
     { id: 'first_win', name: 'Primeira vitória', desc: 'Vença as 20 ondas de qualquer campo.' },
     { id: 'flawless', name: 'Muralha intacta', desc: 'Vença sem perder nenhuma vida.' },
-    { id: 'all_maps', name: 'Guardião do reino', desc: 'Vença os 6 campos, em qualquer dificuldade.' },
+    { id: 'all_maps', name: 'Guardião do reino', desc: `Vença os ${TD.officialMaps().length} campos, em qualquer dificuldade.` },
     { id: 'hard_win', name: 'Veterano de guerra', desc: 'Vença um campo no Difícil.' },
     { id: 'dragon', name: 'Caçador de dragões', desc: 'Derrote um Dragão.' },
     { id: 'colossus', name: 'Gigante tombado', desc: 'Derrote um Colosso.' },
@@ -27,6 +27,8 @@
     { id: 'archmage', name: 'Arquimago', desc: 'Derrote 5 inimigos com um único Meteoro do Mago.' },
     { id: 'banner_six', name: 'Sob a Bandeira', desc: 'Tenha 6 torres fortalecidas por Estandartes ao mesmo tempo.' },
     { id: 'hero_trio', name: 'Trio Lendário', desc: 'Vença uma partida com cada herói: Cavaleiro, Arqueira e Mago.' },
+    { id: 'tycoon', name: 'Magnata', desc: 'Receba 500 de ouro das Minas numa mesma partida.' },
+    { id: 'alchemist', name: 'Mestre Alquimista', desc: 'Tenha 15 inimigos dentro de poças do Caldeirão ao mesmo tempo.' },
   ];
   // heróis com que o jogador já venceu, entre partidas (para o Trio Lendário)
   const HEROES_KEY = 'bastiao-herois-vitoriosos';
@@ -110,6 +112,8 @@
       if (S.wavePowers && TD.POWERS.every(p => S.wavePowers[p.id])) unlock('commander');
       if (S.blessings.length >= 6) unlock('blessed');
       if (S.towers.filter(t => t.s.buff > 0).length >= 6) unlock('banner_six');
+      if (S.mined >= 500) unlock('tycoon');
+      if (S.puddles.length && S.enemies.filter(e => !e.d.flying && S.puddles.some(p => Math.hypot(e.x - p.x, e.y - p.y) <= p.r)).length >= 15) unlock('alchemist');
     }
     if (toastT > 0) {
       toastT -= dt;

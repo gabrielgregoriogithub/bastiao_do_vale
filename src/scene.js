@@ -78,6 +78,15 @@
         glow(s.x, s.y, 13, 'rgba(160,120,255,.6)');
         ctx.globalCompositeOperation = 'source-over';
         ctx.fillStyle = '#efe8ff'; TD.circle(ctx, s.x, s.y, 3.6); ctx.fill();
+      } else if (s.kind === 'cauldron') {
+        // frasco em arco: sobe e desce entre a torre e o alvo, com a sombra no chão
+        const total = Math.hypot(s.tx - s.x0, s.ty - s.y0) + Math.hypot(s.x - s.x0, s.y - s.y0) || 1;
+        const k = Math.hypot(s.x - s.x0, s.y - s.y0) / total, lift = Math.sin(Math.min(1, k * 2) * Math.PI) * 26;
+        ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(s.x, s.y + 4, 4, 2, 0, 0, Math.PI * 2); ctx.fill();
+        const fy = s.y - lift;
+        ctx.fillStyle = s.spec === 'acid' ? '#d8e05a' : '#7fc84a'; TD.circle(ctx, s.x, fy, 4); ctx.fill();
+        ctx.fillStyle = '#e8e2d0'; ctx.fillRect(s.x - 1.2, fy - 7, 2.4, 3.5);
+        ctx.fillStyle = 'rgba(255,255,255,.5)'; TD.circle(ctx, s.x - 1.3, fy - 1.3, 1.2); ctx.fill();
       } else if (s.kind === 'cannon') {
         // rastro de fumaça atrás da bala
         for (let i = 1; i <= 3; i++) {
@@ -105,6 +114,21 @@
 
   // Marcas no chão, por baixo de torres e inimigos: queimado das explosões e mancha de quem caiu
   const GROUND_FX = new Set(['scorch', 'stain']);
+  // Poças do Caldeirão: ácido que borbulha e encolhe no fim
+  function drawPuddles(time) {
+    for (const p of G.S.puddles) {
+      const fade = Math.min(1, p.t / 0.6, (p.life - p.t) / 0.2 + 0.3), r = p.r * (0.85 + 0.15 * fade);
+      const [core, rim] = p.acid ? ['rgba(216,224,90,', 'rgba(140,150,30,'] : ['rgba(127,200,74,', 'rgba(60,110,30,'];
+      ctx.fillStyle = rim + (0.45 * fade) + ')'; ctx.beginPath(); ctx.ellipse(p.x, p.y, r, r * 0.7, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = core + (0.5 * fade) + ')'; ctx.beginPath(); ctx.ellipse(p.x, p.y, r * 0.72, r * 0.48, 0, 0, Math.PI * 2); ctx.fill();
+      for (let i = 0; i < 3; i++) {
+        const k = (time * 1.4 + i * 0.37 + p.x * 0.01) % 1;
+        ctx.strokeStyle = `rgba(230,250,190,${0.6 * (1 - k) * fade})`; ctx.lineWidth = 1;
+        TD.circle(ctx, p.x + Math.cos(i * 2.1) * r * 0.4, p.y + Math.sin(i * 2.1) * r * 0.25, 1 + k * 3); ctx.stroke();
+      }
+    }
+  }
+
   function drawGroundFx() {
     for (const f of G.S.fx) {
       if (!GROUND_FX.has(f.kind)) continue;
@@ -213,6 +237,18 @@
       } else if (f.kind === 'shard') {
         ctx.fillStyle = f.color;
         ctx.fillRect(f.x - 1.5, f.y - 1.5, 3, 3);
+      } else if (f.kind === 'coin') {
+        // moeda girando: a largura oscila como se virasse no ar
+        const w = 2.8 * Math.abs(Math.cos(f.t * 14)) + 0.6;
+        ctx.fillStyle = '#e8c56e'; ctx.strokeStyle = '#8a6a1a'; ctx.lineWidth = 0.8;
+        ctx.beginPath(); ctx.ellipse(f.x, f.y, w, 3, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      } else if (f.kind === 'glint') {
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = f.color;
+        const s = 2.4 * (1 - k) + 0.6;
+        ctx.beginPath(); ctx.moveTo(f.x, f.y - s * 2); ctx.lineTo(f.x + s * 0.6, f.y); ctx.lineTo(f.x, f.y + s * 2); ctx.lineTo(f.x - s * 0.6, f.y); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(f.x - s * 2, f.y); ctx.lineTo(f.x, f.y + s * 0.6); ctx.lineTo(f.x + s * 2, f.y); ctx.lineTo(f.x, f.y - s * 0.6); ctx.closePath(); ctx.fill();
+        ctx.globalCompositeOperation = 'source-over';
       } else if (f.kind === 'flash') {
         ctx.globalCompositeOperation = 'lighter';
         glow(f.x, f.y, f.r * 2.4, 'rgba(255,220,140,.7)');
@@ -241,7 +277,7 @@
     ctx.strokeStyle = 'rgba(232,189,92,.9)'; ctx.lineWidth = 2;
     ctx.setLineDash([4, 3]);
     for (const t of G.S.towers) {
-      if (TOWERS[t.type].support || Math.hypot(t.x - x, t.y - y) > range) continue;
+      if (TOWERS[t.type].support || TOWERS[t.type].economy || Math.hypot(t.x - x, t.y - y) > range) continue;
       TD.circle(ctx, t.x, t.y, 19); ctx.stroke();
     }
     ctx.setLineDash([]);
@@ -301,6 +337,14 @@
       grad.addColorStop(1, `rgba(200,40,30,${S.hurtFlash * 0.6})`);
       ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
     }
+    if (S.bossWarn > 0) {
+      // chefe chegando: borda vermelha que pulsa e some
+      const p = reducedMotion ? 0.5 : 0.5 + 0.5 * Math.sin(S.bossWarn * 9);
+      const grad = ctx.createRadialGradient(W / 2, H / 2, H * 0.4, W / 2, H / 2, W * 0.62);
+      grad.addColorStop(0, 'rgba(120,10,10,0)');
+      grad.addColorStop(1, `rgba(120,10,10,${Math.min(1, S.bossWarn) * (0.25 + 0.3 * p)})`);
+      ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
+    }
     if (S.iceFlash > 0) {
       ctx.fillStyle = `rgba(200,238,252,${S.iceFlash * 0.35})`; ctx.fillRect(0, 0, W, H);
     }
@@ -331,6 +375,7 @@
     }
   }
 
+  const BUILD_RISE = 0.35;
   function draw(frameDt) {
     const S = G.S;
     ensureBg();
@@ -343,10 +388,16 @@
     if (S.sel) TD.drawRange(ctx, S.sel.x, S.sel.y, S.sel.s.range, true);
     const hovered = !S.build && !S.aim && S.hover ? G.towerAt(S.hover.c, S.hover.r) : null;
     if (hovered && hovered !== S.sel) TD.drawRange(ctx, hovered.x, hovered.y, hovered.s.range, true);
-    drawGroundFx();
     const idle = reducedMotion ? 0 : performance.now() / 1000;
+    drawPuddles(idle);
+    drawGroundFx();
     for (const t of S.towers) {
+      // torre recém-construída sobe do chão com um pequeno quique
+      const age = t.born === undefined || reducedMotion ? 1 : (S.clock - t.born) / BUILD_RISE;
+      const grow = age >= 1 ? 1 : 1 - (1 - age) ** 3 + Math.sin(age * Math.PI) * 0.12;
+      if (grow !== 1) { ctx.save(); ctx.translate(t.x, t.y + 12); ctx.scale(grow, grow); ctx.translate(-t.x, -t.y - 12); }
       TD.drawTowerCached(ctx, dpr, t.type, t.x, t.y, t.level, t.ang, G.specOf(t)?.color || null, reducedMotion ? 0 : t.kick || 0, idle);
+      if (grow !== 1) ctx.restore();
       if (t.stunT > 0) drawStunned(t);
     }
     if (S.sel) {

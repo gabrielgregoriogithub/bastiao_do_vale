@@ -22,7 +22,17 @@
     name: 'Estandarte', cost: 90, dmg: 0, range: 1.6, rate: 1, support: true, aura: 0.15,
     desc: 'Não ataca: as torres vizinhas causam 15% mais dano.',
   };
-  TD.ORDER = ['archer', 'cannon', 'frost', 'ballista', 'arcane', 'barracks', 'banner'];
+  // Caldeirão: o frasco forma uma poça na estrada; dmg é o dano por segundo de quem está nela (ignora armadura)
+  TD.TOWERS.cauldron = {
+    name: 'Caldeirão', cost: 120, dmg: 11, range: 2.4, rate: 2.2, speed: 230, ground: true, puddle: 0.9, puddleDur: 3,
+    desc: 'Arremessa ácido que forma poças na estrada: dano contínuo que ignora armadura. Não acerta voadores.',
+  };
+  // Mina de Ouro: não ataca; rende ouro no fim de cada onda (income cresce com o nível, em sim.js)
+  TD.TOWERS.mine = {
+    name: 'Mina', cost: 100, dmg: 0, range: 2.2, rate: 1, economy: true, income: 12,
+    desc: 'Não ataca: rende ouro ao fim de cada onda. Quanto antes, mais ela paga.',
+  };
+  TD.ORDER = ['archer', 'cannon', 'frost', 'ballista', 'arcane', 'barracks', 'banner', 'cauldron', 'mine'];
 
   TD.ENEMIES = {
     // atk = dano por segundo contra o herói quando bloqueado
@@ -38,6 +48,10 @@
     witch:   { name: 'Feiticeira', plural: 'Feiticeiras', hp: 700, speed: 0.7, armor: 2, gold: 70, r: 14, color: '#7b4fb0', dark: '#2e1748', gap: 2.2, lives: 5, atk: 25, boss: true, shieldEvery: 6, shieldRange: 2, shieldPct: 0.2 },
     colossus: { name: 'Colosso', plural: 'Colossos', hp: 2200, speed: 0.4, armor: 8, gold: 120, r: 19, color: '#6e6658', dark: '#2b2720', gap: 3, lives: 8, atk: 60, boss: true, splitInto: 'brute', splitCount: 4 },
     dragon:  { name: 'Dragão', plural: 'Dragões', hp: 1100, speed: 0.5, armor: 3, gold: 150, r: 18, color: '#a8402c', dark: '#4a140c', gap: 3, lives: 6, flying: true, boss: true, burnEvery: 6, burnRange: 3, burnDur: 3 },
+    // enrage: fração da vida abaixo da qual entra em fúria e anda enrageMul vezes mais rápido
+    berserker: { name: 'Berserker', plural: 'Berserkers', hp: 75, speed: 1.0, armor: 1, gold: 9, r: 10, color: '#a0603a', dark: '#40200e', gap: 0.9, atk: 10, enrage: 0.5, enrageMul: 1.9 },
+    // a cada burrowEvery s fica burrowDur s embaixo da terra, onde golpes e disparos não o alcançam
+    burrower: { name: 'Escavador', plural: 'Escavadores', hp: 55, speed: 1.15, armor: 2, gold: 10, r: 9, color: '#7a6a50', dark: '#2e261a', gap: 0.8, atk: 5, burrowEvery: 4, burrowDur: 1.6 },
   };
 
   // Texto do Compêndio e do cartão de descoberta: o que o inimigo faz e como enfrentá-lo
@@ -54,6 +68,8 @@
     witch: 'Chefe que protege os aliados próximos com escudos lilás. O escudo absorve dano antes da vida.',
     colossus: 'Chefe enorme com armadura 8. Ao cair, se parte em 4 Blindados no mesmo lugar.',
     dragon: 'Chefe voador. Cospe fogo na torre mais próxima, que para de atirar por 3 s.',
+    berserker: 'Ao perder metade da vida entra em fúria e corre quase o dobro. Derrube de uma vez com dano alto, ou deixe lento antes.',
+    burrower: 'A cada 4 s mergulha na terra por um instante: nada o acerta enquanto está embaixo. Poças do Caldeirão e veneno continuam agindo.',
   };
 
   // Desafios opcionais escolhidos no menu; os efeitos são aplicados em sim.js
@@ -100,8 +116,10 @@
     rio: { chapter: 'Capítulo II', text: 'Vencida no vale, a horda contorna as montanhas e cruza o rio pela ponte de madeira. Sem espaço nas margens, cada torre precisa valer o ouro que custa.' },
     serpente: { chapter: 'Capítulo III', text: 'A estrada antiga serpenteia pelas dunas do deserto. Nômades e múmias marcham juntos, e os abutres não seguem estradas: cortam o céu direto até a muralha.' },
     encruzilhada: { chapter: 'Capítulo IV', text: 'Nas montanhas geladas, a horda aprendeu a atacar por duas cavernas ao mesmo tempo. As colunas se encontram no meio da neve.' },
-    pantano: { chapter: 'Capítulo V', text: 'Além do pântano, a floresta inteira marcha contra o bastião. Formigas, aranhas e árvores antigas abrem caminho até o vulcão.' },
-    vulcao: { chapter: 'Capítulo VI', text: 'A última fortaleza da horda fica na boca do vulcão. Dizem que o Dragão Ancião dorme ali, entre rios de lava. Vença aqui e o vale terá paz.' },
+    pantano: { chapter: 'Capítulo V', text: 'Além do pântano, a floresta inteira marcha contra o bastião. Formigas, aranhas e árvores antigas abrem caminho até o mar.' },
+    costa: { chapter: 'Capítulo VI', text: 'A horda tomou a costa. Piratas desembarcam dos navios e marcham pela areia até o bastião. O mar guarda um flanco, mas também rouba espaço.' },
+    cemiterio: { chapter: 'Capítulo VII', text: 'No velho cemitério do reino, os mortos não descansam. Duas criptas se abriram, e o caminho até o vulcão passa entre as lápides.' },
+    vulcao: { chapter: 'Capítulo VIII', text: 'A última fortaleza da horda fica na boca do vulcão. Dizem que o Dragão Ancião dorme ali, entre rios de lava. Vença aqui e o vale terá paz.' },
   };
   TD.EPILOGUE = 'O Dragão Ancião caiu na lava de onde nasceu e a horda se dispersou pelas montanhas. Nas aldeias, contam que o bastião nunca cedeu.';
 
@@ -153,6 +171,14 @@
     banner: [
       { id: 'warhorn', name: 'Trompa de Guerra', desc: 'As vizinhas também atacam 20% mais rápido.', color: '#e0a050' },
       { id: 'oracle', name: 'Olho do Oráculo', desc: 'As vizinhas alcançam 15% mais longe, e o Estandarte revela camuflados.', color: '#9fd0e8' },
+    ],
+    cauldron: [
+      { id: 'plague', name: 'Peste', desc: 'Poças maiores, que duram 5 s e causam mais dano.', color: '#9ad05a' },
+      { id: 'acid', name: 'Ácido corrosivo', desc: 'Quem pisa na poça perde toda a armadura por 4 s.', color: '#d8e05a' },
+    ],
+    mine: [
+      { id: 'vault', name: 'Cofre Real', desc: 'Rende 75% mais ouro a cada onda.', color: '#f0d070' },
+      { id: 'bounty', name: 'Recompensa', desc: 'Cada inimigo derrotado ao alcance rende +3 de ouro.', color: '#e0a040' },
     ],
   };
   TD.WEAK_MUL = 1.25;
@@ -212,6 +238,25 @@
       water: [[5, 7], [6, 7], [5, 8], [6, 8], [6, 9], [11, 2], [12, 2], [11, 3], [17, 1], [18, 1], [17, 2], [1, 9], [2, 9], [1, 10]],
       waterColor: '#2f5246',
       palette: { grass: '#3b4b2c', tufts: ['#52653a', '#26331d'], road: ['#7a6544', '#9c875f'], pebbles: ['#8a7550', '#b39e74'], flowers: ['#cfd8a0', '#9fb08a'] },
+    },
+    {
+      id: 'costa', biome: 'costa', name: 'Costa dos Piratas', desc: 'O mar avança sobre a praia e deixa pouco espaço no sul do campo.',
+      way: [[-1, 4], [3, 4], [3, 8], [8, 8], [8, 2], [13, 2], [13, 8], [17, 8], [17, 4], [20, 4]],
+      water: [...Array.from({ length: 17 }, (_, c) => [c, 10]), ...Array.from({ length: 17 }, (_, c) => [c, 11])],
+      waterColor: '#2f6f8f',
+      palette: { grass: '#c9b27a', tufts: ['#a8945a', '#dcc890'], road: ['#8a7450', '#a8916a'], pebbles: ['#efe6cc', '#7a6440'], flowers: ['#f2ece0', '#e89a8a'] },
+    },
+    {
+      // props: lápides que ocupam casas como o cenário (não se constrói nelas)
+      id: 'cemiterio', biome: 'cripta', name: 'Cemitério Antigo', desc: 'Duas criptas, lápides por toda parte e névoa entre os túmulos.',
+      ways: [
+        [[-1, 2], [5, 2], [5, 5], [10, 5], [10, 2], [15, 2], [15, 6], [20, 6]],
+        [[-1, 9], [5, 9], [5, 5], [10, 5], [10, 2], [15, 2], [15, 6], [20, 6]],
+      ],
+      heroAt: 0.4,
+      water: [],
+      props: [[2, 6], [3, 6], [7, 8], [8, 8], [12, 8], [13, 9], [17, 9], [18, 2], [7, 1], [12, 4]],
+      palette: { grass: '#3a4038', tufts: ['#4c5448', '#2a2f28'], road: ['#5e5a52', '#77736a'], pebbles: ['#3e3a34', '#9a968c'], flowers: ['#b8b4c8', '#8a6a9a'] },
     },
     {
       // a lava entra em "water": tira espaço das torres como as poças do pântano, mas a estrada não passa por ela
@@ -341,6 +386,7 @@
       else blocked[r][c] = 3;
     }
     const scenery = (c, r) => { if (inGrid(c, r) && !blocked[r][c]) blocked[r][c] = 2; };
+    for (const [c, r] of map.props || []) scenery(c, r);
     for (let r = exitRow - 2; r <= exitRow + 2; r++) scenery(COLS - 1, r);
     for (const p of paths) { scenery(0, p.startRow - 1); scenery(0, p.startRow + 1); }
 
@@ -397,9 +443,11 @@
     const flyP = n >= 6 ? 0.05 + Math.min(n, 20) * 0.005 : 0;
     const stalkP = n >= 8 ? 0.04 + Math.min(n, 20) * 0.003 : 0;
     const necroP = n >= 11 ? 0.02 + Math.min(n, 20) * 0.002 : 0;
+    const berserkP = n >= 4 ? 0.05 + Math.min(n, 20) * 0.004 : 0;
+    const burrowP = n >= 9 ? 0.03 + Math.min(n, 20) * 0.003 : 0;
     // Sorteio proporcional: os soldados ficam com o que sobra, nunca menos de 15% das chances.
     // (Antes as chances somavam mais de 100% nas ondas altas e os últimos tipos eram cortados.)
-    const weights = [['scout', scoutP], ['brute', bruteP], ['healer', healP], ['flyer', flyP], ['stalker', stalkP], ['necro', necroP]];
+    const weights = [['scout', scoutP], ['brute', bruteP], ['healer', healP], ['flyer', flyP], ['stalker', stalkP], ['necro', necroP], ['berserker', berserkP], ['burrower', burrowP]];
     const others = weights.reduce((sum, [, w]) => sum + w, 0);
     const table = [['soldier', Math.max(0.15, 1 - others)], ...weights];
     const total = table.reduce((sum, [, w]) => sum + w, 0);

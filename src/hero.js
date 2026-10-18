@@ -81,7 +81,8 @@
   }
 
   // o Cavaleiro sente o camuflado que chega perto; a Arqueira só o vê quando uma torre o revela
-  const canHit = (h, e) => (defOf(h).melee ? !e.d.flying : !(e.d.stealth && !e.revealed));
+  // ninguém alcança o Escavador embaixo da terra
+  const canHit = (h, e) => !e.under && (defOf(h).melee ? !e.d.flying : !(e.d.stealth && !e.revealed));
 
   function findTarget(h) {
     const def = defOf(h);
@@ -201,7 +202,7 @@
     } else {
       const leash = (def.melee ? def.aggro * 1.5 : def.range) * T;
       const ox = def.melee ? h.home.x : h.x, oy = def.melee ? h.home.y : h.y;
-      if (h.target && (h.target.dead || Math.hypot(h.target.x - ox, h.target.y - oy) > leash)) h.target = null;
+      if (h.target && (h.target.dead || h.target.under || Math.hypot(h.target.x - ox, h.target.y - oy) > leash)) h.target = null;
       if (!h.target) h.target = findTarget(h);
       if (h.target) {
         if (def.melee) fightMelee(h, h.target, dt);

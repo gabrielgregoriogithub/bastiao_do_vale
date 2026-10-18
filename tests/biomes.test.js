@@ -3,13 +3,13 @@ const assert = require('node:assert/strict');
 const { loadGame, runUntil } = require('./harness');
 
 const { TD, G } = loadGame({ seed: 3 });
-const THEMED = ['rio', 'serpente', 'encruzilhada', 'pantano', 'vulcao'];
+const THEMED = ['rio', 'serpente', 'encruzilhada', 'pantano', 'costa', 'cemiterio', 'vulcao'];
 const CLASSIC = TD.ROLE_ORDER;
 
-test('seis campos oficiais, cada um com seu ambiente e seu capítulo', () => {
+test('oito campos oficiais, cada um com seu ambiente e seu capítulo', () => {
   const maps = TD.officialMaps();
-  assert.deepEqual(maps.map(m => m.id), ['vale', 'rio', 'serpente', 'encruzilhada', 'pantano', 'vulcao']);
-  assert.deepEqual(maps.map(m => m.biome), ['campo', 'rio', 'deserto', 'neve', 'floresta', 'vulcao']);
+  assert.deepEqual(maps.map(m => m.id), ['vale', 'rio', 'serpente', 'encruzilhada', 'pantano', 'costa', 'cemiterio', 'vulcao']);
+  assert.deepEqual(maps.map(m => m.biome), ['campo', 'rio', 'deserto', 'neve', 'floresta', 'costa', 'cripta', 'vulcao']);
   for (const m of maps) assert.ok(TD.CHRONICLE[m.id], `capítulo de ${m.id}`);
 });
 
@@ -23,11 +23,11 @@ test('o Vulcão é um campo jogável: estrada até a muralha e espaço para torr
   assert.equal(md.bridges.length, 0, 'a estrada não passa por cima da lava');
 });
 
-test('cada ambiente tem sua própria versão dos 12 inimigos, sem repetir os de outro', () => {
+test('cada ambiente tem sua própria versão de cada inimigo, sem repetir os de outro', () => {
   const all = new Set();
   for (const id of THEMED) {
     const roster = TD.rosterOf(id);
-    assert.equal(roster.length, 12, id);
+    assert.equal(roster.length, CLASSIC.length, id);
     for (const [i, type] of roster.entries()) {
       const d = TD.ENEMIES[type], base = TD.ENEMIES[CLASSIC[i]];
       assert.ok(!CLASSIC.includes(type), `${id} usa um inimigo clássico (${type})`);
@@ -89,15 +89,15 @@ test('derrotar a versão temática do Dragão ou do Colosso também libera a con
   assert.ok(TD.achievements.has('colossus'));
 });
 
-test('o glossário da fase lista os 12 inimigos do campo', () => {
+test('o glossário da fase lista os inimigos do campo', () => {
   G.newGame('pantano', 'normal');
   const list = TD.codex.glossary();
-  assert.equal(list.length, 12);
+  assert.equal(list.length, TD.ROLE_ORDER.length);
   assert.equal(list[0].type, 'warant');
   assert.ok(list.every(r => r.name && r.desc));
 });
 
-test('cada ambiente desenha seu campo e seus 12 inimigos sem erros', () => {
+test('cada ambiente desenha seu campo e seus inimigos sem erros', () => {
   const ctx = document.getElementById('game').getContext('2d');
   for (const m of TD.officialMaps()) {
     G.newGame(m.id, 'normal');
