@@ -237,6 +237,14 @@
       } else if (f.kind === 'shard') {
         ctx.fillStyle = f.color;
         ctx.fillRect(f.x - 1.5, f.y - 1.5, 3, 3);
+      } else if (f.kind === 'ember') {
+        // fagulha dos fogos: ponto brilhante com rastro curto
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = f.color; ctx.lineWidth = 3; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(f.x - f.vx * 0.08, f.y - f.vy * 0.08); ctx.lineTo(f.x, f.y); ctx.stroke();
+        ctx.lineCap = 'butt';
+        glow(f.x, f.y, 7, 'rgba(255,240,200,.55)');
+        ctx.globalCompositeOperation = 'source-over';
       } else if (f.kind === 'coin') {
         // moeda girando: a largura oscila como se virasse no ar
         const w = 2.8 * Math.abs(Math.cos(f.t * 14)) + 0.6;
@@ -375,6 +383,15 @@
     }
   }
 
+  // Divisas da patente no canto da torre: uma por patente, douradas
+  function drawChevrons(x, y, n) {
+    ctx.strokeStyle = '#2a1f08'; ctx.lineWidth = 3.4; ctx.lineJoin = 'round';
+    const path = i => { ctx.beginPath(); ctx.moveTo(x - 4, y - i * 4); ctx.lineTo(x, y - 3 - i * 4); ctx.lineTo(x + 4, y - i * 4); };
+    for (let i = 0; i < n; i++) { path(i); ctx.stroke(); }
+    ctx.strokeStyle = '#f0d27a'; ctx.lineWidth = 1.8;
+    for (let i = 0; i < n; i++) { path(i); ctx.stroke(); }
+  }
+
   const BUILD_RISE = 0.35;
   function draw(frameDt) {
     const S = G.S;
@@ -398,6 +415,8 @@
       if (grow !== 1) { ctx.save(); ctx.translate(t.x, t.y + 12); ctx.scale(grow, grow); ctx.translate(-t.x, -t.y - 12); }
       TD.drawTowerCached(ctx, dpr, t.type, t.x, t.y, t.level, t.ang, G.specOf(t)?.color || null, reducedMotion ? 0 : t.kick || 0, idle);
       if (grow !== 1) ctx.restore();
+      const rank = G.rankOf(t);
+      if (rank) drawChevrons(t.x + 13, t.y + 6, rank);
       if (t.stunT > 0) drawStunned(t);
     }
     if (S.sel) {

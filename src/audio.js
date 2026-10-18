@@ -60,6 +60,8 @@
     coins: () => [1320, 1568, 1976].forEach((f, i) => tone({ freq: f, dur: 0.07, type: 'triangle', vol: 0.07, delay: i * 0.05 })),
     roar: () => { tone({ freq: 90, to: 45, dur: 0.9, type: 'sawtooth', vol: 0.2 }); noise({ dur: 0.7, vol: 0.14, cutoff: 500 }); },
     rage: () => tone({ freq: 180, to: 320, dur: 0.2, type: 'sawtooth', vol: 0.09 }),
+    combo: () => [784, 988, 1175, 1568].forEach((f, i) => tone({ freq: f, dur: 0.1, type: 'square', vol: 0.06, delay: i * 0.05 })),
+    firework: () => { noise({ dur: 0.35, vol: 0.12, cutoff: 2500 }); tone({ freq: 1200, to: 300, dur: 0.3, type: 'triangle', vol: 0.05 }); },
     heal: () => tone({ freq: 660, to: 990, dur: 0.18, type: 'sine', vol: 0.05 }),
     leak: () => tone({ freq: 140, to: 55, dur: 0.4, type: 'sawtooth', vol: 0.22 }),
     build: () => { tone({ freq: 520, dur: 0.07, type: 'triangle', vol: 0.12 }); tone({ freq: 780, dur: 0.09, type: 'triangle', vol: 0.12, delay: 0.06 }); },
@@ -76,10 +78,33 @@
   };
 
   // ---------- Música ambiente ----------
-  // Bordão em ré com melodia em passeio aleatório pelo modo dórico; fica mais ativa durante as ondas.
-  const SCALE = [146.83, 164.81, 174.61, 196.0, 220.0, 246.94, 261.63, 293.66, 329.63, 349.23, 392.0];
-  const BEAT = 0.5, LOOKAHEAD = 0.6, TICK_MS = 200;
+  // Bordão em ré com melodia em passeio aleatório por um modo; fica mais ativa durante as ondas.
+  // Cada ambiente tem seu modo, andamento e timbre (THEMES); o Vale usa o dórico de sempre.
+  const D3 = 146.83, LOOKAHEAD = 0.6, TICK_MS = 200;
+  // intervals: semitons do modo a partir de ré; a escala sobe por uma oitava e meia
+  const scaleOf = intervals => Array.from({ length: 11 }, (_, i) =>
+    D3 * 2 ** ((intervals[i % intervals.length] + 12 * Math.floor(i / intervals.length)) / 12));
+  const THEMES = {
+    campo:    { modes: [0, 2, 3, 5, 7, 9, 10], beat: 0.5,  lead: 'triangle', vol: 0.3,  drone: 73.42, octave: 1 },
+    rio:      { modes: [0, 2, 4, 6, 7, 9, 11], beat: 0.55, lead: 'sine',     vol: 0.34, drone: 73.42, octave: 1 },
+    deserto:  { modes: [0, 1, 4, 5, 7, 8, 10], beat: 0.45, lead: 'triangle', vol: 0.3,  drone: 73.42, octave: 1 },
+    neve:     { modes: [0, 2, 4, 7, 9],        beat: 0.7,  lead: 'sine',     vol: 0.3,  drone: 73.42, octave: 2 },
+    floresta: { modes: [0, 2, 3, 5, 7, 8, 10], beat: 0.55, lead: 'triangle', vol: 0.28, drone: 73.42, octave: 1 },
+    costa:    { modes: [0, 2, 4, 5, 7, 9, 10], beat: 0.4,  lead: 'square',   vol: 0.12, drone: 73.42, octave: 1 },
+    cripta:   { modes: [0, 1, 3, 5, 6, 8, 10], beat: 0.75, lead: 'sine',     vol: 0.32, drone: 55,    octave: 0.5 },
+    vulcao:   { modes: [0, 1, 3, 5, 7, 8, 10], beat: 0.4,  lead: 'sawtooth', vol: 0.1,  drone: 55,    octave: 0.5 },
+  };
+  let theme = THEMES.campo, SCALE = scaleOf(theme.modes).map(f => f * theme.octave), BEAT = theme.beat;
   let musicGain = null, musicTimer = null, nextBeat = 0, beat = 0, step = 4, intensity = 0;
+
+  // Troca a música para a do ambiente; a melodia continua de onde estava, só muda o modo e o ritmo
+  function setTheme(id) {
+    const next = THEMES[id] || THEMES.campo;
+    if (next === theme) return;
+    theme = next;
+    SCALE = scaleOf(theme.modes).map(f => f * theme.octave);
+    BEAT = theme.beat;
+  }
 
   function note(freq, t, dur, type, vol) {
     const osc = ac.createOscillator(), g = ac.createGain();
@@ -95,12 +120,21 @@
 
   function playBeat(t, b) {
     if (b % 8 === 0) {
-      note(73.42, t, BEAT * 8.4, 'triangle', 0.5);
-      note(110, t, BEAT * 8.4, 'sine', 0.22);
+      note(theme.drone, t, BEAT * 8.4, 'triangle', 0.5);
+      note(theme.drone * 1.5, t, BEAT * 8.4, 'sine', 0.22);
     }
-    if (Math.random() < 0.35 + intensity * 0.35) {
+    if (Math.random() < 0.35 + Math.min(intensity, 1) * 0.35) {
       step = Math.max(0, Math.min(SCALE.length - 1, step + Math.floor(Math.random() * 5) - 2));
-      note(SCALE[step], t, b % 2 ? 0.4 : 0.75, 'triangle', 0.3);
+      note(SCALE[step], t, b % 2 ? 0.4 : 0.75, theme.lead, theme.vol);
+    }
+    // chefe em campo (intensidade 2): caixa nos contratempos
+    if (intensity > 1 && b % 2 === 1) {
+      const len = Math.floor(ac.sampleRate * 0.08), buf = ac.createBuffer(1, len, ac.sampleRate), data = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / len);
+      const src = ac.createBufferSource(), g = ac.createGain();
+      src.buffer = buf; g.gain.value = 0.18;
+      src.connect(g).connect(musicGain);
+      src.start(t);
     }
     if (intensity > 0 && b % 2 === 0) {
       const osc = ac.createOscillator(), g = ac.createGain();
@@ -162,5 +196,6 @@
     stopMusic,
     isMusicPlaying() { return !!musicTimer; },
     setIntensity(v) { intensity = v; },
+    setTheme,
   };
 })();

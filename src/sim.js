@@ -40,7 +40,7 @@
       mapId, diffId, diff, perks, gold: diff.gold + 25 * perks.gold, lives, maxLives: lives,
       wave: 0, kills: 0, best: readBest(mapId, diffId), hero: null, heroSel: false, mods: {}, history: [], corpses: [], clock: 0,
       blessings: [], offer: null,
-      towers: [], enemies: [], shots: [], fx: [], strikes: [], puddles: [], mined: 0, bossWarn: 0,
+      towers: [], enemies: [], shots: [], fx: [], strikes: [], puddles: [], mined: 0, bossWarn: 0, combo: null, bestCombo: 0,
       queue: [], spawnT: 0, waveActive: false, next: TD.makeWave(1), seed: null, daily: null,
       speed: 1, paused: false, over: false, halted: false, endless: false, auto: false, autoT: null,
       inGame: false, menuOpen: false,
@@ -130,8 +130,46 @@
     }
     blessStats(t, s);
     s.dmg *= 1 + 0.05 * (G.S?.perks?.aim || 0);
+    s.dmg *= 1 + RANK_BONUS * rankOf(t);
     if (!d.support && !d.economy) applyAura(t, s);
     return s;
+  }
+
+  // Patentes: a torre que derruba muitos inimigos vira veterana e bate mais forte
+  const RANKS = [30, 100, 250], RANK_BONUS = 0.08;
+  const RANK_NAMES = ['Recruta', 'Veterana', 'Elite', 'Lendária'];
+  const rankOf = t => RANKS.filter(k => (t.kills || 0) >= k).length;
+  const nextRankAt = t => RANKS.find(k => (t.kills || 0) < k) ?? null;
+
+  function promote(t) {
+    refreshStats();
+    const name = RANK_NAMES[rankOf(t)];
+    addFx({ kind: 'text', x: t.x, y: t.y - 22, txt: name, color: '#f0d27a', life: 1.6 });
+    addFx({ kind: 'ring', x: t.x, y: t.y, r: T * 1.1, color: '#f0d27a', life: 0.6 });
+    glints(t.x, t.y, '#f0d27a', 12);
+    sfx.play('upgrade');
+  }
+
+  // Sequência de abates: cada abate até COMBO_GAP s depois do anterior soma; ao fim, rende ouro extra
+  const COMBO_GAP = 0.6, COMBO_MIN = 5, COMBO_GOLD = 2, COMBO_CAP = 30;
+  function chainKill(e) {
+    const S = G.S;
+    S.combo = { n: (S.combo?.n || 0) + 1, t: COMBO_GAP, x: e.x, y: e.y };
+  }
+  function tickCombo(dt) {
+    const S = G.S, c = S.combo;
+    if (!c) return;
+    c.t -= dt;
+    if (c.t > 0) return;
+    S.combo = null;
+    if (c.n < COMBO_MIN) return;
+    const bonus = Math.min(c.n, COMBO_CAP) * COMBO_GOLD;
+    S.gold += bonus;
+    S.bestCombo = Math.max(S.bestCombo, c.n);
+    addFx({ kind: 'text', x: Math.min(W - 90, Math.max(90, c.x)), y: c.y - 24, txt: `Sequência de ${c.n} abates · +${bonus}`, color: '#ffb84a', life: 1.8, big: true });
+    coins(c.x, c.y - 10, Math.min(12, Math.ceil(c.n / 2)));
+    TD.achievements?.onCombo(c.n);
+    sfx.play('combo');
   }
 
   // Estandarte mais forte ao alcance da torre (vários não se somam: evita cercar uma torre de estandartes)
@@ -480,7 +518,12 @@
     if (e.hp > 0) return;
     e.dead = true;
     S.kills += 1;
-    if (src) src.kills += 1;
+    if (src) {
+      const before = src.isHero ? 0 : rankOf(src);
+      src.kills += 1;
+      if (!src.isHero && rankOf(src) > before) promote(src);
+    }
+    chainKill(e);
     if (src && src.isHero) TD.hero.onKill(src, e);
     TD.achievements?.onKill(e);
     TD.foes.onDeath(e);
@@ -820,12 +863,9 @@
     moveShots(dt);
     updateStrikes(dt);
     updatePuddles(dt);
+    tickCombo(dt);
 
-    for (const f of S.fx) {
-      f.t += dt;
-      if (f.kind === 'shard' || f.kind === 'coin') { f.vy += 420 * dt; f.x += f.vx * dt; f.y += f.vy * dt; }
-      else if (f.kind === 'glint') f.y += f.vy * dt;
-    }
+    stepFx(dt);
     S.bossWarn = Math.max(0, S.bossWarn - dt);
     if (S.banner) { S.banner.t += dt; if (S.banner.t >= S.banner.life) S.banner = null; }
     S.shake = Math.max(0, S.shake - dt);
@@ -834,11 +874,43 @@
 
     S.enemies = S.enemies.filter(e => !e.dead);
     S.shots = S.shots.filter(s => !s.done);
-    S.fx = S.fx.filter(f => f.t < f.life);
     if (S.sel && !S.towers.includes(S.sel)) S.sel = null;
     if (S.inspect && S.inspect.dead) S.inspect = null;
 
     if (S.waveActive && !S.queue.length && !S.enemies.length) endWave();
+  }
+
+  // Efeitos andam e somem; também roda na festa da vitória, com a partida parada
+  function stepFx(dt) {
+    const S = G.S;
+    for (const f of S.fx) {
+      f.t += dt;
+      if (f.kind === 'shard' || f.kind === 'coin') { f.vy += 420 * dt; f.x += f.vx * dt; f.y += f.vy * dt; }
+      else if (f.kind === 'ember') { f.vy += 90 * dt; f.vx *= 0.98; f.x += f.vx * dt; f.y += f.vy * dt; }
+      else if (f.kind === 'glint') f.y += f.vy * dt;
+    }
+    S.fx = S.fx.filter(f => f.t < f.life);
+  }
+
+  // Fogos de artifício sobre o campo depois da vitória; devolve false quando a festa acaba
+  const FIREWORK_COLORS = ['#ffd27a', '#ff7a5a', '#8fd3ff', '#b79cff', '#9ae07a', '#ffffff'];
+  function celebrate(dt) {
+    const S = G.S;
+    S.celebrateT -= dt;
+    S.fireworkT = (S.fireworkT || 0) - dt;
+    if (S.fireworkT <= 0 && S.celebrateT > 0.6) {
+      S.fireworkT = 0.28 + Math.random() * 0.3;
+      const x = W * (0.15 + Math.random() * 0.7), y = H * (0.12 + Math.random() * 0.35);
+      const color = FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)];
+      addFx({ kind: 'flash', x, y, r: 10, life: 0.25 });
+      for (let i = 0; i < 26; i++) {
+        const a = (i / 26) * Math.PI * 2, sp = 90 + Math.random() * 50;
+        addFx({ kind: 'ember', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, color, life: 0.9 + Math.random() * 0.5 });
+      }
+      sfx.play('firework');
+    }
+    stepFx(dt);
+    return S.celebrateT > 0;
   }
 
   // ---------- Recarga ao vivo do artifact ----------
@@ -915,7 +987,7 @@
   }
 
   Object.assign(G, {
-    enemyAt, store, readBest, readStars, readChallenges, readDaily, newDaily, towerStats, prepare, newGame, hurt, addFx, spawn, costOf, powerCd,
+    celebrate, enemyAt, rankOf, nextRankAt, RANK_NAMES, RANK_BONUS, store, readBest, readStars, readChallenges, readDaily, newDaily, towerStats, prepare, newGame, hurt, addFx, spawn, costOf, powerCd,
     build, upgrade, specialize, sell, cycleTarget, toggleAuto, continueEndless, startWave, usePower, canUsePower, update,
     towerAt, canBuild, upCost, specCost, refund, specOf, waveBonus, earlyBonus, canCallEarly, snapshot, restore, blessed, refreshStats, strike,
   });

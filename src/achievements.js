@@ -29,6 +29,8 @@
     { id: 'hero_trio', name: 'Trio Lendário', desc: 'Vença uma partida com cada herói: Cavaleiro, Arqueira e Mago.' },
     { id: 'tycoon', name: 'Magnata', desc: 'Receba 500 de ouro das Minas numa mesma partida.' },
     { id: 'alchemist', name: 'Mestre Alquimista', desc: 'Tenha 15 inimigos dentro de poças do Caldeirão ao mesmo tempo.' },
+    { id: 'reaper', name: 'Ceifador', desc: 'Faça uma sequência de 20 abates.' },
+    { id: 'legend_tower', name: 'Torre Lendária', desc: 'Leve uma torre à patente Lendária (250 abates).' },
   ];
   // heróis com que o jogador já venceu, entre partidas (para o Trio Lendário)
   const HEROES_KEY = 'bastiao-herois-vitoriosos';
@@ -97,6 +99,11 @@
     }
   }
 
+  // Chamado quando uma sequência de abates termina, com o tamanho dela
+  function onCombo(n) {
+    if (n >= 20) unlock('reaper');
+  }
+
   // Chamado quando um Meteoro cai, com quantos inimigos ele derrotou
   function onMeteor(killed) {
     if (killed >= 5) unlock('archmage');
@@ -113,6 +120,7 @@
       if (S.blessings.length >= 6) unlock('blessed');
       if (S.towers.filter(t => t.s.buff > 0).length >= 6) unlock('banner_six');
       if (S.mined >= 500) unlock('tycoon');
+      if (S.towers.some(t => G.rankOf(t) >= 3)) unlock('legend_tower');
       if (S.puddles.length && S.enemies.filter(e => !e.d.flying && S.puddles.some(p => Math.hypot(e.x - p.x, e.y - p.y) <= p.r)).length >= 15) unlock('alchemist');
     }
     if (toastT > 0) {
@@ -153,5 +161,5 @@
     writeJson(RUNS_KEY, [...others, run].sort(better).slice(0, RUNS_MAX));
   }
 
-  TD.achievements = { onKill, onWaveEnd, onVictory, onMeteor, flushKills, sync, list, has, totalKills: () => totalKills + pendingKills, runs, recordRun };
+  TD.achievements = { onKill, onWaveEnd, onVictory, onMeteor, onCombo, flushKills, sync, list, has, totalKills: () => totalKills + pendingKills, runs, recordRun };
 })();

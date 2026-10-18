@@ -8,6 +8,7 @@
   const store = G.store;
 
   const fmt = n => n.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const starText = n => '★'.repeat(n) + '☆'.repeat(3 - n);
 
   const $ = id => document.getElementById(id);
@@ -28,7 +29,7 @@
   let dpr = 0;
   let lastHud = '', lastInfo = '';
   TD.menu.onStart = () => {
-    lastHud = ''; lastInfo = '';
+    lastHud = ''; lastInfo = ''; lastNext = '';
     lastWaveActive = false; lowLivesWarned = false;
   };
 
@@ -53,7 +54,19 @@
     </table>` : '') + (blessings ? `<h3 class="report-sub">Bênçãos desta partida</h3><ul class="bless-owned">${blessings}</ul>` : '');
   }
 
-  G.onEnd = ({ title, text, stars, canContinue }) => {
+  // Na vitória, fogos de artifício sobre o campo antes da janela de fim (quem pede menos movimento vai direto)
+  const CELEBRATE_SECONDS = 3;
+  let pendingEnd = null;
+  G.onEnd = info => {
+    if (info.canContinue && !reducedMotion) {
+      G.S.celebrateT = CELEBRATE_SECONDS;
+      pendingEnd = info;
+      return;
+    }
+    showEnd(info);
+  };
+  function showEnd({ title, text, stars, canContinue }) {
+    pendingEnd = null;
     TD.menu.clearSave();
     TD.achievements.recordRun(canContinue);
     renderReport();
@@ -70,7 +83,7 @@
     ui.end.hidden = false;
     announce(`${title}. ${text}`);
     (canContinue ? ui.endContinue : ui.endRestart).focus();
-  };
+  }
 
   // ---------- Painel ----------
   function buildTowerButtons() {
@@ -172,6 +185,20 @@
       .map(k => `${counts[k]} ${TD.enemyName(G.S.mapId, k, counts[k])}`).join(', ');
   }
 
+  // Próxima onda: um ícone por tipo de inimigo com a quantidade; o texto completo fica para leitores de tela
+  // e no título de cada ícone. Só refaz quando a lista muda.
+  let lastNext = '';
+  function renderNext(text) {
+    if (text === lastNext) return;
+    lastNext = text;
+    const S = G.S, counts = {};
+    for (const role of S.next) counts[role] = (counts[role] || 0) + 1;
+    const roles = Object.keys(ENEMIES).filter(k => counts[k]);
+    ui.next.innerHTML = `<span class="sr-only">${text}</span><span class="wave-tag" aria-hidden="true">Onda ${S.wave + 1}${TD.isSwarm(S.wave + 1) ? ' · revoada' : ''}</span>`
+      + roles.map(role => `<span class="wchip${ENEMIES[role].boss ? ' boss' : ''}" title="${counts[role]} ${TD.enemyName(S.mapId, role, counts[role])}" aria-hidden="true"><canvas width="48" height="48" data-role="${role}"></canvas>${counts[role]}</span>`).join('');
+    for (const c of ui.next.querySelectorAll('canvas')) TD.codex.enemyIcon(c, TD.enemyFor(S.mapId, c.dataset.role));
+  }
+
   function towerExtras(t) {
     const s = t.s, d = TOWERS[t.type];
     const rows = [];
@@ -266,6 +293,9 @@
       const d = TOWERS[t.type], s = t.s, sp = G.specOf(t);
       const title = sp ? `${d.name} · ${sp.name}` : `${d.name} · nível ${t.level} de ${MAX_LVL}`;
       const range = `<dt>Alcance</dt><dd>${fmt(s.range / T)} casas${nextStat(n => n.range / T)}</dd>`;
+      // patente pelos abates: mostra o bônus atual e quantos abates faltam para a próxima
+      const rank = G.rankOf(t), nextAt = G.nextRankAt(t);
+      const rankRow = `<dt>Patente</dt><dd>${G.RANK_NAMES[rank]}${rank ? ` · +${Math.round(rank * G.RANK_BONUS * 100)}% de dano` : ''}${nextAt === null ? '' : ` <span class="next">faltam ${nextAt - t.kills}</span>`}</dd>`;
       // o Estandarte não ataca: mostra o bônus que dá e quantas torres estão ao alcance dele
       // a Mina também não ataca: mostra quanto rende por onda e o que já rendeu na partida
       const rows = d.economy
@@ -276,7 +306,7 @@
           <dt>Torres ao alcance</dt><dd>${S.towers.filter(o => !TOWERS[o.type].support && Math.hypot(o.x - t.x, o.y - t.y) <= s.range).length}</dd>`
         : `<dt>Dano</dt><dd>${fmt(s.dmg)}${nextStat(n => n.dmg)}</dd>${range}
           <dt>${t.spec === 'blizzard' ? 'Pulsos' : TOWERS[t.type].melee ? 'Golpes' : 'Disparos'}</dt><dd>${fmt(1 / s.rate)} por segundo${nextStat(n => 1 / n.rate)}</dd>${towerExtras(t)}
-          <dt>Abates</dt><dd id="iKills">${t.kills}</dd>
+          <dt>Abates</dt><dd id="iKills">${t.kills}</dd>${rankRow}
           <dt>Dano causado</dt><dd id="iDmg">${Math.round(t.dmgDone)}</dd>`;
       ui.info.innerHTML = `<h3>${title}</h3>
         ${sp ? `<p class="spec-line" style="--spec:${sp.color}">${sp.desc}</p>` : ''}
@@ -354,7 +384,7 @@
       const modText = modNames.length ? ` · Desafios: ${modNames.join(', ')}` : '';
       ui.subline.textContent = `${S.daily ? 'Desafio do dia · ' : ''}${md.map.name} · ${S.diff.name}${modText} · segure a estrada até a muralha por ${MAX_WAVES} ondas.`;
       const swarm = TD.isSwarm(S.wave + 1) ? ' Revoada: dois terços voam.' : '';
-      ui.next.textContent = `A seguir, onda ${S.wave + 1}: ${waveSummary(S.next)}.${swarm}`;
+      renderNext(`A seguir, onda ${S.wave + 1}: ${waveSummary(S.next)}.${swarm}`);
       ui.btnWave.disabled = !S.inGame || S.over || S.halted || !!S.offer || (S.waveActive && !G.canCallEarly());
       ui.btnWave.textContent = waveButtonLabel(remaining);
       ui.btnAuto.setAttribute('aria-pressed', String(S.auto));
@@ -375,7 +405,7 @@
     const t = S.sel, h = S.hero;
     const afford = t ? (t.level < MAX_LVL ? S.gold >= G.upCost(t) : S.gold >= G.specCost(t)) : false;
     const info = S.heroSel && h ? `h${h.level}-${h.deadT > 0}`
-      : t ? `t${t.id}-${t.level}-${t.spec}-${t.target}-${afford}-${!!t.fresh}-${t.s.buff}-${S.towers.length}` : S.aim ? 'aim' : S.build ? 'b' + S.build
+      : t ? `t${t.id}-${t.level}-${t.spec}-${t.target}-${afford}-${!!t.fresh}-${t.s.buff}-${S.towers.length}-${G.rankOf(t)}` : S.aim ? 'aim' : S.build ? 'b' + S.build
       : S.inspect ? `e${S.inspect.type}-${S.inspect.enraged}-${S.inspect.corrodeT > 0}` : 'none';
     if (info !== lastInfo) { lastInfo = info; renderInfo(); }
     if (!t && !S.heroSel && !S.aim && !S.build && S.inspect) {
@@ -603,6 +633,7 @@
     last = now;
     const running = S.inGame && !S.paused && !S.over && !S.halted && !S.menuOpen && !TD.blessings.isOpen();
     if (running) for (let i = 0; i < S.speed && !G.S.over; i++) G.update(dt);
+    if (pendingEnd && !G.celebrate(dt)) showEnd(pendingEnd);
     TD.scene.draw(dt);
     syncHud();
     TD.tutorial.sync();
@@ -611,7 +642,8 @@
     TD.blessings.sync();
     TD.dock.sync();
     TD.device.sync();
-    sfx.setIntensity(running && S.waveActive ? 1 : 0);
+    sfx.setIntensity(running && S.waveActive ? (S.enemies.some(e => e.d.boss) ? 2 : 1) : 0);
+    sfx.setTheme(G.md.map.biome);
     requestAnimationFrame(frame);
   }
 
