@@ -260,3 +260,39 @@ test('cada inimigo novo tem versão em todos os ambientes e aparece nas ondas al
   for (let n = 10; n <= 20; n++) for (let s = 0; s < 6; s++) for (const t of TD.makeWave(n, s * 101 + n)) seen.add(t);
   for (const role of ['blinker', 'warder', 'saboteur']) assert.ok(seen.has(role), role);
 });
+
+test('emboscada: um bando sai da coluna e pula no meio da estrada depois do aviso', () => {
+  const S = fresh('vale');
+  S.wave = 7;
+  S.queue = ['soldier', 'scout', 'flyer', 'soldier', 'brute', 'soldier', 'soldier'];
+  const rnd = Math.random;
+  Math.random = () => 0.05;
+  try { TD.world.onWaveStart(); } finally { Math.random = rnd; }
+  const a = S.ambush;
+  assert.ok(a, 'a emboscada foi armada');
+  assert.deepEqual(a.roles, ['soldier', 'scout', 'soldier', 'brute'], 'o voador fica na coluna');
+  assert.deepEqual(S.queue, ['flyer', 'soldier', 'soldier']);
+  assert.ok(a.dist > a.path.len * 0.3 && a.dist < a.path.len * 0.8, 'no meio da estrada');
+  S.queue = [];
+  G.update(1);
+  assert.equal(S.enemies.length, 0, 'ninguém sai antes do aviso acabar');
+  assert.ok(S.waveActive, 'a onda não acaba com o bando escondido');
+  runUntil(G, () => !S.ambush, 8);
+  assert.equal(S.enemies.length, 4);
+  assert.ok(S.enemies.every(e => e.dist > a.path.len * 0.3), 'o bando já começa adiantado');
+});
+
+test('emboscada não acontece em onda de chefe nem cedo demais', () => {
+  const S = fresh('vale');
+  const rnd = Math.random;
+  Math.random = () => 0.01;
+  try {
+    for (const w of [3, 10]) {
+      S.wave = w;
+      S.queue = Array(8).fill('soldier');
+      TD.world.onWaveStart();
+      assert.equal(S.ambush, null, `onda ${w}`);
+      assert.equal(S.queue.length, 8);
+    }
+  } finally { Math.random = rnd; }
+});

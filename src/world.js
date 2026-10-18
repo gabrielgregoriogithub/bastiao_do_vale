@@ -169,16 +169,70 @@
     S.barricades = S.barricades.filter(b => b.hp > 0 && b.t > 0);
   }
 
+  // ---------- Emboscada ----------
+  // Algumas ondas separam um bando que se esconde no mato do meio da estrada: o aviso aparece
+  // e, passados AMBUSH_DELAY s, o bando pula na estrada já adiantado (no Desafio do dia vem da semente)
+  const AMBUSH_FIRST = 6, AMBUSH_CHANCE = 0.2, AMBUSH_SIZE = 4, AMBUSH_DELAY = 6, AMBUSH_AT = [0.4, 0.6];
+  function ambushRoll() {
+    const S = G.S;
+    return S.seed === null ? Math.random() : TD.seeded((S.seed ^ Math.imul(S.wave, 3266489917)) >>> 0)();
+  }
+  // ponto da emboscada numa estrada, fora do trecho que o portal pula
+  function ambushSpot(path, k) {
+    let dist = path.len * k;
+    for (const p of G.md.portals) if (dist > p.da && dist < p.db) dist = p.db + T;
+    return Math.min(dist, path.len * 0.8);
+  }
+  function planAmbush() {
+    const S = G.S;
+    S.ambush = null;
+    if (S.wave < AMBUSH_FIRST || S.wave % 5 === 0 || TD.isSwarm(S.wave)) return;
+    const roll = ambushRoll();
+    if (roll >= AMBUSH_CHANCE) return;
+    // só inimigos de a pé comuns: nada de chefe, ladrão ou voador
+    const picks = [];
+    const rest = S.queue.filter(role => {
+      const d = TD.ENEMIES[TD.enemyFor(S.mapId, role)];
+      if (picks.length >= AMBUSH_SIZE || d.boss || d.thief || d.flying) return true;
+      picks.push(role);
+      return false;
+    });
+    if (picks.length < AMBUSH_SIZE) return;
+    const k = roll / AMBUSH_CHANCE; // 0..1, reaproveitado para escolher estrada e ponto
+    const path = G.md.paths[Math.floor(k * G.md.paths.length) % G.md.paths.length];
+    const dist = ambushSpot(path, AMBUSH_AT[0] + k * (AMBUSH_AT[1] - AMBUSH_AT[0]));
+    const q = path.posAt(dist);
+    S.queue = rest;
+    S.ambush = { path, dist, x: q.x, y: q.y, t: AMBUSH_DELAY, roles: picks };
+  }
+  function tickAmbush(dt) {
+    const S = G.S, a = S.ambush;
+    if (!a || !S.waveActive) return;
+    a.t -= dt;
+    if (a.t > 0) return;
+    a.roles.forEach((role, i) => G.spawn(role, Math.max(0, a.dist - i * 16), a.path));
+    G.addFx({ kind: 'text', x: a.x, y: a.y - 26, txt: 'Emboscada!', color: '#e8806a', life: 1.4 });
+    for (let i = 0; i < 8; i++) {
+      const ang = Math.random() * Math.PI * 2, sp = 50 + Math.random() * 60;
+      G.addFx({ kind: 'shard', x: a.x, y: a.y, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp - 60, color: i % 2 ? '#4a6a2a' : '#7a9a3a', life: 0.6 });
+    }
+    S.shake = Math.max(S.shake, 0.25);
+    sfx.play('roar');
+    S.ambush = null;
+  }
+
   // ---------- Ciclo ----------
   function update(dt) {
     tickSeals(dt);
     holdBarricades(dt);
+    tickAmbush(dt);
   }
 
   function onWaveStart() {
     const S = G.S;
     S.chests = S.chests.filter(k => k.until >= S.wave);
     if (S.wave >= CHEST_FIRST && (S.wave - CHEST_FIRST) % CHEST_EVERY === 0) hideChest();
+    planAmbush();
   }
 
   // Toque do jogador no campo: abre um baú ou sela um portal. Devolve true se usou o toque.
@@ -299,9 +353,24 @@
     }
   }
 
-  // Por baixo dos inimigos: cristais, portais, baús e barricadas
+  // Aviso da emboscada: o mato chacoalha, com um anel vermelho e a contagem
+  function drawAmbush(g, a, time) {
+    const pulse = 0.5 + 0.5 * Math.sin(time * 8);
+    g.strokeStyle = `rgba(232,96,74,${0.4 + 0.4 * pulse})`; g.lineWidth = 2;
+    TD.circle(g, a.x, a.y, 14 + pulse * 4); g.stroke();
+    for (let i = 0; i < 3; i++) {
+      const bx = a.x + (i - 1) * 9, sway = Math.sin(time * 14 + i * 2) * 2;
+      g.fillStyle = i % 2 ? '#3e5a22' : '#5a7a2e';
+      g.beginPath(); g.moveTo(bx - 6, a.y + 6); g.quadraticCurveTo(bx + sway, a.y - 14, bx + 6, a.y + 6); g.fill();
+    }
+    g.fillStyle = '#e8806a'; g.font = '800 13px "Barlow Semi Condensed", sans-serif'; g.textAlign = 'center';
+    g.fillText(`! ${Math.ceil(a.t)}`, a.x, a.y - 20);
+  }
+
+  // Por baixo dos inimigos: cristais, portais, baús, barricadas e o mato da emboscada
   function draw(g, time) {
     const S = G.S;
+    if (S.ambush) drawAmbush(g, S.ambush, time);
     if (G.md.crystals.length) drawCrystals(g, time);
     if (G.md.portals.length) drawPortals(g, time);
     for (const k of S.chests) drawChest(g, k, time);
