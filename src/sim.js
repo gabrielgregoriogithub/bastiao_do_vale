@@ -41,6 +41,7 @@
       wave: 0, kills: 0, best: readBest(mapId, diffId), hero: null, heroSel: false, mods: {}, history: [], corpses: [], clock: 0,
       blessings: [], offer: null,
       towers: [], enemies: [], shots: [], fx: [], strikes: [], puddles: [], mined: 0, bossWarn: 0, combo: null, bestCombo: 0,
+      storm: false, boltT: 0, flashT: 0,
       queue: [], spawnT: 0, waveActive: false, next: TD.makeWave(1), seed: null, daily: null,
       speed: 1, paused: false, over: false, halted: false, endless: false, auto: false, autoT: null,
       inGame: false, menuOpen: false,
@@ -106,7 +107,7 @@
       chain: d.chain || 0, chainRange: (d.chainRange || 0) * T, chainFalloff: d.chainFalloff || 1, weakDur: 0,
       units: d.units || 0, unitHp: (d.unitHp || 0) * Math.pow(1.4, L), unitArmor: 0, regen: d.regen || 0, pierce: false,
       aura: d.support ? d.aura + AURA_PER_LVL * L : 0, buff: 0,
-      puddle: d.puddle ? (d.puddle + 0.15 * L) * T : 0, puddleDur: d.puddleDur || 0, corrode: 0,
+      puddle: d.puddle ? (d.puddle + 0.15 * L) * T : 0, puddleDur: d.puddleDur || 0, corrode: 0, crit: d.crit || 0,
       income: d.income ? Math.round(d.income * (1 + 0.7 * L)) : 0, bounty: 0,
     };
     switch (t.spec) {
@@ -396,9 +397,41 @@
     S.waveActive = true;
     S.spawnT = 0.3;
     S.autoT = null;
-    const tag = S.wave % 5 === 0 ? ` · ${TD.enemyName(S.mapId, TD.bossFor(S.wave))}` : TD.isSwarm(S.wave) ? ' · revoada' : '';
+    S.storm = stormFor(S.wave);
+    S.boltT = 3 + Math.random() * 3;
+    const tag = S.wave % 5 === 0 ? ` · ${TD.enemyName(S.mapId, TD.bossFor(S.wave))}` : TD.isSwarm(S.wave) ? ' · revoada' : S.storm ? ' · tempestade' : '';
     S.banner = { text: `Onda ${S.wave}${tag}`, t: 0, life: 2 };
     sfx.play('wave');
+  }
+
+  // ---------- Tempestades ----------
+  // Algumas ondas chegam com chuva (ou nevasca na neve); deserto e vulcão não têm chuva.
+  // No Desafio do dia a tempestade vem da semente, igual para todos.
+  const STORM_CHANCE = 0.22, DRY = new Set(['deserto', 'vulcao']);
+  const BOLT_GAP = [4, 7], BOLT_PCT = 0.15, BOLT_BOSS_PCT = 0.05;
+  function stormFor(n) {
+    if (n < 3 || DRY.has(G.md.map.biome)) return false;
+    const r = G.S.seed === null ? Math.random() : TD.seeded((G.S.seed ^ Math.imul(n, 2246822519)) >>> 0)();
+    return r < STORM_CHANCE;
+  }
+  // Relâmpago: atinge um inimigo ao acaso; na nevasca não há raios
+  function tickStorm(dt) {
+    const S = G.S;
+    S.flashT = Math.max(0, S.flashT - dt);
+    if (!S.storm || !S.waveActive || G.md.map.biome === 'neve') return;
+    S.boltT -= dt;
+    if (S.boltT > 0) return;
+    S.boltT = BOLT_GAP[0] + Math.random() * (BOLT_GAP[1] - BOLT_GAP[0]);
+    const alive = S.enemies.filter(e => !e.dead && !e.under);
+    if (!alive.length) return;
+    const e = alive[Math.floor(Math.random() * alive.length)];
+    const y = e.d.flying ? e.y - 12 : e.y;
+    addFx({ kind: 'lightning', x: e.x, y, seed: Math.random() * 1000, life: 0.35 });
+    addFx({ kind: 'ring', x: e.x, y, r: T, color: '#e8f0ff', life: 0.4 });
+    S.flashT = 0.3;
+    S.shake = Math.max(S.shake, 0.2);
+    sfx.play('thunder');
+    hurt(e, e.maxHp * (e.d.boss ? BOLT_BOSS_PCT : BOLT_PCT), true, null);
   }
 
   function starsFor(lives, max) {
@@ -504,6 +537,9 @@
   function hurt(e, dmg, pierce, src, quiet = false) {
     if (e.dead || (e.under && !quiet)) return;
     const S = G.S;
+    // acerto crítico das torres de precisão: dano dobrado antes da armadura
+    const crit = !quiet && src && src.s && src.s.crit > 0 && Math.random() < src.s.crit;
+    if (crit) dmg *= 2;
     const armor = e.corrodeT > 0 ? 0 : e.d.armor;
     let real = pierce ? dmg : Math.max(dmg * 0.25, dmg - armor);
     if (e.weakT > 0) real *= TD.WEAK_MUL;
@@ -511,12 +547,20 @@
       const absorbed = Math.min(e.shield, real);
       e.shield -= absorbed;
       real -= absorbed;
+      if (!quiet) e.blockAcc = (e.blockAcc || 0) + absorbed;
     }
+    if (crit) {
+      addFx({ kind: 'dmg', x: e.x, y: e.y - e.d.r * 1.8, txt: `${Math.round(Math.min(real, e.hp))}!`, crit: true, life: 0.9 });
+      addFx({ kind: 'spark', x: e.x, y: e.d.flying ? e.y - 10 : e.y, ang: -Math.PI / 2, color: '#ffd24a', life: 0.3 });
+    } else if (!quiet) e.numAcc = (e.numAcc || 0) + Math.min(real, e.hp);
     if (src) src.dmgDone += Math.min(real, e.hp);
     e.hp -= real;
     if (!quiet) e.flash = 0.08;
     if (e.hp > 0) return;
+    flushNumbers(e);
     e.dead = true;
+    // o corpo cai conforme a forma (scene.js anima): o golem desmorona, o fantasma se desfaz, o voador despenca
+    addFx({ kind: 'death', type: e.type, d: e.d, x: e.x, y: e.y, face: e.face || 1, wob: e.wob, life: e.d.boss ? 1.2 : 0.65 });
     S.kills += 1;
     if (src) {
       const before = src.isHero ? 0 : rankOf(src);
@@ -550,6 +594,18 @@
     for (const t of G.S.towers) if (t.s.bounty && Math.hypot(e.x - t.x, e.y - t.y) <= t.s.range) extra += t.s.bounty;
     if (extra) addFx({ kind: 'text', x: e.x + 10, y: e.y - 18, txt: `+${extra}`, color: '#f0a040', life: 0.9 });
     return extra;
+  }
+
+  // Números de dano: os golpes de cada inimigo se somam e aparecem juntos a cada NUM_GAP s, para não poluir a tela
+  const NUM_GAP = 0.35;
+  function flushNumbers(e) {
+    if (e.numAcc >= 1) addFx({ kind: 'dmg', x: e.x + (Math.random() - 0.5) * 10, y: e.y - e.d.r * 1.6, txt: String(Math.round(e.numAcc)), life: 0.7 });
+    if (e.blockAcc >= 1) addFx({ kind: 'dmg', x: e.x + 12, y: e.y - e.d.r * 1.2, txt: `(${Math.round(e.blockAcc)})`, color: '#c8a8f0', life: 0.7 });
+    e.numAcc = 0; e.blockAcc = 0; e.numT = NUM_GAP;
+  }
+  function tickNumbers(e, dt) {
+    e.numT = (e.numT || 0) - dt;
+    if (e.numT <= 0 && (e.numAcc >= 1 || e.blockAcc >= 1)) flushNumbers(e);
   }
 
   function applySlow(e, slow, dur) {
@@ -758,6 +814,7 @@
       e.corrodeT = Math.max(0, (e.corrodeT || 0) - dt);
       tickDots(e, dt);
       if (e.dead) continue;
+      tickNumbers(e, dt);
       // embaixo da terra ninguém o segura
       let f = e.frozenT > 0 || e.stunT > 0 || (e.blocked && !e.under) ? 0 : e.slowT > 0 ? 1 - e.slowF : 1;
       if (e.enraged) f *= e.d.enrageMul;
@@ -864,6 +921,7 @@
     updateStrikes(dt);
     updatePuddles(dt);
     tickCombo(dt);
+    tickStorm(dt);
 
     stepFx(dt);
     S.bossWarn = Math.max(0, S.bossWarn - dt);

@@ -14,6 +14,8 @@
     skeleton: 'hum', boss: 'hum', witch: 'robe', colossus: 'golem', dragon: 'dragon', berserker: 'hum', burrower: 'hum',
   };
   const FORMS = {
+    cutia: 'beast', tatu: 'beast', gaviao: 'bird', onca: 'beast', visagem: 'ghost', iara: 'ghost', mapinguari: 'golem',
+    boitata: 'dragon', queixada: 'beast', sucuri: 'worm', paje: 'robe', feiticeiro: 'robe',
     newt: 'beast', crab: 'bug', heron: 'bird', crocking: 'beast', turtle: 'golem', hydra: 'dragon', hippo: 'beast', mudeel: 'worm',
     jackal: 'beast', scarab: 'bug', vulture: 'bird', cobra: 'worm', djinn: 'ghost', sphinx: 'beast', roc: 'bird', scorpion: 'bug', sandworm: 'worm',
     wolf: 'beast', walrus: 'beast', owl: 'bird', polarbear: 'beast', icemole: 'beast', frostwyrm: 'dragon',
@@ -27,14 +29,14 @@
     frogman: '#7aa85a', drowned: '#9ab8a8', mummy: '#d8ccaa', bogdead: '#8a9a6a', ghoul: '#9aa88a', trollking: '#6e9a62',
     yeti: '#eef2f4', demon: '#b23a2e', imp: '#e8783a', flameogre: '#c86a44', werewolf: '#7a6a58', vampire: '#ece2e0',
     skeleton: '#e8e0c8', frostbone: '#dcecf4', oldbones: '#e8e0c8', ghostsailor: '#c8e0ea', cinder: '#5a4a44', reedlurker: '#6a8a5a',
-    whitehunter: '#e8eef2', piratelord: '#d9a77c',
+    whitehunter: '#e8eef2', piratelord: '#d9a77c', curupira: '#c8844a', garimpeiro: '#c8905a',
   };
   const HUMAN_SKIN = '#e0b08a';
   const ARMORED = new Set(['visor', 'square']);
   // Só o Senhor da Guerra e o Blindado clássicos vestem armadura completa sem ter o enfeite dela
   const ARMORED_TYPES = new Set(['boss', 'brute', 'ally-armored']);
   // Armas de chefes que não usam espada
-  const WEAPONS = { yeti: 'claws', trollking: 'mace', vampire: 'claws', demon: 'axe' };
+  const WEAPONS = { yeti: 'claws', trollking: 'mace', vampire: 'claws', demon: 'axe', curupira: 'mace' };
   // Enfeites que cobrem a cabeça: sem eles, o humanoide ganha cabelo
   const COVERS = new Set(['hood', 'crown', 'hat', 'turban', 'bandana', 'tricorn', 'lamp', 'fur', 'flame', 'leaf', 'bones', 'wraps', 'bulge', 'cowl']);
   const formOf = (type, d) => FORMS[type] || ROLE_FORM[d.role] || 'hum';
@@ -443,6 +445,11 @@
       g.strokeStyle = P.dark; g.lineWidth = LW * 1.3;
       g.beginPath(); for (const x of [-5, -1.5, 2]) { g.moveTo(x, -8); g.lineTo(x + 1, -1); } g.stroke();
     }
+    if (look.includes('spots')) {
+      // rosetas da onça: anel escuro com miolo
+      g.strokeStyle = P.dark; g.lineWidth = LW * 1.1;
+      for (const [x, y] of [[-6, -4], [-2.5, -6], [1, -3], [4.5, -5.5], [-4, -0.5], [3, -0.5]]) { g.beginPath(); g.ellipse(x, y, 1.3, 1, 0, 0, TAU); g.stroke(); }
+    }
     // cabeça e focinho
     ball(g, 9, -6.5, 4.4, P.main, P.ink);
     oval(g, 12.8, -5, 2.8, 2, P.light, P.ink);
@@ -497,6 +504,7 @@
     for (let i = 4; i >= 0; i--) {
       const x = -11 + i * 4.4, y = 2 + Math.sin(ph * 1.2 - i * 0.9) * 2.2, r = 3.2 + i * 0.45;
       ball(g, x, y - r * 0.4, r, i % 2 ? P.shade : P.main, P.ink);
+      if (look.includes('spots')) { g.fillStyle = P.dark; circle(g, x - r * 0.2, y - r * 0.7, r * 0.3); g.fill(); }
       if (look.includes('flame') && i % 2 === 0) { g.fillStyle = 'rgba(255,170,60,.85)'; circle(g, x, y - r * 0.4, r * 0.4); g.fill(); }
     }
     const hy = 2 + Math.sin(ph * 1.2 - 4.5) * 2.2 - 2.6;
@@ -572,6 +580,7 @@
   }
   // Vira para a esquerda ou direita conforme anda; subindo ou descendo, mantém o último lado
   function facing(e) {
+    if (!e.path) return e.face || 1; // corpo caindo ou ícone: mantém o lado
     if (e.d.flying) {
       const dx = e.path ? e.path.flyAt(e.dist + 3).x - e.x : 1;
       if (Math.abs(dx) > 0.2) e.face = dx < 0 ? -1 : 1;

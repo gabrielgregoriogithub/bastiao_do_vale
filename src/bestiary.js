@@ -17,6 +17,23 @@
 
   // [id, nome, plural, cor, sombra, enfeites, frase de ambiente], na ordem de ROLE_ORDER
   const ROSTERS = {
+    // Vale Amazônico: invasores da mata e o folclore que acordou para enfrentá-los
+    amazonia: [
+      ['garimpeiro', 'Garimpeiro', 'Garimpeiros', '#b8642e', '#4a2410', ['axe', 'lamp'], 'Abriu as cavernas atrás de ouro e acordou a mata.'],
+      ['cutia', 'Cutia', 'Cutias', '#b07a40', '#4a2e14', ['ears'], 'Pequena e ligeira, dispara pela trilha.'],
+      ['tatu', 'Tatu-canastra', 'Tatus-canastra', '#8a7a62', '#3a3020', ['stripes', 'square'], 'Couraça de placas que desvia flechas.'],
+      ['paje', 'Pajé Sombrio', 'Pajés Sombrios', '#7a4a2a', '#2e1a0e', ['leaf', 'drop'], 'Cura os aliados com ervas da floresta.'],
+      ['gaviao', 'Gavião-real', 'Gaviões-reais', '#8a8a8e', '#2a2a2e', ['beak'], 'A maior ave de rapina da mata, cruza o céu sem seguir a trilha.'],
+      ['onca', 'Onça-pintada', 'Onças-pintadas', '#d89a3a', '#4a2a0a', ['spots', 'ears'], 'Some entre as folhas e só aparece na hora do bote.'],
+      ['feiticeiro', 'Feiticeiro do Igapó', 'Feiticeiros do Igapó', '#3a5a4a', '#122018', ['hood', 'leaf'], 'Chama de volta os que caem na floresta alagada.'],
+      ['visagem', 'Visagem', 'Visagens', '#b8d8c8', '#4a6058', ['eye'], 'Assombração da mata que voltou para lutar.'],
+      ['curupira', 'Curupira', 'Curupiras', '#3a7a3a', '#143014', ['flame', 'leaf'], 'O guardião da floresta: cabelo de fogo e pés virados para trás.'],
+      ['iara', 'Iara', 'Iaras', '#3ab0a8', '#0e3e3a', ['drop'], 'Seu canto do rio envolve os aliados num escudo de água.'],
+      ['mapinguari', 'Mapinguari', 'Mapinguaris', '#6a4a32', '#241608', ['bigsquare', 'cracks'], 'O gigante peludo da lenda, com a boca na barriga.'],
+      ['boitata', 'Boitatá', 'Boitatás', '#e0702a', '#5a1a06', ['horns', 'flame'], 'A cobra de fogo que voa sobre a mata e incendeia as torres.'],
+      ['queixada', 'Queixada', 'Queixadas', '#4a3a32', '#1a120e', ['tusks', 'fur'], 'Ferido, o porco-do-mato bate os dentes e dispara.'],
+      ['sucuri', 'Sucuri', 'Sucuris', '#5a7a3a', '#1e2e12', ['spots'], 'Mergulha na lama da trilha e surge mais adiante.'],
+    ],
     rio: [
       ['frogman', 'Homem-Sapo', 'Homens-Sapo', '#5f8f4a', '#22381a', ['spear', 'bulge'], 'Sobe da margem com a lança em punho.'],
       ['newt', 'Salamandra', 'Salamandras', '#d9823b', '#5a2c0c', ['dagger', 'stripes'], 'Escorrega pelas pedras molhadas mais rápido do que se espera.'],

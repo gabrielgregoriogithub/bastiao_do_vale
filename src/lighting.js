@@ -23,8 +23,9 @@
   function phaseOf(wave) { return wave <= 0 ? 'day' : CYCLE[wave % 5]; }
   function targetFor(S, md) {
     const p = PHASES[phaseOf(S.wave)], b = BIOME[md.map.biome];
-    if (!b) return p;
-    return p.dark >= b.dark ? p : { dark: b.dark, tint: p.ta > b.ta ? p.tint : b.tint, ta: Math.max(p.ta, b.ta) };
+    const base = !b || p.dark >= b.dark ? p : { dark: b.dark, tint: p.ta > b.ta ? p.tint : b.tint, ta: Math.max(p.ta, b.ta) };
+    // tempestade: céu fechado, mais escuro e azulado
+    return S.storm ? { dark: Math.min(0.75, base.dark + 0.22), tint: '#6a7a98', ta: Math.max(base.ta, 0.3) } : base;
   }
 
   // ---------- Luzes: manchas suaves pré-desenhadas e reaproveitadas ----------
@@ -88,7 +89,24 @@
   }
 
   // ---------- Estado e desenho ----------
-  let cur = { ...PHASES.day }, curTint = '#ffffff', layer = null, lastPhase = 'day', caption = null, lastMap = null;
+  let cur = { ...PHASES.day }, curTint = '#ffffff', layer = null, lastPhase = 'day', caption = null, lastMap = null, rain = 0, lastStorm = false;
+
+  // Chuva em traços diagonais (ou neve grossa na nevasca); rain vai de 0 a 1 ao começar e acabar
+  const DROPS = Array.from({ length: 140 }, (_, i) => [(i * 97.3) % 1, (i * 61.7) % 1, 0.6 + ((i * 13) % 10) / 25]);
+  function drawRain(g, time, snow) {
+    if (rain < 0.02) return;
+    g.globalAlpha = rain * (snow ? 0.8 : 0.45);
+    g.strokeStyle = snow ? '#ffffff' : '#c8d8f0'; g.fillStyle = '#ffffff'; g.lineWidth = 1;
+    g.beginPath();
+    for (const [fx, fy, sp] of DROPS) {
+      const speed = snow ? 60 * sp : 520 * sp, drift = snow ? 30 : 140;
+      const y = ((fy * (H + 40) + time * speed) % (H + 40)) - 20, x = ((fx * (W + 80) + time * drift * sp) % (W + 80)) - 40;
+      if (snow) { g.moveTo(x + 1.6, y); g.arc(x, y, 1.6 * sp, 0, Math.PI * 2); }
+      else { g.moveTo(x, y); g.lineTo(x - 4, y - 13 * sp); }
+    }
+    if (snow) g.fill(); else g.stroke();
+    g.globalAlpha = 1;
+  }
 
   function update(dt, S, md) {
     const target = targetFor(S, md);
@@ -99,6 +117,10 @@
     curTint = mixHex(curTint, target.tint, k);
     const ph = phaseOf(S.wave);
     if (ph !== lastPhase && S.inGame) { caption = { text: CAPTION[ph], t: 0 }; lastPhase = ph; }
+    const storming = S.storm && S.waveActive;
+    if (storming && !lastStorm) caption = { text: md.map.biome === 'neve' ? 'Nevasca' : 'Tempestade', t: 0 };
+    lastStorm = storming;
+    rain += ((storming ? 1 : 0) - rain) * Math.min(1, dt * 0.8);
     if (caption) { caption.t += dt; if (caption.t > 3) caption = null; }
   }
   // mistura que devolve hexadecimal, para poder misturar de novo no quadro seguinte
@@ -143,13 +165,18 @@
       l.globalCompositeOperation = 'destination-out';
       const white = spot(rgb('#ffffff'));
       for (const [x, y, r] of lights) if (r > 1) l.drawImage(white, x - r, y - r, r * 2, r * 2);
+      // o clarão do relâmpago apaga a escuridão por um instante
+      g.globalAlpha = 1 - Math.min(1, (S.flashT || 0) / 0.3) * 0.85;
       g.drawImage(layer, 0, 0, W, H);
+      g.globalAlpha = 1;
       // brilho colorido somado por cima, mais forte quanto mais escuro
       g.globalCompositeOperation = 'lighter';
       g.globalAlpha = Math.min(0.5, cur.dark * 0.7);
       for (const [x, y, r, color] of lights) if (r > 1) g.drawImage(spot(rgb(color)), x - r * 0.8, y - r * 0.8, r * 1.6, r * 1.6);
       g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
     }
+    drawRain(g, reducedMotion ? 0 : time, md.map.biome === 'neve');
+    if (S.flashT > 0) { g.fillStyle = `rgba(230,240,255,${(S.flashT / 0.3 * 0.35).toFixed(3)})`; g.fillRect(0, 0, W, H); }
     if (caption) {
       const a = Math.min(1, caption.t / 0.5, (3 - caption.t) / 0.8);
       g.globalAlpha = Math.max(0, a) * 0.9;

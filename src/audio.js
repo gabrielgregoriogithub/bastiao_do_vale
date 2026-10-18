@@ -60,6 +60,7 @@
     coins: () => [1320, 1568, 1976].forEach((f, i) => tone({ freq: f, dur: 0.07, type: 'triangle', vol: 0.07, delay: i * 0.05 })),
     roar: () => { tone({ freq: 90, to: 45, dur: 0.9, type: 'sawtooth', vol: 0.2 }); noise({ dur: 0.7, vol: 0.14, cutoff: 500 }); },
     rage: () => tone({ freq: 180, to: 320, dur: 0.2, type: 'sawtooth', vol: 0.09 }),
+    thunder: () => { noise({ dur: 1.1, vol: 0.3, cutoff: 380 }); noise({ dur: 0.12, vol: 0.2, cutoff: 5000 }); },
     chirp: () => [2200, 2600, 2100].forEach((f, i) => tone({ freq: f, to: f * 1.25, dur: 0.06, type: 'sine', vol: 0.03, delay: i * 0.09 })),
     combo: () => [784, 988, 1175, 1568].forEach((f, i) => tone({ freq: f, dur: 0.1, type: 'square', vol: 0.06, delay: i * 0.05 })),
     firework: () => { noise({ dur: 0.35, vol: 0.12, cutoff: 2500 }); tone({ freq: 1200, to: 300, dur: 0.3, type: 'triangle', vol: 0.05 }); },
@@ -87,6 +88,7 @@
     D3 * 2 ** ((intervals[i % intervals.length] + 12 * Math.floor(i / intervals.length)) / 12));
   const THEMES = {
     campo:    { modes: [0, 2, 3, 5, 7, 9, 10], beat: 0.5,  lead: 'triangle', vol: 0.3,  drone: 73.42, octave: 1 },
+    amazonia: { modes: [0, 2, 4, 7, 9],        beat: 0.45, lead: 'sine',     vol: 0.34, drone: 73.42, octave: 2 },
     rio:      { modes: [0, 2, 4, 6, 7, 9, 11], beat: 0.55, lead: 'sine',     vol: 0.34, drone: 73.42, octave: 1 },
     deserto:  { modes: [0, 1, 4, 5, 7, 8, 10], beat: 0.45, lead: 'triangle', vol: 0.3,  drone: 73.42, octave: 1 },
     neve:     { modes: [0, 2, 4, 7, 9],        beat: 0.7,  lead: 'sine',     vol: 0.3,  drone: 73.42, octave: 2 },

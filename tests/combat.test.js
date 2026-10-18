@@ -91,7 +91,7 @@ test('abate rende ouro e o Colosso se parte em 4 Blindados', () => {
   G.hurt(c, 1e6, true, null);
   assert.ok(c.dead);
   assert.ok(G.S.gold > gold);
-  assert.equal(G.S.enemies.filter(e => e.type === 'brute' && !e.dead).length, 4);
+  assert.equal(G.S.enemies.filter(e => e.d.role === 'brute' && !e.dead).length, 4);
 });
 
 test('o Canhão ignora voadores e o Arcano os acerta', () => {

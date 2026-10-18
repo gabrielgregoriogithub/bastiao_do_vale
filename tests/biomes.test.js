@@ -3,13 +3,13 @@ const assert = require('node:assert/strict');
 const { loadGame, runUntil } = require('./harness');
 
 const { TD, G } = loadGame({ seed: 3 });
-const THEMED = ['rio', 'serpente', 'encruzilhada', 'pantano', 'costa', 'cemiterio', 'vulcao'];
+const THEMED = ['vale', 'rio', 'serpente', 'encruzilhada', 'pantano', 'costa', 'cemiterio', 'vulcao'];
 const CLASSIC = TD.ROLE_ORDER;
 
 test('oito campos oficiais, cada um com seu ambiente e seu capítulo', () => {
   const maps = TD.officialMaps();
   assert.deepEqual(maps.map(m => m.id), ['vale', 'rio', 'serpente', 'encruzilhada', 'pantano', 'costa', 'cemiterio', 'vulcao']);
-  assert.deepEqual(maps.map(m => m.biome), ['campo', 'rio', 'deserto', 'neve', 'floresta', 'costa', 'cripta', 'vulcao']);
+  assert.deepEqual(maps.map(m => m.biome), ['amazonia', 'rio', 'deserto', 'neve', 'floresta', 'costa', 'cripta', 'vulcao']);
   for (const m of maps) assert.ok(TD.CHRONICLE[m.id], `capítulo de ${m.id}`);
 });
 
@@ -39,7 +39,7 @@ test('cada ambiente tem sua própria versão de cada inimigo, sem repetir os de 
       for (const k of ['hp', 'speed', 'armor', 'gold', 'flying', 'boss', 'stealth', 'lives']) assert.equal(d[k], base[k], `${type}.${k}`);
     }
   }
-  assert.deepEqual(TD.rosterOf('vale'), CLASSIC, 'o Vale mantém os clássicos');
+  assert.deepEqual(TD.rosterOf('custom'), CLASSIC, 'os campos do editor usam os clássicos');
 });
 
 test('as ondas trazem os inimigos do ambiente, inclusive os que nascem de outros', () => {
@@ -66,16 +66,18 @@ test('o Embalsamador ergue Múmias, não Esqueletos', () => {
   assert.ok(G.S.enemies.some(e => e.type === 'mummy'));
 });
 
-test('o Vale e os campos do editor usam os inimigos clássicos', () => {
+test('o Vale Amazônico tem os bichos e lendas da mata; os campos do editor usam os clássicos', () => {
   G.newGame('vale', 'normal');
   G.spawn('soldier', 100);
-  assert.equal(G.S.enemies[0].type, 'soldier');
+  assert.equal(G.S.enemies[0].type, 'garimpeiro');
+  assert.equal(TD.enemyFor('vale', 'boss'), 'curupira');
   assert.equal(TD.enemyFor('campo-do-jogador', 'brute'), 'brute');
 });
 
 test('nomes das ondas e dos chefes seguem o ambiente', () => {
   assert.equal(TD.enemyName('encruzilhada', 'boss'), 'Yeti Ancião');
-  assert.equal(TD.enemyName('vale', 'boss'), 'Senhor da Guerra');
+  assert.equal(TD.enemyName('vale', 'boss'), 'Curupira');
+  assert.equal(TD.enemyName('custom', 'boss'), 'Senhor da Guerra');
   assert.equal(TD.enemyName('vulcao', 'scout', 3), 'Diabretes de Fogo');
 });
 

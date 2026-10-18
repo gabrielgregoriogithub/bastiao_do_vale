@@ -5,10 +5,11 @@
   Object.assign(TD, { T, COLS, ROWS, W: COLS * T, H: ROWS * T, MAX_WAVES: 20, MAX_LVL: 3 });
 
   TD.TOWERS = {
-    archer:   { name: 'Arqueiro', cost: 50,  dmg: 10, range: 2.6, rate: 0.55, speed: 430, desc: 'Disparos rápidos em um alvo.' },
+    // crit: chance de acerto crítico (dano dobrado) das armas de precisão
+    archer:   { name: 'Arqueiro', cost: 50,  dmg: 10, range: 2.6, rate: 0.55, speed: 430, crit: 0.1, desc: 'Disparos rápidos em um alvo. 10% de chance de acerto crítico.' },
     cannon:   { name: 'Canhão',   cost: 110, dmg: 26, range: 2.4, rate: 1.6,  speed: 260, splash: 1.1, ground: true, desc: 'Explosão que atinge grupos. Não acerta voadores.' },
     frost:    { name: 'Geada',    cost: 80,  dmg: 4,  range: 2.3, rate: 0.9,  speed: 340, slow: 0.4, slowDur: 1.6, detects: true, desc: 'Deixa os inimigos lentos e revela os camuflados.' },
-    ballista: { name: 'Balestra', cost: 160, dmg: 70, range: 4.6, rate: 2.2,  pierce: true, desc: 'Longo alcance, ignora armadura.' },
+    ballista: { name: 'Balestra', cost: 160, dmg: 70, range: 4.6, rate: 2.2,  pierce: true, crit: 0.15, desc: 'Longo alcance, ignora armadura. 15% de chance de acerto crítico.' },
     arcane:   { name: 'Arcano',   cost: 140, dmg: 20, range: 2.7, rate: 1.3,  chain: 3, chainRange: 1.6, chainFalloff: 0.8, detects: true, desc: 'Raio que salta entre inimigos, inclusive voadores. Revela os camuflados.' },
   };
   // Quartel: não atira; mantém soldados num ponto da estrada que seguram os inimigos (melee)
@@ -112,7 +113,7 @@
 
   // Crônica do Vale: cada campo é um capítulo; a introdução aparece na primeira partida de cada um
   TD.CHRONICLE = {
-    vale: { chapter: 'Capítulo I', text: 'Os batedores avistaram fumaça nas cavernas além da floresta. Entre sumaúmas e araras, o velho bastião é a única muralha entre a horda e as aldeias do vale. Segure a trilha por vinte ondas.' },
+    vale: { chapter: 'Capítulo I', text: 'Garimpeiros abriram as cavernas além da floresta e acordaram o que dormia nelas. Agora queixadas, onças e até o Curupira marcham pela trilha de terra vermelha. O velho bastião é a única muralha entre a mata enfurecida e as aldeias do vale. Segure a trilha por vinte ondas.' },
     rio: { chapter: 'Capítulo II', text: 'Vencida no vale, a horda contorna as montanhas e cruza o rio pela ponte de madeira. Sem espaço nas margens, cada torre precisa valer o ouro que custa.' },
     serpente: { chapter: 'Capítulo III', text: 'A estrada antiga serpenteia pelas dunas do deserto. Nômades e múmias marcham juntos, e os abutres não seguem estradas: cortam o céu direto até a muralha.' },
     encruzilhada: { chapter: 'Capítulo IV', text: 'Nas montanhas geladas, a horda aprendeu a atacar por duas cavernas ao mesmo tempo. As colunas se encontram no meio da neve.' },
@@ -204,9 +205,9 @@
   // Caminhos em coordenadas de casa (coluna, linha); começam fora da tela à esquerda e saem pela direita
   TD.MAPS = [
     {
-      // theme: cenário desenhado à parte (render.js e ambience.js); os inimigos continuam os clássicos do campo
+      // theme: cenário desenhado à parte (render.js e ambience.js)
       // props: árvores da floresta, que ocupam casas longe da trilha como o cenário
-      id: 'vale', biome: 'campo', theme: 'amazonia', name: 'Vale Amazônico', desc: 'Trilha de terra vermelha no coração da floresta. Bom para começar.',
+      id: 'vale', biome: 'amazonia', theme: 'amazonia', name: 'Vale Amazônico', desc: 'Trilha de terra vermelha no coração da floresta. Bom para começar.',
       way: [[-1, 2], [4, 2], [4, 8], [9, 8], [9, 3], [14, 3], [14, 9], [17, 9], [17, 5], [20, 5]],
       water: [],
       props: [[0, 7], [0, 8], [0, 9], [0, 10], [0, 11], [1, 10], [1, 11], [2, 11], [6, 11], [7, 11], [8, 11], [11, 11], [12, 11],

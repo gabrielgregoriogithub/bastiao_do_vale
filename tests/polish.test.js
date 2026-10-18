@@ -58,3 +58,55 @@ test('a música troca de modo e ritmo conforme o ambiente, sem erro em ambiente 
   for (const m of TD.officialMaps()) assert.doesNotThrow(() => TD.audio.setTheme(m.biome));
   assert.doesNotThrow(() => TD.audio.setTheme('inexistente'));
 });
+
+test('torres de precisão às vezes acertam um crítico de dano dobrado, com número dourado', () => {
+  fresh();
+  G.build('ballista', 3, 4);
+  const t = G.S.towers[0];
+  t.s.crit = 1; // força o crítico
+  G.spawn('soldier', 100);
+  const e = G.S.enemies[0];
+  e.hp = e.maxHp = 1000;
+  G.hurt(e, 50, true, t);
+  assert.equal(1000 - e.hp, 100);
+  assert.ok(G.S.fx.some(f => f.kind === 'dmg' && f.crit && f.txt === '100!'));
+});
+
+test('os golpes comuns viram um número só a cada instante; a cura aparece em verde', () => {
+  fresh();
+  G.spawn('soldier', 100);
+  const e = G.S.enemies[0];
+  e.hp = e.maxHp = 1000; e.frozenT = 99;
+  for (let i = 0; i < 4; i++) G.hurt(e, 10, true, null);
+  G.S.fx = [];
+  G.update(0.5);
+  const nums = G.S.fx.filter(f => f.kind === 'dmg');
+  assert.equal(nums.length, 1);
+  assert.equal(nums[0].txt, '40');
+});
+
+test('quem cai deixa o corpo animado conforme a forma', () => {
+  fresh();
+  G.spawn('colossus', 100);
+  const e = G.S.enemies[0];
+  G.hurt(e, 1e9, true, null);
+  const death = G.S.fx.find(f => f.kind === 'death');
+  assert.ok(death && death.type === e.type);
+  assert.equal(TD.enemyForm(death.type, death.d), 'golem');
+});
+
+test('na tempestade os relâmpagos atingem inimigos; deserto e vulcão nunca têm chuva', () => {
+  G.newGame('rio', 'normal', ['nohero']);
+  G.S.waveActive = true; G.S.storm = true; G.S.boltT = 0;
+  G.spawn('brute', 200);
+  const e = G.S.enemies[0];
+  e.frozenT = 99;
+  const hp = e.hp;
+  G.update(1 / 60);
+  assert.ok(e.hp < hp, 'o raio feriu');
+  assert.ok(G.S.fx.some(f => f.kind === 'lightning'));
+  for (const map of ['serpente', 'vulcao']) {
+    G.newGame(map, 'normal', ['nohero']);
+    for (let w = 0; w < 30; w++) { G.startWave(); assert.equal(G.S.storm, false, `${map} sem chuva`); G.S.waveActive = false; G.S.queue = []; }
+  }
+});

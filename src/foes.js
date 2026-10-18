@@ -82,8 +82,10 @@
     for (const o of G.S.enemies) {
       if (o === e || o.dead || o.hp >= o.maxHp) continue;
       if (Math.hypot(o.x - e.x, o.y - e.y) > e.d.healRange * T) continue;
-      o.hp = Math.min(o.maxHp, o.hp + o.maxHp * e.d.heal);
+      const gain = Math.min(o.maxHp - o.hp, o.maxHp * e.d.heal);
+      o.hp += gain;
       healed = true;
+      if (gain >= 1) G.addFx({ kind: 'dmg', x: o.x, y: o.y - o.d.r * 1.6, txt: `+${Math.round(gain)}`, color: '#8fe08a', life: 0.8 });
     }
     if (healed) {
       G.addFx({ kind: 'ring', x: e.x, y: e.y, r: e.d.healRange * T, color: '#8fd08a', life: 0.5 });

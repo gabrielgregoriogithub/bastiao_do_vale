@@ -124,7 +124,8 @@
   let view = null;
   const tabs = $('codexMaps');
   function renderTabs() {
-    tabs.innerHTML = TD.officialMaps().map(m => {
+    const views = [...TD.officialMaps(), { id: 'custom', name: 'Campos do editor' }];
+    tabs.innerHTML = views.map(m => {
       const found = TD.rosterOf(m.id).filter(t => seen.has(t)).length;
       return `<button class="btn small${m.id === view ? ' on' : ''}" data-map="${m.id}" aria-pressed="${m.id === view}">${m.name} <small>${found}/${TD.ROLE_ORDER.length}</small></button>`;
     }).join('');
@@ -144,7 +145,8 @@
     for (const c of enemyList.querySelectorAll('canvas')) enemyIcon(c, c.dataset.enemy, !seen.has(c.dataset.enemy));
     for (const c of towerList.querySelectorAll('canvas')) towerIcon(c, c.dataset.tower);
     const all = Object.keys(ENEMIES);
-    $('codexCount').textContent = `${(TD.MAPS.find(m => m.id === view) || G.md.map).name}: ${roster.filter(t => seen.has(t)).length} de ${roster.length} encontrados · ${all.filter(t => seen.has(t)).length} de ${all.length} em todos os campos`;
+    const viewName = view === 'custom' ? 'Campos do editor' : (TD.MAPS.find(m => m.id === view) || G.md.map).name;
+    $('codexCount').textContent = `${viewName}: ${roster.filter(t => seen.has(t)).length} de ${roster.length} encontrados · ${all.filter(t => seen.has(t)).length} de ${all.length} em todos os campos`;
     const best = TD.achievements.runs();
     $('codexRuns').innerHTML = best.length ? `<table>
       <thead><tr><th scope="col">#</th><th scope="col">Campo</th><th scope="col">Herói</th><th scope="col">Ondas</th><th scope="col">Abates</th><th scope="col">Quando</th></tr></thead>
@@ -177,8 +179,8 @@
     open = true;
     prevMenuOpen = G.S.menuOpen;
     G.S.menuOpen = true;
-    // campo do editor não tem bestiário próprio: abre no Vale, que usa os mesmos inimigos
-    view = TD.officialMaps().some(m => m.id === mapId()) ? mapId() : 'vale';
+    // campos do editor usam os inimigos clássicos, que têm aba própria
+    view = TD.officialMaps().some(m => m.id === mapId()) ? mapId() : 'custom';
     render();
     modal.hidden = false;
     modal.scrollTop = 0;

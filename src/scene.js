@@ -237,6 +237,31 @@
       } else if (f.kind === 'shard') {
         ctx.fillStyle = f.color;
         ctx.fillRect(f.x - 1.5, f.y - 1.5, 3, 3);
+      } else if (f.kind === 'dmg') {
+        // número que salta e sobe; o crítico é maior, dourado e treme
+        const pop = k < 0.15 ? 0.6 + k / 0.15 * 0.6 : 1.2 - Math.min(0.2, (k - 0.15) * 0.4);
+        const size = (f.crit ? 15 : 10) * pop, yy = f.y - k * (f.crit ? 20 : 16), xx = f.x + (f.crit ? Math.sin(f.t * 60) * (1 - k) * 1.5 : 0);
+        ctx.font = `800 ${size.toFixed(1)}px "Barlow Semi Condensed", sans-serif`; ctx.textAlign = 'center';
+        ctx.lineWidth = f.crit ? 3.5 : 2.6; ctx.strokeStyle = 'rgba(20,14,8,.85)';
+        ctx.strokeText(f.txt, xx, yy);
+        ctx.fillStyle = f.crit ? '#ffd24a' : f.color || '#f4efe2'; ctx.fillText(f.txt, xx, yy);
+      } else if (f.kind === 'death') {
+        drawDeath(f, k);
+      } else if (f.kind === 'lightning') {
+        // raio que desce do alto da tela em zigue-zague até o alvo, com galhos
+        const rnd = TD.seeded(Math.floor(f.seed));
+        const pts = [{ x: f.x + (rnd() - 0.5) * 80, y: -10 }];
+        for (let i = 1; i <= 7; i++) pts.push({ x: f.x + (rnd() - 0.5) * 36 * (1 - i / 8), y: -10 + (f.y + 10) * i / 7 });
+        pts[pts.length - 1] = { x: f.x, y: f.y };
+        const trace = (w, color) => { ctx.strokeStyle = color; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y); for (const p of pts) ctx.lineTo(p.x, p.y); ctx.stroke(); };
+        ctx.lineJoin = 'round';
+        ctx.globalCompositeOperation = 'lighter';
+        trace(9, 'rgba(160,190,255,.35)'); trace(3.5, '#cfe0ff'); trace(1.4, '#ffffff');
+        const b = pts[3];
+        ctx.lineWidth = 1.5; ctx.strokeStyle = '#cfe0ff';
+        ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(b.x + 22 * (rnd() - 0.3), b.y + 26); ctx.lineTo(b.x + 30 * (rnd() - 0.2), b.y + 40); ctx.stroke();
+        glow(f.x, f.y, 34, 'rgba(200,220,255,.8)');
+        ctx.globalCompositeOperation = 'source-over';
       } else if (f.kind === 'ember') {
         // fagulha dos fogos: ponto brilhante com rastro curto
         ctx.globalCompositeOperation = 'lighter';
@@ -278,6 +303,31 @@
       }
       ctx.globalAlpha = 1;
     }
+  }
+
+  // Corpo de quem caiu, animado conforme a forma: tomba de lado, desmorona (golem), se desfaz subindo (fantasma)
+  // ou despenca girando (voadores). O desenho é o do próprio inimigo (creatures.js).
+  function drawDeath(f, k) {
+    const form = TD.enemyForm(f.type, f.d), body = {
+      type: f.type, d: f.d, x: f.x, y: f.y, hp: 1, maxHp: 1, flash: k < 0.1 ? 1 : 0, slowT: 0, frozenT: 0, shield: 0, weakT: 0,
+      dots: {}, wob: f.wob, revealed: true, face: f.face,
+    };
+    const ease = 1 - (1 - Math.min(1, k * 1.8)) ** 2, r = f.d.r;
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, 1 - Math.max(0, k - 0.45) / 0.55);
+    if (f.d.flying) {
+      ctx.translate(f.x, f.y - 12 + ease * 18); ctx.rotate(f.face * ease * 1.6); ctx.translate(-f.x, -f.y);
+    } else if (form === 'ghost') {
+      ctx.globalAlpha = Math.max(0, 0.8 - k);
+      ctx.translate(f.x, f.y - k * 18); ctx.scale(1 + k * 0.6, 1 - k * 0.3); ctx.translate(-f.x, -f.y);
+    } else if (form === 'golem') {
+      ctx.translate(f.x, f.y + r * 0.9); ctx.scale(1 + ease * 0.15, 1 - ease * 0.7); ctx.translate(-f.x, -f.y - r * 0.9);
+    } else {
+      // tomba para trás, girando em volta dos pés
+      ctx.translate(f.x, f.y + r * 0.8); ctx.rotate(-f.face * ease * Math.PI / 2); ctx.translate(-f.x, -f.y - r * 0.8);
+    }
+    TD.drawEnemy(ctx, body, true);
+    ctx.restore();
   }
 
   // Anel dourado nas torres que um estandarte em (x, y) fortalece: ao marcá-lo ou ao posicioná-lo

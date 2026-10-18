@@ -59,8 +59,8 @@ test('Necromante levanta até 2 Esqueletos de quem caiu perto, e esqueletos não
   const necro = place('necro', 300, { raiseT: 0.1 });
   for (const dist of [290, 300, 310]) G.hurt(place('soldier', dist), 1e6, true, null);
   assert.equal(G.S.corpses.length, 3);
-  runUntil(G, () => G.S.enemies.some(e => e.type === 'skeleton'), 1);
-  const skeletons = G.S.enemies.filter(e => e.type === 'skeleton');
+  runUntil(G, () => G.S.enemies.some(e => e.d.role === 'skeleton'), 1);
+  const skeletons = G.S.enemies.filter(e => e.d.role === 'skeleton');
   assert.equal(skeletons.length, 2, 'no máximo 2 por vez');
   assert.equal(G.S.corpses.length, 1);
   G.hurt(skeletons[0], 1e6, true, null);
@@ -75,7 +75,7 @@ test('Colosso morto por explosão: os Blindados que saem dele não levam o mesmo
   const c = place('colossus', 400, { hp: 1, maxHp: 1 });
   G.S.strikes.push({ x: c.x, y: c.y, r: 2 * T, dmg: 50, t: 0 });
   G.update(1 / 60);
-  const brutes = G.S.enemies.filter(e => e.type === 'brute');
+  const brutes = G.S.enemies.filter(e => e.d.role === 'brute');
   assert.equal(brutes.length, 4);
   for (const b of brutes) assert.equal(b.hp, b.maxHp, 'Blindado nasce com a vida cheia');
 });
