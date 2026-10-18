@@ -50,10 +50,51 @@
     TD.drawTower(g, type, 24, 33, 1, -Math.PI / 4, 0.72);
   }
 
-  function showCard(type) {
-    cardName.textContent = `Novo inimigo: ${ENEMIES[type].name}`;
-    cardText.textContent = ENEMY_INFO[type];
-    enemyIcon(cardIcon, type);
+  // Novidades do campo que também ganham cartão na primeira vez: quando aparecem e o que fazer
+  const pct = k => Math.round((k - 1) * 100);
+  const EVENTS = {
+    crystal: {
+      name: 'Veio de cristal', when: S => G.md.crystals.length > 0 && S.inGame,
+      text: `Torre construída sobre um veio brilhante ganha +${pct(TD.CRYSTAL_DMG)}% de dano e +${pct(TD.CRYSTAL_RANGE)}% de alcance.`,
+    },
+    portal: {
+      name: 'Portal de pedra', when: S => G.md.portals.length > 0 && S.waveActive,
+      text: 'Encurta a estrada da horda. Toque numa das bocas para selar o portal por um tempo, pagando ouro, e obrigar a coluna a dar a volta inteira.',
+    },
+    chest: {
+      name: 'Baú de tesouro', when: S => S.chests.length > 0,
+      text: 'Toque para abrir: ouro e, às vezes, uma relíquia para o herói. O baú some depois de algumas ondas.',
+    },
+    ambush: {
+      name: 'Emboscada', when: S => !!S.ambush,
+      text: 'Um bando se esconde no mato. Quando a contagem acabar, ele pula na estrada já adiantado: prepare torres, o herói ou uma Barricada ali perto.',
+    },
+    caravan: {
+      name: 'Caravana de mercadores', when: S => !!S.caravan,
+      text: 'Desce a estrada na contramão até a entrada do vale. Inimigos que encostam a param e ferem; se chegar inteira, deixa um baú de tesouro.',
+    },
+  };
+  const EVT = 'evento:'; // prefixo das novidades na lista de vistos, ao lado dos inimigos
+
+  function eventIcon(canvas, id) {
+    const g = canvas.getContext('2d'), k = canvas.width / 48;
+    g.setTransform(k, 0, 0, k, 0, 0);
+    g.clearRect(0, 0, 48, 48);
+    TD.world.icon(g, id);
+    g.setTransform(1, 0, 0, 1, 0, 0);
+  }
+
+  function showCard(key) {
+    if (key.startsWith(EVT)) {
+      const id = key.slice(EVT.length);
+      cardName.textContent = `Novo no vale: ${EVENTS[id].name}`;
+      cardText.textContent = EVENTS[id].text;
+      eventIcon(cardIcon, id);
+    } else {
+      cardName.textContent = `Novo inimigo: ${ENEMIES[key].name}`;
+      cardText.textContent = ENEMY_INFO[key];
+      enemyIcon(cardIcon, key);
+    }
     card.hidden = false;
     cardT = CARD_SECONDS;
   }
@@ -76,6 +117,13 @@
         seen.add(e.type);
         writeSeen(seen);
         queue = [...queue, e.type];
+      }
+      for (const [id, ev] of Object.entries(EVENTS)) {
+        const key = EVT + id;
+        if (seen.has(key) || !ev.when(S)) continue;
+        seen.add(key);
+        writeSeen(seen);
+        queue = [...queue, key];
       }
     }
     if (cardT > 0) {

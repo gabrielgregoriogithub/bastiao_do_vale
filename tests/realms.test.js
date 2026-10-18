@@ -340,3 +340,18 @@ test('inimigo que encosta para e saqueia a caravana', () => {
   assert.equal(S.caravans, 0, 'não chegou');
   assert.ok(at > 0);
 });
+
+test('cada novidade do campo ganha cartão de apresentação uma única vez', () => {
+  const seen = () => JSON.parse(store.get('bastiao-vistos') || '[]');
+  G.newGame('minas', 'normal', ['nohero']);
+  TD.codex.sync(1 / 60);
+  assert.ok(seen().includes('evento:crystal'), 'o veio de cristal é apresentado antes da primeira onda');
+  assert.ok(!seen().includes('evento:caravan'));
+  const S = caravanOn('vale');
+  TD.codex.sync(1 / 60);
+  assert.ok(seen().includes('evento:caravan'));
+  assert.equal(seen().filter(k => k === 'evento:caravan').length, 1);
+  S.caravan = null;
+  const g = new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => ({ addColorStop() {} })), set: (t, k, v) => ((t[k] = v), true) });
+  for (const id of ['ambush', 'caravan', 'chest', 'portal', 'crystal']) TD.world.icon(g, id); // nenhum ícone quebra
+});

@@ -490,6 +490,22 @@
     }
   }
 
+  // Ícone de cada novidade do campo, num quadro de 48 unidades (cartão de apresentação, codex.js)
+  function drawGem(g, x, y, h, tilt) {
+    g.save(); g.translate(x, y); g.rotate(tilt);
+    g.fillStyle = '#8ad8ff'; g.strokeStyle = '#1e4a6a'; g.lineWidth = 1.2;
+    g.beginPath(); g.moveTo(0, -h); g.lineTo(4, -h + 4); g.lineTo(4, 0); g.lineTo(-4, 0); g.lineTo(-4, -h + 4); g.closePath(); g.fill(); g.stroke();
+    g.fillStyle = 'rgba(255,255,255,.6)'; g.fillRect(-2, -h + 4, 1.5, h - 6);
+    g.restore();
+  }
+  function icon(g, id) {
+    if (id === 'ambush') drawAmbush(g, { x: 24, y: 30, t: AMBUSH_DELAY }, 0.3);
+    else if (id === 'caravan') drawCaravan(g, { x: 24, y: 32, hp: 1, maxHp: 1, face: 1, stopped: false, roll: 0 }, 0);
+    else if (id === 'chest') drawChest(g, { x: 24, y: 30, until: G.S.wave + CHEST_WAVES }, 0);
+    else if (id === 'portal') drawPortal(g, 24, 24, -1, 0.6);
+    else if (id === 'crystal') { drawGem(g, 17, 38, 16, -0.35); drawGem(g, 31, 38, 14, 0.4); drawGem(g, 24, 40, 24, 0); }
+  }
+
   // Luzes para a noite e para a escuridão das minas (lighting.js)
   function lights() {
     const out = [];
@@ -504,6 +520,6 @@
   }
 
   TD.world = {
-    update, onMove, onWaveStart, busy, tap, seal, canSeal, sealCost, portalOpen, dropChest, openChest, hideChest, raiseBarricade, draw, drawFx, lights,
+    update, onMove, onWaveStart, busy, icon, tap, seal, canSeal, sealCost, portalOpen, dropChest, openChest, hideChest, raiseBarricade, draw, drawFx, lights,
   };
 })();
