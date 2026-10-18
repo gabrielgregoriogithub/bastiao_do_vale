@@ -11,7 +11,7 @@
   const LIST = [
     { id: 'first_win', name: 'Primeira vitória', desc: 'Vença as 20 ondas de qualquer campo.' },
     { id: 'flawless', name: 'Muralha intacta', desc: 'Vença sem perder nenhuma vida.' },
-    { id: 'all_maps', name: 'Guardião do reino', desc: 'Vença os 5 campos, em qualquer dificuldade.' },
+    { id: 'all_maps', name: 'Guardião do reino', desc: 'Vença os 6 campos, em qualquer dificuldade.' },
     { id: 'hard_win', name: 'Veterano de guerra', desc: 'Vença um campo no Difícil.' },
     { id: 'dragon', name: 'Caçador de dragões', desc: 'Derrote um Dragão.' },
     { id: 'colossus', name: 'Gigante tombado', desc: 'Derrote um Colosso.' },
@@ -66,8 +66,9 @@
   // ---------- Eventos vindos da simulação ----------
   function onKill(e) {
     pendingKills += 1;
-    if (e.type === 'dragon') unlock('dragon');
-    if (e.type === 'colossus') unlock('colossus');
+    // vale também a versão de cada ambiente (Dragão Ancião, Esfinge...)
+    if (e.d.role === 'dragon') unlock('dragon');
+    if (e.d.role === 'colossus') unlock('colossus');
   }
 
   function onWaveEnd() {

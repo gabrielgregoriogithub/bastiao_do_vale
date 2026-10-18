@@ -8,9 +8,10 @@
   const KINDS = {
     vale: { count: 26, spawn: r => ({ x: r() * W, y: r() * H, vx: 4 + r() * 6, vy: -6 - r() * 6, size: 1.2 + r() * 1.2, phase: r() * 6 }), color: 'rgba(250,240,190,A)' },
     rio: { count: 10, spawn: r => ({ x: r() * W, y: r() * H, vx: 6 + r() * 6, vy: 0, size: 30 + r() * 30, phase: r() * 6 }), color: 'rgba(225,235,240,A)', mist: true },
-    serpente: { count: 22, spawn: r => ({ x: r() * W, y: -10 - r() * H, vx: 14 + r() * 10, vy: 18 + r() * 14, size: 2.5 + r() * 1.5, phase: r() * 6 }), color: 'rgba(214,130,54,A)', leaf: true },
-    encruzilhada: { count: 18, spawn: r => ({ x: r() * W, y: r() * H, vx: 120 + r() * 80, vy: 6, size: 14 + r() * 18, phase: r() * 6 }), color: 'rgba(236,226,200,A)', streak: true },
+    serpente: { count: 18, spawn: r => ({ x: r() * W, y: r() * H, vx: 120 + r() * 80, vy: 6, size: 14 + r() * 18, phase: r() * 6 }), color: 'rgba(236,210,150,A)', streak: true },
+    encruzilhada: { count: 40, spawn: r => ({ x: r() * W, y: -10 - r() * H, vx: 8 + r() * 10, vy: 22 + r() * 18, size: 1.2 + r() * 1.4, phase: r() * 6 }), color: 'rgba(255,255,255,A)' },
     pantano: { count: 22, spawn: r => ({ x: r() * W, y: r() * H, vx: 0, vy: 0, size: 1.6 + r() * 1, phase: r() * 6 }), color: 'rgba(200,240,120,A)', firefly: true },
+    vulcao: { count: 30, spawn: r => ({ x: r() * W, y: r() * H, vx: 4 + r() * 8, vy: -14 - r() * 18, size: 1 + r() * 1.3, phase: r() * 6 }), color: 'rgba(255,150,60,A)' },
   };
 
   let mapId = null, parts = [];
@@ -30,7 +31,7 @@
   }
 
   function drawWater(g, md, time) {
-    g.strokeStyle = 'rgba(200,230,245,.35)';
+    g.strokeStyle = md.map.lava ? 'rgba(255,220,120,.5)' : 'rgba(200,230,245,.35)';
     g.lineWidth = 1.2;
     for (const [c, r] of md.map.water) {
       if (md.blocked[r] && md.blocked[r][c] === 1) continue;
@@ -60,10 +61,6 @@
       g.strokeStyle = g.fillStyle;
       if (k.mist) {
         g.beginPath(); g.ellipse(p.x, p.y, p.size * 1.8, p.size * 0.6, 0, 0, Math.PI * 2); g.fill();
-      } else if (k.leaf) {
-        g.save(); g.translate(p.x, p.y); g.rotate(p.phase * 2);
-        g.beginPath(); g.ellipse(0, 0, p.size, p.size * 0.5, 0, 0, Math.PI * 2); g.fill();
-        g.restore();
       } else if (k.streak) {
         g.lineWidth = 1;
         g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(p.x - p.size, p.y - 1); g.stroke();
@@ -72,9 +69,12 @@
         TD.circle(g, p.x, p.y, p.size); g.fill();
       }
     }
-    // o pântano é mais escuro e úmido
+    // o pântano é mais escuro e úmido; o vulcão, quente
     if (mapId === 'pantano') {
       g.fillStyle = 'rgba(10,20,15,.12)';
+      g.fillRect(0, 0, W, H);
+    } else if (mapId === 'vulcao') {
+      g.fillStyle = `rgba(255,90,30,${(0.05 + 0.02 * Math.sin(time * 1.3)).toFixed(3)})`;
       g.fillRect(0, 0, W, H);
     }
   }

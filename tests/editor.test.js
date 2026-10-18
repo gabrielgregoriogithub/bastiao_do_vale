@@ -52,8 +52,8 @@ test('o campo salvo aparece entre os campos e dá para jogar nele', () => {
   assert.equal(G.S.lives > 0, true);
 });
 
-test('o campo do jogador fica fora do desafio do dia e da conquista dos 5 campos', () => {
-  assert.equal(TD.officialMaps().length, 5);
+test('o campo do jogador fica fora do desafio do dia e da conquista dos 6 campos', () => {
+  assert.equal(TD.officialMaps().length, 6);
   for (let d = 1; d <= 60; d++) assert.notEqual(TD.dailyFor(new Date(2026, 0, d)).map, 'custom');
 });
 

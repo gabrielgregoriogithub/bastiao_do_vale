@@ -13,6 +13,7 @@ const FILES = [
   'icons/icon-512.png',
   'icons/icon-maskable-512.png',
   'src/data.js',
+  'src/bestiary.js',
   'src/audio.js',
   'src/render.js',
   'src/meta.js',

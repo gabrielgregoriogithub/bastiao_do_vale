@@ -317,7 +317,7 @@
     S.waveActive = true;
     S.spawnT = 0.3;
     S.autoT = null;
-    const tag = S.wave % 5 === 0 ? ` · ${ENEMIES[TD.bossFor(S.wave)].name}` : TD.isSwarm(S.wave) ? ' · revoada' : '';
+    const tag = S.wave % 5 === 0 ? ` · ${TD.enemyName(S.mapId, TD.bossFor(S.wave))}` : TD.isSwarm(S.wave) ? ' · revoada' : '';
     S.banner = { text: `Onda ${S.wave}${tag}`, t: 0, life: 2 };
     sfx.play('wave');
   }
@@ -390,8 +390,9 @@
   const lenOf = e => (e.d.flying ? e.path.flyLen : e.path.len);
   const posOf = (e, d) => (e.d.flying ? e.path.flyAt(d) : e.path.posAt(d));
 
-  function spawn(type, dist = 0, path = null) {
-    const S = G.S, d = ENEMIES[type];
+  // role: o papel sorteado pela onda (ou pela habilidade de outro inimigo); vira a versão do ambiente do campo
+  function spawn(role, dist = 0, path = null) {
+    const S = G.S, type = TD.enemyFor(S.mapId, role), d = ENEMIES[type];
     const hp = Math.round(d.hp * hpCurve(S.wave, S.diff.curve, d.boss) * S.diff.hp);
     const route = path || nextPath();
     const len = d.flying ? route.flyLen : route.len;

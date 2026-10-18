@@ -60,7 +60,7 @@
     TD.chart.render(ui.endChart, G.S.history);
     ui.endTitle.textContent = title;
     ui.endText.textContent = text;
-    const finale = canContinue && G.S.mapId === TD.MAPS[TD.MAPS.length - 1].id;
+    const finale = canContinue && G.S.mapId === TD.officialMaps().slice(-1)[0].id; // campos do editor entram no fim da lista
     ui.endEpilogue.hidden = !finale;
     ui.endEpilogue.textContent = finale ? TD.EPILOGUE : '';
     ui.endStars.hidden = !stars;
@@ -169,7 +169,7 @@
     const counts = {};
     for (const t of list) counts[t] = (counts[t] || 0) + 1;
     return Object.keys(ENEMIES).filter(k => counts[k])
-      .map(k => `${counts[k]} ${counts[k] > 1 ? ENEMIES[k].plural : ENEMIES[k].name}`).join(', ');
+      .map(k => `${counts[k]} ${TD.enemyName(G.S.mapId, k, counts[k])}`).join(', ');
   }
 
   function towerExtras(t) {
@@ -272,7 +272,7 @@
       ui.info.innerHTML = `<h3>Como jogar</h3>
         <p>Escolha uma torre e toque no <strong>gramado</strong> para construir. Toque numa torre para melhorar, vender ou mudar a mira. No nível 3 ela ganha uma <strong>especialização</strong>.</p>
         <p>Toque no seu <strong>herói</strong> (ou tecle H) e depois no mapa para movê-lo. Ele sobe de nível com os abates, e a tecla R usa a habilidade dele.</p>
-        <p><strong>Gárgulas</strong> voam em linha reta e o canhão não as acerta. A cada 5 ondas chega um chefe diferente: Senhor da Guerra, Feiticeira, Colosso e Dragão.</p>`;
+        <p><strong>${TD.enemyName(S.mapId, 'flyer', 2)}</strong> voam em linha reta e o canhão não os acerta. A cada 5 ondas chega um chefe diferente: ${TD.BOSS_ROTATION.map(b => TD.enemyName(S.mapId, b)).join(', ').replace(/, ([^,]*)$/, ' e $1')}.</p>`;
     }
   }
 
@@ -298,8 +298,7 @@
     const S = G.S;
     if (!S.inGame) { lastWaveActive = false; lowLivesWarned = false; return; }
     if (S.waveActive && !lastWaveActive) {
-      const boss = TD.ENEMIES[TD.bossFor(S.wave)];
-      const bossText = S.wave % 5 === 0 && boss ? ` Chefe a caminho: ${boss.name}.` : '';
+      const bossText = S.wave > 0 && S.wave % 5 === 0 ? ` Chefe a caminho: ${TD.enemyName(S.mapId, TD.bossFor(S.wave))}.` : '';
       announce(`Onda ${S.wave} começou, com ${S.queue.length + S.enemies.length} inimigos.${bossText}`);
     } else if (!S.waveActive && lastWaveActive && !S.over && !S.halted) {
       announce(`Onda ${S.wave} vencida. Ouro: ${S.gold}. Vidas: ${S.lives}.`);
@@ -316,7 +315,7 @@
     announceChanges();
     const remaining = S.queue.length + S.enemies.length;
     const autoSec = S.autoT === null ? -1 : Math.ceil(S.autoT);
-    const hud = [S.gold, S.lives, S.wave, S.kills, S.best, S.waveActive, remaining, autoSec, S.speed, S.paused, S.auto, sfx.isMuted(), S.build, S.aim, S.over, S.halted, S.inGame, G.canCallEarly(), !!S.offer].join('|');
+    const hud = [S.runId, S.mapId, S.gold, S.lives, S.wave, S.kills, S.best, S.waveActive, remaining, autoSec, S.speed, S.paused, S.auto, sfx.isMuted(), S.build, S.aim, S.over, S.halted, S.inGame, G.canCallEarly(), !!S.offer].join('|');
     if (hud !== lastHud) {
       lastHud = hud;
       ui.gold.textContent = S.gold;

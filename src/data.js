@@ -98,11 +98,12 @@
   TD.CHRONICLE = {
     vale: { chapter: 'Capítulo I', text: 'Os batedores avistaram fumaça nas cavernas do norte. O velho bastião é a única muralha entre a horda e as aldeias do vale. Segure a estrada por vinte ondas.' },
     rio: { chapter: 'Capítulo II', text: 'Vencida no vale, a horda contorna as montanhas e cruza o rio pela ponte de madeira. Sem espaço nas margens, cada torre precisa valer o ouro que custa.' },
-    serpente: { chapter: 'Capítulo III', text: 'A estrada antiga serpenteia pelos campos de trigo. É longa, mas as gárgulas não seguem estradas: cortam o céu direto até a muralha.' },
-    encruzilhada: { chapter: 'Capítulo IV', text: 'Os senhores da horda aprenderam. Agora atacam por duas cavernas ao mesmo tempo, e as colunas se encontram no meio do campo.' },
-    pantano: { chapter: 'Capítulo V', text: 'A última fortaleza da horda fica além do pântano. Dizem que o Dragão dorme ali. Vença aqui e o vale terá paz.' },
+    serpente: { chapter: 'Capítulo III', text: 'A estrada antiga serpenteia pelas dunas do deserto. Nômades e múmias marcham juntos, e os abutres não seguem estradas: cortam o céu direto até a muralha.' },
+    encruzilhada: { chapter: 'Capítulo IV', text: 'Nas montanhas geladas, a horda aprendeu a atacar por duas cavernas ao mesmo tempo. As colunas se encontram no meio da neve.' },
+    pantano: { chapter: 'Capítulo V', text: 'Além do pântano, a floresta inteira marcha contra o bastião. Formigas, aranhas e árvores antigas abrem caminho até o vulcão.' },
+    vulcao: { chapter: 'Capítulo VI', text: 'A última fortaleza da horda fica na boca do vulcão. Dizem que o Dragão Ancião dorme ali, entre rios de lava. Vença aqui e o vale terá paz.' },
   };
-  TD.EPILOGUE = 'O Dragão caiu no lodo do pântano e a horda se dispersou pelas montanhas. Nas aldeias, contam que o bastião nunca cedeu.';
+  TD.EPILOGUE = 'O Dragão Ancião caiu na lava de onde nasceu e a horda se dispersou pelas montanhas. Nas aldeias, contam que o bastião nunca cedeu.';
 
   // Forja do Bastião: melhorias permanentes compradas com estrelas
   TD.PERKS = [
@@ -177,40 +178,48 @@
   // Caminhos em coordenadas de casa (coluna, linha); começam fora da tela à esquerda e saem pela direita
   TD.MAPS = [
     {
-      id: 'vale', name: 'Vale Sinuoso', desc: 'Curvas fechadas e muito gramado. Bom para começar.',
+      id: 'vale', biome: 'campo', name: 'Vale Sinuoso', desc: 'Curvas fechadas e muito gramado. Bom para começar.',
       way: [[-1, 2], [4, 2], [4, 8], [9, 8], [9, 3], [14, 3], [14, 9], [17, 9], [17, 5], [20, 5]],
       water: [],
       palette: { grass: '#46602f', tufts: ['#5d7d3d', '#344a22'], road: ['#8d7347', '#b49668'], pebbles: ['#9c8257', '#cbb184'], flowers: ['#e9d9a0', '#d39aa8'] },
     },
     {
-      id: 'rio', name: 'Passo do Rio', desc: 'Um rio corta o campo e tira espaço das torres.',
+      id: 'rio', biome: 'rio', name: 'Passo do Rio', desc: 'Um rio corta o campo e tira espaço das torres.',
       way: [[-1, 9], [3, 9], [3, 2], [8, 2], [8, 10], [13, 10], [13, 1], [16, 1], [16, 6], [20, 6]],
       water: river,
       palette: { grass: '#3f5f36', tufts: ['#557a47', '#2d4527'], road: ['#85704c', '#ab946b'], pebbles: ['#94805a', '#c4ae86'], flowers: ['#dfe6f0', '#e9d9a0'] },
     },
     {
-      id: 'serpente', name: 'Serpente', desc: 'Estrada longa em zigue-zague, com retas boas para canhões.',
+      id: 'serpente', biome: 'deserto', name: 'Serpente', desc: 'Estrada longa em zigue-zague pelas dunas, com retas boas para canhões.',
       way: [[-1, 1], [17, 1], [17, 4], [2, 4], [2, 7], [17, 7], [17, 10], [20, 10]],
       water: [],
-      palette: { grass: '#5a6430', tufts: ['#717a3a', '#3f4720'], road: ['#86704a', '#ad9569'], pebbles: ['#98825a', '#c9b085'], flowers: ['#e7b85a', '#c9774a'] },
+      palette: { grass: '#b8975a', tufts: ['#9a7a3e', '#d1b072'], road: ['#8a6a3e', '#a8865a'], pebbles: ['#7a5e38', '#d8be8a'], flowers: ['#e8d29a', '#8a6a3a'] },
     },
     {
-      id: 'encruzilhada', name: 'Encruzilhada', desc: 'Duas cavernas, duas estradas que se juntam no meio. Defenda as duas frentes.',
+      id: 'encruzilhada', biome: 'neve', name: 'Encruzilhada', desc: 'Duas cavernas na neve, duas estradas que se juntam no meio. Defenda as duas frentes.',
       ways: [
         [[-1, 1], [7, 1], [7, 6], [11, 6], [11, 9], [15, 9], [15, 3], [18, 3], [18, 6], [20, 6]],
         [[-1, 10], [7, 10], [7, 6], [11, 6], [11, 9], [15, 9], [15, 3], [18, 3], [18, 6], [20, 6]],
       ],
       heroAt: 0.45,
       water: [],
-      palette: { grass: '#4b5e34', tufts: ['#617a43', '#344524'], road: ['#8a714a', '#b39a6c'], pebbles: ['#9a8259', '#c7b087'], flowers: ['#e4d08a', '#b9c6e0'] },
+      palette: { grass: '#d4dee4', tufts: ['#b4c2cc', '#eef4f8'], road: ['#7c7468', '#9a9286'], pebbles: ['#5e5850', '#c8ccd0'], flowers: ['#ffffff', '#a8c8e0'] },
     },
     {
-      id: 'pantano', name: 'Pântano Sombrio', desc: 'Lama na estrada deixa os inimigos lentos, mas as poças roubam espaço.',
+      id: 'pantano', biome: 'floresta', name: 'Pântano Sombrio', desc: 'Lama na estrada deixa os inimigos lentos, mas as poças roubam espaço.',
       way: [[-1, 5], [3, 5], [3, 1], [9, 1], [9, 10], [13, 10], [13, 4], [16, 4], [16, 8], [20, 8]],
       mud: [[9, 3], [9, 4], [9, 5], [9, 6], [9, 7], [9, 8], [10, 10], [11, 10], [12, 10]],
       water: [[5, 7], [6, 7], [5, 8], [6, 8], [6, 9], [11, 2], [12, 2], [11, 3], [17, 1], [18, 1], [17, 2], [1, 9], [2, 9], [1, 10]],
       waterColor: '#2f5246',
       palette: { grass: '#3b4b2c', tufts: ['#52653a', '#26331d'], road: ['#7a6544', '#9c875f'], pebbles: ['#8a7550', '#b39e74'], flowers: ['#cfd8a0', '#9fb08a'] },
+    },
+    {
+      // a lava entra em "water": tira espaço das torres como as poças do pântano, mas a estrada não passa por ela
+      id: 'vulcao', biome: 'vulcao', name: 'Boca do Vulcão', desc: 'Rios de lava cortam a rocha. O último campo da horda.',
+      way: [[-1, 6], [3, 6], [3, 2], [8, 2], [8, 9], [12, 9], [12, 3], [17, 3], [17, 7], [20, 7]],
+      water: [[5, 4], [6, 4], [5, 5], [6, 5], [5, 6], [10, 4], [10, 5], [11, 5], [10, 6], [14, 5], [15, 5], [14, 6], [15, 6], [14, 7], [1, 10], [2, 10], [2, 11], [18, 0], [19, 0]],
+      lava: true, waterColor: '#b8401c',
+      palette: { grass: '#3a3230', tufts: ['#4e4440', '#28221f'], road: ['#5e5048', '#7a6a5e'], pebbles: ['#2a2220', '#8a7a6e'], flowers: ['#f08a3a', '#c8401e'] },
     },
   ];
   TD.MUD_SLOW = 0.65;
