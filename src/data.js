@@ -112,7 +112,7 @@
 
   // Crônica do Vale: cada campo é um capítulo; a introdução aparece na primeira partida de cada um
   TD.CHRONICLE = {
-    vale: { chapter: 'Capítulo I', text: 'Os batedores avistaram fumaça nas cavernas do norte. O velho bastião é a única muralha entre a horda e as aldeias do vale. Segure a estrada por vinte ondas.' },
+    vale: { chapter: 'Capítulo I', text: 'Os batedores avistaram fumaça nas cavernas além da floresta. Entre sumaúmas e araras, o velho bastião é a única muralha entre a horda e as aldeias do vale. Segure a trilha por vinte ondas.' },
     rio: { chapter: 'Capítulo II', text: 'Vencida no vale, a horda contorna as montanhas e cruza o rio pela ponte de madeira. Sem espaço nas margens, cada torre precisa valer o ouro que custa.' },
     serpente: { chapter: 'Capítulo III', text: 'A estrada antiga serpenteia pelas dunas do deserto. Nômades e múmias marcham juntos, e os abutres não seguem estradas: cortam o céu direto até a muralha.' },
     encruzilhada: { chapter: 'Capítulo IV', text: 'Nas montanhas geladas, a horda aprendeu a atacar por duas cavernas ao mesmo tempo. As colunas se encontram no meio da neve.' },
@@ -204,10 +204,15 @@
   // Caminhos em coordenadas de casa (coluna, linha); começam fora da tela à esquerda e saem pela direita
   TD.MAPS = [
     {
-      id: 'vale', biome: 'campo', name: 'Vale Sinuoso', desc: 'Curvas fechadas e muito gramado. Bom para começar.',
+      // theme: cenário desenhado à parte (render.js e ambience.js); os inimigos continuam os clássicos do campo
+      // props: árvores da floresta, que ocupam casas longe da trilha como o cenário
+      id: 'vale', biome: 'campo', theme: 'amazonia', name: 'Vale Amazônico', desc: 'Trilha de terra vermelha no coração da floresta. Bom para começar.',
       way: [[-1, 2], [4, 2], [4, 8], [9, 8], [9, 3], [14, 3], [14, 9], [17, 9], [17, 5], [20, 5]],
       water: [],
-      palette: { grass: '#46602f', tufts: ['#5d7d3d', '#344a22'], road: ['#8d7347', '#b49668'], pebbles: ['#9c8257', '#cbb184'], flowers: ['#e9d9a0', '#d39aa8'] },
+      props: [[0, 7], [0, 8], [0, 9], [0, 10], [0, 11], [1, 10], [1, 11], [2, 11], [6, 11], [7, 11], [8, 11], [11, 11], [12, 11],
+        [18, 11], [19, 11], [19, 10], [19, 9], [19, 0], [18, 0], [17, 0], [16, 0], [12, 0], [7, 0], [6, 0], [19, 1], [1, 0],
+        [9, 0], [10, 0], [14, 0], [15, 0], [16, 1], [17, 1], [18, 1], [18, 2], [0, 5], [0, 6], [1, 8], [2, 10], [3, 11], [10, 11], [13, 11], [11, 10]],
+      palette: { grass: '#2e5226', tufts: ['#3f7032', '#1c3418'], road: ['#8a4a2a', '#a8623a'], pebbles: ['#6a3a20', '#c48a5a'], flowers: ['#e84a5a', '#f0c040'] },
     },
     {
       id: 'rio', biome: 'rio', name: 'Passo do Rio', desc: 'Um rio corta o campo e tira espaço das torres.',

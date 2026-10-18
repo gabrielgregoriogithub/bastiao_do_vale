@@ -435,8 +435,9 @@
     if (S.hero) TD.drawHero(ctx, S.hero, S.heroSel, reducedMotion);
     for (const e of S.enemies) if (e.d.flying) TD.drawEnemy(ctx, e, reducedMotion);
     drawShots();
-    TD.lighting.draw(ctx, frameDt, performance.now() / 1000);
+    // o clima vem antes da luz: de noite a névoa e os bichos também ficam no escuro
     TD.ambience.draw(ctx, G.md, frameDt, performance.now() / 1000, reducedMotion);
+    TD.lighting.draw(ctx, frameDt, performance.now() / 1000);
     drawFx();
     drawPlacement();
 

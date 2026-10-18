@@ -74,6 +74,7 @@
       if (l) out.push([s.x, s.y, l[1], l[0]]);
     }
     for (const p of S.puddles) out.push([p.x, p.y, p.r * 1.4, p.acid ? '#d8e05a' : '#9ae05a']);
+    for (const l of TD.ambience.lights()) out.push(l);
     for (const f of S.fx) {
       const k = 1 - f.t / f.life;
       if (f.kind === 'blast') out.push([f.x, f.y, f.r * 2.6 * k, f.fire ? '#ff7a30' : '#ffb060']);

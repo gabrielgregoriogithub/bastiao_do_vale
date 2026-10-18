@@ -149,6 +149,91 @@
     }
   }
 
+  // ---------- Floresta amazônica (Vale) ----------
+  // Samambaia em leque, folhas caídas e bromélias pelo chão: não ocupam casas, só dão textura de mata
+  function drawJungleFloor(g, rnd) {
+    for (let i = 0; i < 70; i++) {
+      const x = rnd() * W, y = rnd() * H, s = 5 + rnd() * 5, col = rnd() > 0.5 ? '#3e7a32' : '#2c5a26';
+      g.strokeStyle = col; g.lineWidth = 1.3; g.lineCap = 'round';
+      for (let k = -3; k <= 3; k++) {
+        const a = -Math.PI / 2 + k * 0.38;
+        g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + Math.cos(a) * s * 0.6, y + Math.sin(a) * s * 0.9, x + Math.cos(a) * s, y + Math.sin(a) * s * 0.7); g.stroke();
+      }
+    }
+    g.lineCap = 'butt';
+    for (let i = 0; i < 90; i++) {
+      g.fillStyle = ['#5a4a22', '#6a5a2a', '#3a2e18'][Math.floor(rnd() * 3)];
+      g.beginPath(); g.ellipse(rnd() * W, rnd() * H, 2.2, 1, rnd() * Math.PI, 0, Math.PI * 2); g.fill();
+    }
+    for (let i = 0; i < 14; i++) {
+      const x = rnd() * W, y = rnd() * H;
+      g.fillStyle = '#3f8a3a';
+      for (let k = 0; k < 6; k++) { const a = (k / 6) * Math.PI * 2; g.beginPath(); g.ellipse(x + Math.cos(a) * 3, y + Math.sin(a) * 2, 3.2, 1.2, a, 0, Math.PI * 2); g.fill(); }
+      g.fillStyle = '#e8425a'; circle(g, x, y, 1.6); g.fill();
+    }
+  }
+
+  // Árvore de copa larga (sumaúma); às vezes um ipê amarelo ou roxo em flor, com cipós pendurados
+  const CROWNS = [['#1c4420', '#2c6a2c', '#4a8a3a', '#6aa84a'], ['#7a5a10', '#c8961c', '#e8c040', '#f8e080'], ['#5a2a4a', '#a04a7a', '#c870a0', '#e8a0c8']];
+  function drawJungleTree(g, x, y, rnd) {
+    const kind = rnd() < 0.82 ? 0 : rnd() < 0.6 ? 1 : 2, [c0, c1, c2, c3] = CROWNS[kind];
+    g.fillStyle = 'rgba(0,10,0,.32)'; g.beginPath(); g.ellipse(x + 5, y + 12, 24, 9, 0, 0, Math.PI * 2); g.fill();
+    // tronco com sapopemas (raízes em aleta)
+    g.fillStyle = '#5a4630'; g.strokeStyle = '#2a1e12'; g.lineWidth = 1.2;
+    g.beginPath(); g.moveTo(x - 9, y + 13); g.quadraticCurveTo(x - 4, y + 9, x - 3, y - 6); g.lineTo(x + 3, y - 6);
+    g.quadraticCurveTo(x + 4, y + 9, x + 10, y + 13); g.quadraticCurveTo(x + 2, y + 10, x, y + 13); g.quadraticCurveTo(x - 2, y + 10, x - 9, y + 13); g.closePath();
+    g.fill(); g.stroke();
+    g.strokeStyle = 'rgba(255,240,200,.15)'; g.beginPath(); g.moveTo(x - 1.5, y + 8); g.lineTo(x - 1.5, y - 4); g.stroke();
+    // copa em camadas: sombra embaixo, folhagem e luz no alto à esquerda
+    const blobs = Array.from({ length: 6 }, () => [(rnd() - 0.5) * 26, -14 + (rnd() - 0.5) * 14, 9 + rnd() * 6]);
+    g.fillStyle = c0; for (const [dx, dy, r] of blobs) { circle(g, x + dx + 1.5, y + dy + 2.5, r); g.fill(); }
+    g.fillStyle = c1; for (const [dx, dy, r] of blobs) { circle(g, x + dx, y + dy, r * 0.9); g.fill(); }
+    g.fillStyle = c2; for (const [dx, dy, r] of blobs) { circle(g, x + dx - r * 0.25, y + dy - r * 0.3, r * 0.55); g.fill(); }
+    g.fillStyle = c3; for (const [dx, dy, r] of blobs.slice(0, 3)) { circle(g, x + dx - r * 0.4, y + dy - r * 0.45, r * 0.22); g.fill(); }
+    // cipós
+    g.strokeStyle = '#2e5a22'; g.lineWidth = 1.2;
+    for (let i = 0; i < 2; i++) {
+      const sx = x + (rnd() - 0.5) * 24;
+      g.beginPath(); g.moveTo(sx, y - 6); g.quadraticCurveTo(sx + 3, y + 2, sx - 1, y + 8 + rnd() * 6); g.stroke();
+    }
+  }
+
+  // Açaizeiro: tronco fino e curvo, palmas de folíolos finos e um cacho roxo
+  function drawAcai(g, x, y, rnd) {
+    const lean = (rnd() - 0.5) * 8, tx = x + lean, ty = y - 20;
+    g.fillStyle = 'rgba(0,10,0,.25)'; g.beginPath(); g.ellipse(x + 6, y + 12, 15, 5, 0, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = '#6a5a44'; g.lineWidth = 2.6;
+    g.beginPath(); g.moveTo(x, y + 12); g.quadraticCurveTo(x + lean * 0.2, y, tx, ty); g.stroke();
+    g.strokeStyle = '#4a8a3a'; g.lineWidth = 0.9;
+    for (let k = 0; k < 7; k++) {
+      const a = -Math.PI + 0.2 + k * (Math.PI - 0.4) / 6 + (rnd() - 0.5) * 0.2, len = 15 + rnd() * 5;
+      const ex = tx + Math.cos(a) * len, ey = ty + Math.sin(a) * len * 0.6 + 6;
+      g.beginPath(); g.moveTo(tx, ty); g.quadraticCurveTo(tx + Math.cos(a) * len * 0.5, ty + Math.sin(a) * len * 0.5 - 3, ex, ey); g.stroke();
+      for (let j = 1; j < 6; j++) {
+        const px = tx + (ex - tx) * j / 6, py = ty + (ey - ty) * j / 6 - Math.sin(j / 6 * Math.PI) * 3;
+        g.beginPath(); g.moveTo(px, py); g.lineTo(px + 1.5, py + 4); g.stroke();
+      }
+    }
+    g.fillStyle = '#4a2048'; for (let k = 0; k < 5; k++) { circle(g, tx - 2 + k % 3 * 1.6, ty + 3 + Math.floor(k / 3) * 1.6, 1.1); g.fill(); }
+  }
+
+  // Helicônia: folhas largas de bananeira e flores em zigue-zague vermelhas e amarelas
+  function drawHeliconia(g, x, y, rnd) {
+    g.fillStyle = 'rgba(0,10,0,.25)'; g.beginPath(); g.ellipse(x + 3, y + 11, 14, 5, 0, 0, Math.PI * 2); g.fill();
+    for (let k = 0; k < 4; k++) {
+      const a = -Math.PI / 2 + (k - 1.5) * 0.55;
+      g.fillStyle = k % 2 ? '#3e8a34' : '#2e6a28'; g.strokeStyle = '#1e4418'; g.lineWidth = 0.8;
+      g.beginPath(); g.ellipse(x + Math.cos(a) * 8, y + 4 + Math.sin(a) * 9, 3.6, 10, a + Math.PI / 2, 0, Math.PI * 2); g.fill(); g.stroke();
+    }
+    for (let i = 0; i < 2; i++) {
+      const fx = x - 4 + i * 8 + (rnd() - 0.5) * 2;
+      for (let j = 0; j < 4; j++) {
+        g.fillStyle = j % 2 ? '#f0c040' : '#e0402a';
+        g.beginPath(); g.moveTo(fx, y - 4 + j * 3.4); g.lineTo(fx + (j % 2 ? -4 : 4), y - 6 + j * 3.4); g.lineTo(fx, y - 1.5 + j * 3.4); g.closePath(); g.fill();
+      }
+    }
+  }
+
   // Pinheiro com neve nos galhos (Encruzilhada)
   function drawPine(g, x, y) {
     g.fillStyle = 'rgba(0,0,0,.2)'; g.beginPath(); g.ellipse(x + 2, y + 12, 12, 5, 0, 0, Math.PI * 2); g.fill();
@@ -203,7 +288,10 @@
     for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS - 1; c++) {
       if (md.blocked[r][c] !== 2) continue;
       const x = (c + 0.5) * T, y = (r + 0.5) * T, plant = rnd() > 0.45;
-      if (biome === 'cripta') drawGrave(g, x, y, rnd);
+      if (md.map.theme === 'amazonia') {
+        const v = rnd();
+        if (v < 0.58) drawJungleTree(g, x, y, rnd); else if (v < 0.82) drawAcai(g, x, y, rnd); else drawHeliconia(g, x, y, rnd);
+      } else if (biome === 'cripta') drawGrave(g, x, y, rnd);
       else if (plant && biome === 'neve') drawPine(g, x, y);
       else if (plant && biome === 'costa') drawPalm(g, x, y);
       else if (plant && biome === 'deserto') drawCactus(g, x, y);
@@ -309,6 +397,7 @@
     g.scale(dpr, dpr);
     const rnd = mulberry(md.map.id.length * 97 + 7);
     drawGrass(g, md.map.palette, rnd);
+    if (md.map.theme === 'amazonia') drawJungleFloor(g, rnd);
     drawWater(g, md, rnd);
     drawRoad(g, md, rnd);
     drawMud(g, md, rnd);
