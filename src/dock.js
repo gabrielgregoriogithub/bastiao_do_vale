@@ -21,7 +21,7 @@
       b.innerHTML = `<canvas width="72" height="72" aria-hidden="true"></canvas><span class="dcost"></span>`;
       const g = b.querySelector('canvas').getContext('2d');
       g.scale(2, 2);
-      TD.drawTower(g, type, 18, 17, 1, -Math.PI / 4, 1);
+      TD.drawTower(g, type, 18, 24, 1, -Math.PI / 4, 0.6);
       b.addEventListener('click', () => TD.ui.toggleBuild(type));
       buildRow.appendChild(b);
     }

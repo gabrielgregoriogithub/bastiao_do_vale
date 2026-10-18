@@ -114,25 +114,21 @@
   }
 
   // ---------- Desenho ----------
+  // Aliados são azuis, como o herói (o vermelho é dos inimigos); a Guarda real usa armadura e os Templários, branco
+  const SOLDIER = { main: '#5a7aa0', dark: '#1f2b3a', accent: '#5a7aa0' };
+  const GUARD = { main: '#4a6a94', dark: '#1a2434', accent: '#b0473b', armored: true };
+  const TEMPLAR = { main: '#efe6cf', dark: '#4a4434', accent: '#c43b2f' };
+  const LOOKS = { soldier: ['spear', 'shield'], guard: ['spear', 'shield'], templar: ['sword', 'shield', 'cross'] };
   function drawUnit(g, t, u, reducedMotion) {
-    const bob = reducedMotion ? 0 : Math.sin(u.walk * 14) * 1;
-    const x = u.x, y = u.y + bob, templar = t.spec === 'templar';
-    g.fillStyle = 'rgba(0,0,0,.28)';
-    g.beginPath(); g.ellipse(u.x + 1.5, u.y + 6, 7, 3, 0, 0, Math.PI * 2); g.fill();
-    // lança, levemente erguida ao golpear
-    const a = u.ang - 0.3 + (u.swing > 0 ? Math.sin((u.swing / 0.18) * Math.PI) * 0.8 : 0);
-    g.strokeStyle = '#d8d2c4'; g.lineWidth = 1.8;
-    g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * 14, y + Math.sin(a) * 14); g.stroke();
-    // aliados são azuis, como o herói: o vermelho é dos inimigos
-    TD.drawFeet(g, x, y, 6.5, u.ang, reducedMotion ? 0 : u.walk * 9, '#1f2b3a');
-    TD.drawBody(g, x, y, 6.5, templar ? '#efe6cf' : '#5a7aa0', '#1f2b3a', 'circle', 1.5);
-    g.fillStyle = templar ? '#c43b2f' : '#c9ced8';
-    if (templar) { g.fillRect(x - 1, y - 4, 2, 8); g.fillRect(x - 4, y - 1, 8, 2); }
-    else { g.beginPath(); g.arc(x, y - 0.5, 4.5, Math.PI, 0); g.fill(); }
+    const kind = t.spec === 'templar' ? 'templar' : t.spec === 'guard' ? 'guard' : 'soldier';
+    const colors = kind === 'templar' ? TEMPLAR : kind === 'guard' ? GUARD : SOLDIER;
+    if (Math.abs(Math.cos(u.ang)) > 0.3) u.face = Math.cos(u.ang) < 0 ? -1 : 1;
+    const attack = u.swing > 0 ? 1 - u.swing / 0.18 : 0;
+    TD.drawPerson(g, u.x, u.y - 2, 7, colors, LOOKS[kind], reducedMotion ? 0 : u.walk * 14, u.face || 1, attack);
     if (u.hp < t.s.unitHp) {
-      const w = 14, k = Math.max(0, u.hp / t.s.unitHp);
-      g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(x - w / 2 - 1, y - 12, w + 2, 4);
-      g.fillStyle = k > 0.4 ? '#86b46f' : '#e0715a'; g.fillRect(x - w / 2, y - 11, w * k, 2);
+      const w = 14, k = Math.max(0, u.hp / t.s.unitHp), x = u.x, y = u.y - 17;
+      g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(x - w / 2 - 1, y - 1, w + 2, 4);
+      g.fillStyle = k > 0.4 ? '#86b46f' : '#e0715a'; g.fillRect(x - w / 2, y, w * k, 2);
     }
   }
 

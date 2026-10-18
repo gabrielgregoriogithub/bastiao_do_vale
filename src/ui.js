@@ -98,7 +98,7 @@
       b.innerHTML = `<canvas width="72" height="72"></canvas><span class="nm">${d.name}</span><span class="cost"><span class="cost-n">${d.cost}</span><span class="cost-u"> de ouro</span></span><span class="key">${i + 1}</span>`;
       const g = b.querySelector('canvas').getContext('2d');
       g.scale(2, 2);
-      TD.drawTower(g, type, 18, 17, 1, -Math.PI / 4, 1);
+      TD.drawTower(g, type, 18, 24, 1, -Math.PI / 4, 0.6);
       b.addEventListener('click', () => toggleBuild(type));
       ui.towerList.appendChild(b);
     });

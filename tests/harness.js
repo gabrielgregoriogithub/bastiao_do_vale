@@ -3,7 +3,7 @@
 const path = require('path');
 
 const SRC = path.join(__dirname, '..', 'src');
-const MODULES = ['data', 'bestiary', 'audio', 'render', 'meta', 'sim', 'foes', 'hero', 'units', 'tutorial', 'codex', 'editor', 'achievements', 'blessings', 'dock', 'device', 'ambience', 'scene', 'chart', 'menu', 'ui'];
+const MODULES = ['data', 'bestiary', 'audio', 'render', 'creatures', 'towers-art', 'meta', 'sim', 'foes', 'hero', 'units', 'tutorial', 'codex', 'editor', 'achievements', 'blessings', 'dock', 'device', 'ambience', 'lighting', 'scene', 'chart', 'menu', 'ui'];
 
 // Objeto que aceita qualquer acesso ou chamada: substitui elementos do DOM e o contexto 2D do canvas
 function stub() {

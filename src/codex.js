@@ -47,7 +47,7 @@
     const g = canvas.getContext('2d'), k = canvas.width / 48;
     g.setTransform(k, 0, 0, k, 0, 0);
     g.clearRect(0, 0, 48, 48);
-    TD.drawTower(g, type, 24, 26, 1, -Math.PI / 4, 1);
+    TD.drawTower(g, type, 24, 33, 1, -Math.PI / 4, 0.72);
   }
 
   function showCard(type) {
