@@ -48,6 +48,36 @@
     actRow.appendChild(wb);
   }
 
+  // Celular deitado: o cabeçalho e a fileira de controles saem para o mapa ocupar a altura toda,
+  // e estes botões repetem os de lá (o clique vai para o botão original, então a regra é a mesma)
+  const SYS = [['btnPause'], ['btnSpeed'], ['btnAuto', 'Auto'], ['btnSound'], ['btnMusic'], ['btnMenu', 'Menu'], ['btnCodex']];
+  const sysRow = $('dockSys');
+  const sysPairs = [];
+  function buildSys() {
+    if (!sysRow) return;
+    sysRow.innerHTML = '';
+    for (const [id, label] of SYS) {
+      const orig = $(id);
+      if (!orig) continue;
+      const b = document.createElement('button');
+      b.className = 'dbtn dsys';
+      b.addEventListener('click', () => orig.click());
+      sysRow.appendChild(b);
+      sysPairs.push({ b, orig, label, last: null });
+    }
+  }
+  function syncSys() {
+    for (const p of sysPairs) {
+      const text = p.label || p.orig.textContent, pressed = p.orig.getAttribute('aria-pressed');
+      const key = `${text}|${pressed}|${p.orig.title}`;
+      if (key === p.last) continue;
+      p.last = key;
+      p.b.textContent = text;
+      if (pressed === null) p.b.removeAttribute('aria-pressed'); else p.b.setAttribute('aria-pressed', pressed);
+      if (p.orig.title) p.b.title = p.orig.title;
+    }
+  }
+
   // ---------- Ações da torre, do herói ou da mira selecionados ----------
   function towerSel(t) {
     const S = G.S, d = TOWERS[t.type], sp = G.specOf(t);
@@ -164,6 +194,7 @@
       }
     }
     syncPowers();
+    syncSys();
   }
 
   // a página reserva embaixo (ou ao lado) o espaço que a barra ocupa
@@ -177,5 +208,6 @@
 
   buildTowers();
   buildActions();
+  buildSys();
   TD.dock = { sync };
 })();
