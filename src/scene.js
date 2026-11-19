@@ -6,7 +6,8 @@
   const G = TD.game;
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  let ctx = null, dpr = 1, bg = null, bgFor = null;
+  const cam = TD.camera;
+  let ctx = null, dpr = 1, bg = null, bgFor = null, bgDetail = 0;
 
   // Chamado quando o canvas muda de resolução; o fundo é refeito no próximo quadro
   function setup(context, ratio) {
@@ -44,10 +45,13 @@
     ctx.lineCap = 'butt';
   }
 
+  // O fundo é feito na resolução da câmera: aproximado, ele é refeito mais nítido quando o gesto termina
   function ensureBg() {
-    if (bgFor === G.md && bg) return;
-    bg = TD.buildBg(G.md, dpr);
+    const detail = cam.detail(dpr);
+    if (bgFor === G.md && bg && bgDetail === detail) return;
+    bg = TD.buildBg(G.md, detail);
     bgFor = G.md;
+    bgDetail = detail;
   }
 
   // Brilho que soma luz ao que está embaixo (raios, gelo, fogo)
@@ -448,7 +452,8 @@
     ensureBg();
     const m = reducedMotion ? 0 : S.shake * 12;
     const ox = m ? (Math.random() - 0.5) * m : 0, oy = m ? (Math.random() - 0.5) * m : 0;
-    ctx.setTransform(dpr, 0, 0, dpr, ox * dpr, oy * dpr);
+    const k = dpr * cam.z;
+    ctx.setTransform(k, 0, 0, k, (ox - cam.x) * k, (oy - cam.y) * k);
     ctx.drawImage(bg, 0, 0, W, H);
     drawPathPreview(performance.now() / 1000);
 
@@ -464,7 +469,7 @@
       const age = t.born === undefined || reducedMotion ? 1 : (S.clock - t.born) / BUILD_RISE;
       const grow = age >= 1 ? 1 : 1 - (1 - age) ** 3 + Math.sin(age * Math.PI) * 0.12;
       if (grow !== 1) { ctx.save(); ctx.translate(t.x, t.y + 12); ctx.scale(grow, grow); ctx.translate(-t.x, -t.y - 12); }
-      TD.drawTowerCached(ctx, dpr, t.type, t.x, t.y, t.level, t.ang, G.specOf(t)?.color || null, reducedMotion ? 0 : t.kick || 0, idle);
+      TD.drawTowerCached(ctx, bgDetail, t.type, t.x, t.y, t.level, t.ang, G.specOf(t)?.color || null, reducedMotion ? 0 : t.kick || 0, idle);
       if (grow !== 1) ctx.restore();
       const rank = G.rankOf(t);
       if (rank) drawChevrons(t.x + 13, t.y + 6, rank);
@@ -495,6 +500,25 @@
 
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     drawOverlays();
+    if (cam.zoomed()) drawMinimap();
+  }
+
+  // Mapa pequeno no canto: o campo inteiro, inimigos em vermelho, torres em dourado e o retângulo da vista
+  function drawMinimap() {
+    const S = G.S, m = cam.miniRect(), sx = m.w / W, sy = m.h / H;
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = 'rgba(12,14,10,.75)';
+    TD.rr(ctx, m.x - 3, m.y - 3, m.w + 6, m.h + 6, 5); ctx.fill();
+    ctx.drawImage(bg, m.x, m.y, m.w, m.h);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#d6a547';
+    for (const t of S.towers) ctx.fillRect(m.x + t.x * sx - 1.5, m.y + t.y * sy - 1.5, 3, 3);
+    ctx.fillStyle = '#ff5a43';
+    for (const e of S.enemies) if (!e.dead) { ctx.beginPath(); ctx.arc(m.x + e.x * sx, m.y + e.y * sy, e.d.boss ? 3 : 1.8, 0, Math.PI * 2); ctx.fill(); }
+    ctx.strokeStyle = '#f3e7c4'; ctx.lineWidth = 1.5;
+    ctx.strokeRect(m.x + cam.x * sx, m.y + cam.y * sy, W / cam.z * sx, H / cam.z * sy);
+    ctx.restore();
   }
 
   TD.scene = { setup, draw };

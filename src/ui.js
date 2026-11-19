@@ -29,6 +29,8 @@
   let dpr = 0;
   let lastHud = '', lastInfo = '';
   TD.menu.onStart = () => {
+    const coarse = window.matchMedia('(pointer: coarse)').matches;
+    TD.camera.start(canvas.getBoundingClientRect().width, coarse);
     lastHud = ''; lastInfo = ''; lastNext = '';
     lastWaveActive = false; lowLivesWarned = false;
   };
@@ -434,9 +436,14 @@
   }
 
   // ---------- Entrada ----------
-  function pointFrom(ev) {
+  // Ponto da tela (0..W, 0..H) e o ponto do mundo embaixo dele, que muda com a câmera
+  function screenFrom(ev) {
     const r = canvas.getBoundingClientRect();
     return { x: (ev.clientX - r.left) / r.width * W, y: (ev.clientY - r.top) / r.height * H };
+  }
+  function pointFrom(ev) {
+    const s = screenFrom(ev);
+    return TD.camera.toWorld(s.x, s.y);
   }
 
   // No toque as casas ficam pequenas: o primeiro toque mostra a prévia e o segundo, no mesmo lugar, confirma
@@ -491,22 +498,140 @@
   function cycleSpeed() { const S = G.S; S.speed = S.speed === 1 ? 2 : S.speed === 2 ? 3 : 1; }
   function toggleSound() { sfx.setMuted(!sfx.isMuted()); store.save('bastiao-mudo', sfx.isMuted() ? 1 : 0); }
 
-  canvas.addEventListener('pointermove', ev => {
-    const p = pointFrom(ev);
+  function setHover(p) {
     G.S.hoverPx = p;
     G.S.hover = { c: Math.floor(p.x / T), r: Math.floor(p.y / T) };
+  }
+
+  // ---------- Câmera no toque ----------
+  // Um dedo que toca e solta no lugar age como antes (constrói, seleciona, mira). Um dedo que arrasta
+  // move o mapa aproximado; dois dedos fazem pinça. O toque só vale ao soltar, para não construir
+  // uma torre no começo de um arrasto.
+  const cam = TD.camera;
+  const DRAG_PX = 10; // em pixels da tela: abaixo disso ainda é toque
+  const touches = new Map();
+  let gesture = null; // { kind: 'tap' | 'pan' | 'pinch', ... }
+  const isTouchEv = ev => ev.pointerType === 'touch' || ev.pointerType === 'pen';
+  const portraitMq = window.matchMedia('(orientation: portrait)');
+
+  // Em pé e sem zoom, arrastar o mapa ainda rola a página; no resto, o dedo é do mapa
+  let lastTouchAction = '';
+  function syncTouchAction() {
+    const v = portraitMq.matches && !cam.zoomed() ? 'pan-y' : 'none';
+    if (v !== lastTouchAction) { lastTouchAction = v; canvas.style.touchAction = v; }
+  }
+
+  function pinchInfo() {
+    const [a, b] = [...touches.values()];
+    return { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
+  }
+
+  function touchDown(ev) {
+    const s = screenFrom(ev);
+    touches.set(ev.pointerId, { x: s.x, y: s.y, cx: ev.clientX, cy: ev.clientY });
+    try { canvas.setPointerCapture(ev.pointerId); } catch (err) { /* o navegador pode recusar: segue sem captura */ }
+    cam.anim = null;
+    if (touches.size === 1) {
+      gesture = { kind: 'tap', id: ev.pointerId, cx: ev.clientX, cy: ev.clientY, sx: s.x, sy: s.y };
+    } else if (touches.size === 2) {
+      const pi = pinchInfo(), anchor = cam.toWorld(pi.mx, pi.my);
+      gesture = { kind: 'pinch', d0: pi.d, z0: cam.z, ax: anchor.x, ay: anchor.y };
+    }
+  }
+
+  function touchMove(ev) {
+    const t = touches.get(ev.pointerId);
+    if (!t) return;
+    const s = screenFrom(ev);
+    const dx = s.x - t.x, dy = s.y - t.y;
+    t.x = s.x; t.y = s.y;
+    if (!gesture) return;
+    if (gesture.kind === 'pinch' && touches.size >= 2) {
+      const pi = pinchInfo();
+      // o ponto do mundo que estava entre os dedos acompanha os dedos: zoom e arrasto no mesmo gesto
+      cam.z = Math.min(cam.MAX_Z, Math.max(1, gesture.z0 * pi.d / gesture.d0));
+      cam.x = gesture.ax - pi.mx / cam.z;
+      cam.y = gesture.ay - pi.my / cam.z;
+      cam.panBy(0, 0);
+      return;
+    }
+    if (gesture.kind === 'tap' && ev.pointerId === gesture.id) {
+      if (Math.hypot(ev.clientX - gesture.cx, ev.clientY - gesture.cy) < DRAG_PX) return;
+      if (!cam.zoomed()) return; // sem zoom não há o que arrastar; ao soltar longe, não conta como toque
+      gesture = { kind: 'pan', id: ev.pointerId };
+    }
+    if (gesture.kind === 'pan' && ev.pointerId === gesture.id) cam.panBy(dx, dy);
+  }
+
+  function touchUp(ev, cancelled) {
+    const t = touches.get(ev.pointerId);
+    if (!t) return;
+    touches.delete(ev.pointerId);
+    const g = gesture;
+    if (g && g.kind === 'pinch') {
+      // tirou um dedo da pinça: o outro continua arrastando
+      if (touches.size === 1) { const [id] = touches.keys(); gesture = { kind: 'pan', id }; }
+      else if (!touches.size) gesture = null;
+      cam.settle();
+      return;
+    }
+    if (!touches.size) gesture = null;
+    if (g && g.kind === 'pan') { cam.settle(); return; }
+    if (cancelled || !g || g.kind !== 'tap' || g.id !== ev.pointerId) return;
+    if (Math.hypot(ev.clientX - g.cx, ev.clientY - g.cy) >= DRAG_PX) return;
+    if (cam.inMini(g.sx, g.sy)) { cam.jumpFromMini(g.sx, g.sy); cam.settle(); return; }
+    const p = cam.toWorld(g.sx, g.sy);
+    setHover(p);
+    onPoint(p, true);
+  }
+
+  canvas.addEventListener('pointermove', ev => {
+    if (isTouchEv(ev)) { touchMove(ev); return; }
+    setHover(pointFrom(ev));
   });
   canvas.addEventListener('pointerleave', ev => {
-    if (ev.pointerType === 'touch') return;
+    if (isTouchEv(ev)) return;
     G.S.hover = null; G.S.hoverPx = null;
   });
   canvas.addEventListener('pointerdown', ev => {
+    if (isTouchEv(ev)) { touchDown(ev); return; }
     if (ev.button === 2) { cancel(); return; }
-    const p = pointFrom(ev);
-    G.S.hoverPx = p;
-    G.S.hover = { c: Math.floor(p.x / T), r: Math.floor(p.y / T) };
-    onPoint(p, ev.pointerType === 'touch' || ev.pointerType === 'pen');
+    const s = screenFrom(ev);
+    if (cam.inMini(s.x, s.y)) { cam.jumpFromMini(s.x, s.y); cam.settle(); return; }
+    const p = cam.toWorld(s.x, s.y);
+    setHover(p);
+    onPoint(p, false);
   });
+  canvas.addEventListener('pointerup', ev => { if (isTouchEv(ev)) touchUp(ev, false); });
+  canvas.addEventListener('pointercancel', ev => { if (isTouchEv(ev)) touchUp(ev, true); });
+  // roda do mouse: aproxima em volta do cursor
+  let wheelTimer = 0;
+  canvas.addEventListener('wheel', ev => {
+    if (!G.S.inGame) return;
+    ev.preventDefault();
+    const s = screenFrom(ev), w = cam.toWorld(s.x, s.y);
+    cam.anim = null;
+    cam.zoomAt(cam.z * Math.exp(-ev.deltaY * 0.0015), w.x, w.y);
+    clearTimeout(wheelTimer);
+    wheelTimer = setTimeout(cam.settle, 150);
+  }, { passive: false });
+  // no iPhone a pinça também dispara os gestos próprios do Safari: sem isso a página inteira aumenta
+  canvas.addEventListener('gesturestart', ev => ev.preventDefault());
+
+  const zoomIn = $('zoomIn'), zoomOut = $('zoomOut');
+  if (zoomIn && zoomOut) {
+    zoomIn.addEventListener('click', () => cam.step(1.4));
+    zoomOut.addEventListener('click', () => cam.step(1 / 1.4));
+  }
+  let lastZoomUi = '';
+  function syncZoomUi() {
+    syncTouchAction();
+    const key = `${cam.z >= cam.MAX_Z - 0.01}|${!cam.zoomed()}`;
+    if (key === lastZoomUi || !zoomIn) return;
+    lastZoomUi = key;
+    zoomIn.disabled = cam.z >= cam.MAX_Z - 0.01;
+    zoomOut.disabled = !cam.zoomed();
+  }
   canvas.addEventListener('contextmenu', ev => ev.preventDefault());
 
   ui.info.addEventListener('click', ev => {
@@ -639,6 +764,8 @@
     const running = S.inGame && !S.paused && !S.over && !S.halted && !S.menuOpen && !TD.blessings.isOpen();
     if (running) for (let i = 0; i < S.speed && !G.S.over; i++) G.update(dt);
     if (pendingEnd && !G.celebrate(dt)) showEnd(pendingEnd);
+    TD.camera.tick(dt);
+    syncZoomUi();
     TD.scene.draw(dt);
     syncHud();
     TD.tutorial.sync();
